@@ -81,6 +81,12 @@ from plugins.memory.claudia import (
     schema,
     verification,
 )
+from plugins.memory.claudia.budget import (
+    BudgetDecision,
+    BudgetState,
+    decide_budget,
+    update_budget_state,
+)
 from plugins.memory.claudia.commitment_detector import (
     CommitmentDetector,
     DetectedCommitment,
@@ -247,6 +253,11 @@ class ClaudiaMemoryProvider(MemoryProvider):
         self._pending_cognitive_futures: List[concurrent.futures.Future] = []
         self._cognitive_lock = threading.Lock()
 
+        # Phase 2B.5: cost governance state. ``on_turn_start``
+        # updates this via update_budget_state. Every other hook
+        # reads it and calls decide_budget() for a fresh decision.
+        self._budget_state: BudgetState = BudgetState()
+
     # ── Required ABC members ──────────────────────────────────────────
 
     @property
@@ -379,6 +390,32 @@ class ClaudiaMemoryProvider(MemoryProvider):
 
     # ── Optional lifecycle hooks ──────────────────────────────────────
 
+    def on_turn_start(
+        self,
+        turn_number: int,
+        message: str,
+        **kwargs: Any,
+    ) -> None:
+        """Update the cost-governance state from ``remaining_tokens``.
+
+        The ABC may pass ``remaining_tokens`` in kwargs. We read it,
+        stash it on self, and let every subsequent hook in this
+        turn (prefetch, sync_turn, system_prompt_block) call
+        ``decide_budget(self._budget_state)`` to decide how much
+        work to do.
+
+        Per the ABC contract, this hook MUST NOT block the turn —
+        real enforcement of budgets happens in ``run_agent.py``.
+        Claudia just reads the signal and gracefully degrades her
+        own contribution to the prompt when room is tight.
+        """
+        self._budget_state = update_budget_state(
+            self._budget_state,
+            kwargs,
+            now=datetime.now(timezone.utc),
+            turn_number=turn_number,
+        )
+
     def system_prompt_block(self) -> str:
         """Inject mode + compact stats into the system prompt.
 
@@ -411,18 +448,25 @@ class ClaudiaMemoryProvider(MemoryProvider):
         one-shot search, and formats results as compact bullets. The
         reader connection is returned to the pool on exit, allowing
         other threads to run prefetch in parallel.
+
+        Phase 2B.5: the result limit is governed by
+        ``decide_budget(self._budget_state).prefetch_limit`` so a
+        tight token budget produces a smaller recall payload.
         """
         if self._reader_pool is None or self._router is None:
             return ""
         if not query or not query.strip():
             return ""
 
+        decision = decide_budget(self._budget_state)
+        limit = decision.prefetch_limit
+
         with self._reader_pool.acquire() as conn:
             results = self._router.search(
                 conn,
                 query,
                 profile=self._profile,
-                limit=10,
+                limit=limit,
             )
 
         if not results:
@@ -491,10 +535,20 @@ class ClaudiaMemoryProvider(MemoryProvider):
             importance=0.5,
         )
 
-        self._enqueue_extract(combined, source_ref=source_ref)
-        self._enqueue_detect_commitments(
-            user_content, source_ref=source_ref
-        )
+        # Phase 2B.5: cost governance. If remaining_tokens is
+        # critically low, skip extraction and detection entirely —
+        # both are best-effort background work that can be deferred
+        # without corrupting the conversation. The memory insert
+        # above is NOT skipped because it's the source of truth.
+        decision = decide_budget(self._budget_state)
+
+        if not decision.skip_extraction:
+            self._enqueue_extract(combined, source_ref=source_ref)
+
+        if not decision.skip_detection:
+            self._enqueue_detect_commitments(
+                user_content, source_ref=source_ref
+            )
 
     def flush(self, timeout: float = 5.0) -> bool:
         """Wait for all pending extractions and writes to drain.
