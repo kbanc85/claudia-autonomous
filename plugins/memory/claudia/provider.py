@@ -255,12 +255,61 @@ MEMORY_STATUS_SCHEMA: Dict[str, Any] = {
 }
 
 
+MEMORY_COMMITMENT_COMPLETE_SCHEMA: Dict[str, Any] = {
+    "name": "memory.commitment_complete",
+    "description": (
+        "Mark a tracked commitment as completed. Use this when "
+        "the user confirms they finished the task (e.g. 'I sent "
+        "the proposal'). Pass the commitment id from a previous "
+        "memory.commitments call. Returns the updated commitment "
+        "with status='completed' and a completed_at timestamp."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "id": {
+                "type": "integer",
+                "description": (
+                    "The commitment id from memory.commitments."
+                ),
+            },
+        },
+        "required": ["id"],
+    },
+}
+
+
+MEMORY_COMMITMENT_DROP_SCHEMA: Dict[str, Any] = {
+    "name": "memory.commitment_drop",
+    "description": (
+        "Mark a tracked commitment as dropped (the user explicitly "
+        "abandoning it, not completing it). Use this when the user "
+        "says 'never mind about X' or 'forget that promise'. "
+        "Returns the updated commitment with status='dropped'."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "id": {
+                "type": "integer",
+                "description": (
+                    "The commitment id from memory.commitments."
+                ),
+            },
+        },
+        "required": ["id"],
+    },
+}
+
+
 _ALL_TOOL_SCHEMAS = [
     MEMORY_RECALL_SCHEMA,
     MEMORY_REMEMBER_SCHEMA,
     MEMORY_ABOUT_SCHEMA,
     MEMORY_COMMITMENTS_SCHEMA,
     MEMORY_STATUS_SCHEMA,
+    MEMORY_COMMITMENT_COMPLETE_SCHEMA,
+    MEMORY_COMMITMENT_DROP_SCHEMA,
 ]
 
 
@@ -1138,6 +1187,10 @@ class ClaudiaMemoryProvider(MemoryProvider):
                 return self._handle_commitments(args)
             if tool_name == "memory.status":
                 return self._handle_status(args)
+            if tool_name == "memory.commitment_complete":
+                return self._handle_commitment_complete(args)
+            if tool_name == "memory.commitment_drop":
+                return self._handle_commitment_drop(args)
             return json.dumps({"error": f"unknown tool: {tool_name}"})
         except Exception as exc:
             logger.exception("claudia memory tool call failed: %s", tool_name)
@@ -1324,6 +1377,100 @@ class ClaudiaMemoryProvider(MemoryProvider):
                 }
                 for row in rows
             ]
+        })
+
+    def _handle_commitment_complete(
+        self,
+        args: Dict[str, Any],
+    ) -> str:
+        """Mark a commitment as completed (Phase 2C.7).
+
+        Wraps commitments.update_commitment_status via the writer
+        queue so the status transition commits in the writer's
+        transaction. Returns JSON with the updated commitment or
+        an error.
+        """
+        return self._handle_commitment_status_transition(
+            args, "completed", "memory.commitment_complete"
+        )
+
+    def _handle_commitment_drop(
+        self,
+        args: Dict[str, Any],
+    ) -> str:
+        """Mark a commitment as dropped (Phase 2C.7).
+
+        Dropped means the user explicitly abandoned the task, as
+        opposed to completing it. No completed_at is set.
+        """
+        return self._handle_commitment_status_transition(
+            args, "dropped", "memory.commitment_drop"
+        )
+
+    def _handle_commitment_status_transition(
+        self,
+        args: Dict[str, Any],
+        new_status: str,
+        tool_name: str,
+    ) -> str:
+        """Shared helper for commitment state-mutation tools.
+
+        Validates the id argument, submits the status update
+        through the writer queue, and returns a JSON result.
+        Missing/invalid id returns an error. Unknown id (not in
+        profile, soft-deleted, etc.) returns an error.
+        """
+        raw_id = args.get("id")
+        if raw_id is None:
+            return json.dumps({
+                "error": f"{tool_name}: missing required parameter 'id'"
+            })
+        try:
+            commitment_id = int(raw_id)
+        except (TypeError, ValueError):
+            return json.dumps({
+                "error": (
+                    f"{tool_name}: 'id' must be an integer, "
+                    f"got {raw_id!r}"
+                )
+            })
+
+        if self._writer is None:
+            return json.dumps({"error": f"{tool_name}: provider not initialized"})
+
+        profile = self._profile
+
+        def _job(conn):
+            return commitments_module.update_commitment_status(
+                conn,
+                commitment_id,
+                new_status,
+                profile=profile,
+            )
+
+        updated = self._writer.enqueue_and_wait(_job, timeout=5.0)
+        if updated is None:
+            return json.dumps({
+                "error": (
+                    f"{tool_name}: no commitment with id {commitment_id} "
+                    f"in profile {profile!r} (may be deleted or in "
+                    "another profile)"
+                )
+            })
+
+        return json.dumps({
+            "ok": True,
+            "commitment": {
+                "id": updated.id,
+                "content": updated.content,
+                "status": updated.status,
+                "deadline": updated.deadline,
+                "source_type": updated.source_type,
+                "source_ref": updated.source_ref,
+                "created_at": updated.created_at,
+                "updated_at": updated.updated_at,
+                "completed_at": updated.completed_at,
+            },
         })
 
     def _handle_status(self, args: Dict[str, Any]) -> str:
