@@ -1,4 +1,8 @@
-# Claudia
+<p align="center">
+  <img src="assets/claudia.png" alt="Claudia" width="134" height="135">
+</p>
+
+<h1 align="center">Claudia</h1>
 
 <p align="center">
   <strong>Terminal-based AI chief of staff. Remembers relationships, tracks commitments, helps you think strategically.</strong>
