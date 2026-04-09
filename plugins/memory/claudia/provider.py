@@ -615,6 +615,90 @@ class ClaudiaMemoryProvider(MemoryProvider):
 
     # ── Optional lifecycle hooks ──────────────────────────────────────
 
+    def on_session_end(
+        self,
+        messages: List[Dict[str, Any]],
+    ) -> None:
+        """End-of-session hook (Phase 2C.6).
+
+        Flushes any pending cognitive work so in-flight extractions
+        and commitment detections land in the DB before the session
+        marker closes. This is softer than ``shutdown()`` because
+        it leaves the writer and reader pool alive — the host may
+        still reuse the provider for another session without
+        re-initializing.
+
+        No-op for non-primary agent_context (cron / subagent /
+        flush) since those contexts don't write anyway. No-op for
+        a shutdown provider (writer is gone).
+
+        Does NOT run extraction or detection on the full message
+        history — per-turn sync_turn calls already handled that,
+        and re-processing the full history would be expensive and
+        duplicative.
+        """
+        if self._writer is None:
+            return
+        if self._agent_context != "primary":
+            return
+        # Soft flush — host may continue the session
+        self.flush(timeout=5.0)
+
+    def on_pre_compress(
+        self,
+        messages: List[Dict[str, Any]],
+    ) -> str:
+        """Pre-compression hook (Phase 2C.6).
+
+        Called by the host BEFORE context compression discards old
+        messages. The return string is injected into the compressor's
+        summary prompt so provider-extracted insights aren't lost
+        when the raw conversation is thrown away.
+
+        Claudia returns a bullet list of the top recent memories
+        from the current profile, ordered by recency × importance,
+        capped at 5 bullets. The compressor sees these as
+        "high-signal content to preserve" and their information is
+        kept in the summary even when the original turns are gone.
+
+        Returns an empty string if:
+        - The provider is shutdown (no reader pool)
+        - The profile has no memories
+        - An internal error occurs (logged at DEBUG)
+        """
+        if self._reader_pool is None:
+            return ""
+
+        try:
+            with self._reader_pool.acquire() as conn:
+                rows = conn.execute(
+                    """
+                    SELECT content, importance, source_type
+                    FROM memories
+                    WHERE profile = ? AND deleted_at IS NULL
+                    ORDER BY accessed_at DESC, importance DESC
+                    LIMIT 5
+                    """,
+                    (self._profile,),
+                ).fetchall()
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.debug("on_pre_compress reader query failed: %s", exc)
+            return ""
+
+        if not rows:
+            return ""
+
+        lines = ["Claudia-preserved memories (from compressed window):"]
+        for row in rows:
+            provenance = ""
+            if row["source_type"]:
+                provenance = f" [{row['source_type']}]"
+            lines.append(
+                f"- {row['content']} "
+                f"(importance={row['importance']:.2f}){provenance}"
+            )
+        return "\n".join(lines)
+
     def on_turn_start(
         self,
         turn_number: int,
