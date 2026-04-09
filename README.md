@@ -36,41 +36,85 @@ Talk to her from the terminal, from Telegram, Discord, Slack, WhatsApp, Signal, 
 
 ## Install
 
-**One-line installer** (macOS, Linux, WSL2):
+### macOS, Linux, WSL2
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/kbanc85/claudia-autonomous/main/install.sh | bash
 ```
 
-The installer checks prerequisites (git, curl, python3 ≥ 3.11), installs [Ollama](https://ollama.com) if missing, clones the repo to `~/claudia-autonomous`, runs `setup-claudia.sh` (uv-based venv + editable install), symlinks the `claudia` CLI into `~/.local/bin`, and pulls the two default Ollama models for the hybrid memory plugin (`all-minilm:l6-v2` for embeddings, `qwen2.5:3b` for extraction).
+### Windows (PowerShell)
 
-Native Windows is not supported. WSL2 works.
+```powershell
+iwr -useb https://raw.githubusercontent.com/kbanc85/claudia-autonomous/main/install.ps1 | iex
+```
 
-After the installer finishes:
+Runs in Windows PowerShell 5.1 (built in) or PowerShell 7+. No execution policy change needed: the `iwr | iex` pattern runs the installer as an in-memory expression, which bypasses the on-disk execution policy check the way Scoop and uv do.
+
+### What the installer does
+
+Both installers check prerequisites (git, python 3.11+, Ollama), install anything missing (Homebrew / `apt` / `winget` depending on your OS), clone the repo, create a venv via `uv`, install the package in editable mode, put the `claudia` CLI on your `PATH`, and pull the two default Ollama models for the hybrid memory plugin (`all-minilm:l6-v2` ~23 MB for embeddings, `qwen2.5:3b` ~2 GB for entity extraction and commitment detection).
+
+Default install location:
+
+| OS | Path |
+|---|---|
+| macOS, Linux, WSL2 | `~/claudia-autonomous` |
+| Windows | `%USERPROFILE%\claudia-autonomous` |
+
+### After the installer finishes
+
+**macOS / Linux / WSL2:**
 
 ```bash
-source ~/.zshrc            # or ~/.bashrc — reload shell so ~/.local/bin is on PATH
+source ~/.zshrc            # or ~/.bashrc, so ~/.local/bin is on PATH
 claudia memory setup       # pick 'claudia' for the trust-aware memory provider
 claudia doctor             # verify everything is wired up
 claudia                    # start chatting
 ```
 
-**Environment overrides** for the installer:
+**Windows:**
 
-| Variable | Default | Purpose |
+```powershell
+# Close this PowerShell window and open a new one so the updated PATH takes effect
+claudia memory setup       # pick 'claudia' for the trust-aware memory provider
+claudia doctor             # verify everything is wired up
+claudia                    # start chatting
+```
+
+### Environment overrides
+
+Both installers honor the same environment variables. On Windows, set them in the same PowerShell session BEFORE running the `iwr | iex` line:
+
+| Variable | Default (Unix / Windows) | Purpose |
 |---|---|---|
-| `INSTALL_DIR` | `~/claudia-autonomous` | Where to clone the repo |
+| `INSTALL_DIR` | `~/claudia-autonomous` / `%USERPROFILE%\claudia-autonomous` | Where to clone the repo |
 | `BRANCH` | `main` | Branch or tag to check out (use a release tag for stability) |
-| `SKIP_OLLAMA` | unset | Skip Ollama install + model pull (useful if you already have it) |
-| `SKIP_MODELS` | unset | Skip model pull only (useful if Ollama daemon isn't running yet) |
-| `SKIP_SETUP` | unset | Skip running `setup-claudia.sh` (clone only) |
+| `SKIP_OLLAMA` | unset | Skip Ollama install and model pull |
+| `SKIP_MODELS` | unset | Skip model pull only (Ollama is still installed) |
+| `SKIP_SETUP` | unset | Skip running the setup script (clone only) |
 
-**Dev setup** (if you're contributing, clone manually):
+Windows example with overrides:
+
+```powershell
+$env:INSTALL_DIR = 'D:\dev\claudia'
+$env:BRANCH      = 'v1.0.0'
+iwr -useb https://raw.githubusercontent.com/kbanc85/claudia-autonomous/main/install.ps1 | iex
+```
+
+### Dev setup (clone manually)
 
 ```bash
+# macOS / Linux / WSL2
 git clone https://github.com/kbanc85/claudia-autonomous.git
 cd claudia-autonomous
 ./setup-claudia.sh
+```
+
+```powershell
+# Windows
+git clone https://github.com/kbanc85/claudia-autonomous.git
+cd claudia-autonomous
+.\setup-claudia.ps1
 ```
 
 ## Getting started
