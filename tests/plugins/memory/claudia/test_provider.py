@@ -96,6 +96,26 @@ class _TestProvider(ClaudiaMemoryProvider):
         return _FakeEmbedder(script=self._script)
 
 
+def _count_memories(p) -> int:
+    """Helper: acquire a reader connection and count rows.
+
+    Most tests that used to do ``provider._conn.execute("SELECT ...")``
+    now need to flush the writer and acquire a reader. This helper
+    wraps the common pattern.
+    """
+    assert p.flush(timeout=5.0), "writer flush timed out"
+    with p._reader_pool.acquire() as conn:
+        row = conn.execute("SELECT COUNT(*) AS n FROM memories").fetchone()
+    return row["n"]
+
+
+def _read(p, sql, params=()):
+    """Helper: run a SELECT through the reader pool and return the row."""
+    assert p.flush(timeout=5.0), "writer flush timed out"
+    with p._reader_pool.acquire() as conn:
+        return conn.execute(sql, params).fetchone()
+
+
 # ─── Fixtures ───────────────────────────────────────────────────────────
 
 
@@ -225,28 +245,23 @@ class TestAgentContextFilter:
     def test_primary_writes(self, fresh_provider):
         p = fresh_provider(agent_context="primary")
         p.sync_turn("hello", "world")
-        # One memory written
-        conn = p._conn
-        row = conn.execute("SELECT COUNT(*) AS n FROM memories").fetchone()
-        assert row["n"] == 1
+        # sync_turn is async now — flush before checking row count
+        assert _count_memories(p) == 1
 
     def test_cron_skips_writes(self, fresh_provider):
         p = fresh_provider(agent_context="cron")
         p.sync_turn("hello", "world")
-        row = p._conn.execute("SELECT COUNT(*) AS n FROM memories").fetchone()
-        assert row["n"] == 0
+        assert _count_memories(p) == 0
 
     def test_subagent_skips_writes(self, fresh_provider):
         p = fresh_provider(agent_context="subagent")
         p.sync_turn("hello", "world")
-        row = p._conn.execute("SELECT COUNT(*) AS n FROM memories").fetchone()
-        assert row["n"] == 0
+        assert _count_memories(p) == 0
 
     def test_flush_skips_writes(self, fresh_provider):
         p = fresh_provider(agent_context="flush")
         p.sync_turn("hello", "world")
-        row = p._conn.execute("SELECT COUNT(*) AS n FROM memories").fetchone()
-        assert row["n"] == 0
+        assert _count_memories(p) == 0
 
 
 # ─── system_prompt_block ────────────────────────────────────────────────
@@ -401,9 +416,11 @@ class TestMemoryRemember:
             "memory.remember", {"content": "x", "importance": 5.0}
         )
         mem_id = json.loads(result)["memory_id"]
-        row = provider._conn.execute(
-            "SELECT importance FROM memories WHERE id = ?", (mem_id,)
-        ).fetchone()
+        row = _read(
+            provider,
+            "SELECT importance FROM memories WHERE id = ?",
+            (mem_id,),
+        )
         assert row["importance"] == 1.0
 
         # Below 0.0
@@ -411,9 +428,11 @@ class TestMemoryRemember:
             "memory.remember", {"content": "y", "importance": -0.5}
         )
         mem_id = json.loads(result)["memory_id"]
-        row = provider._conn.execute(
-            "SELECT importance FROM memories WHERE id = ?", (mem_id,)
-        ).fetchone()
+        row = _read(
+            provider,
+            "SELECT importance FROM memories WHERE id = ?",
+            (mem_id,),
+        )
         assert row["importance"] == 0.0
 
     def test_custom_source_type(self, provider):
@@ -422,9 +441,11 @@ class TestMemoryRemember:
             {"content": "from email", "source_type": "gmail"},
         )
         mem_id = json.loads(result)["memory_id"]
-        row = provider._conn.execute(
-            "SELECT source_type FROM memories WHERE id = ?", (mem_id,)
-        ).fetchone()
+        row = _read(
+            provider,
+            "SELECT source_type FROM memories WHERE id = ?",
+            (mem_id,),
+        )
         assert row["source_type"] == "gmail"
 
 
@@ -446,15 +467,17 @@ class TestMemoryAbout:
         assert "message" in data
 
     def test_finds_entity_by_name(self, provider):
-        entities_module.create_entity(
-            provider._conn,
-            "person",
-            "Sarah",
-            attributes={"role": "PM"},
-        )
-        result = provider.handle_tool_call(
-            "memory.about", {"name": "Sarah"}
-        )
+        # Write through the writer queue so the tests mirror the real path.
+        # A plain reader-pool conn would also work (schema conns are
+        # read-write) but using the writer is more representative.
+        def _create(conn):
+            entities_module.create_entity(
+                conn, "person", "Sarah", attributes={"role": "PM"}
+            )
+
+        provider._writer.enqueue_and_wait(_create, timeout=5.0)
+
+        result = provider.handle_tool_call("memory.about", {"name": "Sarah"})
         data = json.loads(result)
         assert data["result"] is not None
         assert data["result"]["name"] == "Sarah"
@@ -462,22 +485,24 @@ class TestMemoryAbout:
         assert data["result"]["attributes"] == {"role": "PM"}
 
     def test_finds_entity_by_alias(self, provider):
-        entities_module.create_entity(
-            provider._conn,
-            "person",
-            "Sarah Chen",
-            aliases=["Sarah", "schen"],
-        )
-        result = provider.handle_tool_call(
-            "memory.about", {"name": "schen"}
-        )
+        def _create(conn):
+            entities_module.create_entity(
+                conn, "person", "Sarah Chen", aliases=["Sarah", "schen"]
+            )
+
+        provider._writer.enqueue_and_wait(_create, timeout=5.0)
+
+        result = provider.handle_tool_call("memory.about", {"name": "schen"})
         data = json.loads(result)
         assert data["result"] is not None
         assert data["result"]["name"] == "Sarah Chen"
 
     def test_kind_filter(self, provider):
-        entities_module.create_entity(provider._conn, "person", "Mercury")
-        entities_module.create_entity(provider._conn, "project", "Mercury")
+        def _create(conn):
+            entities_module.create_entity(conn, "person", "Mercury")
+            entities_module.create_entity(conn, "project", "Mercury")
+
+        provider._writer.enqueue_and_wait(_create, timeout=5.0)
 
         person_result = provider.handle_tool_call(
             "memory.about", {"name": "Mercury", "kind": "person"}
@@ -490,39 +515,87 @@ class TestMemoryAbout:
         assert json.loads(project_result)["result"]["kind"] == "project"
 
     def test_includes_relationships(self, provider):
-        alice = entities_module.create_entity(provider._conn, "person", "Alice")
-        bob = entities_module.create_entity(provider._conn, "person", "Bob")
-        entities_module.create_relationship(
-            provider._conn, alice.id, bob.id, "colleague", health_score=0.8
-        )
+        ids = {}
 
-        result = provider.handle_tool_call(
-            "memory.about", {"name": "Alice"}
-        )
+        def _create(conn):
+            alice = entities_module.create_entity(conn, "person", "Alice")
+            bob = entities_module.create_entity(conn, "person", "Bob")
+            entities_module.create_relationship(
+                conn, alice.id, bob.id, "colleague", health_score=0.8
+            )
+            ids["bob"] = bob.id
+            return bob.id
+
+        provider._writer.enqueue_and_wait(_create, timeout=5.0)
+
+        result = provider.handle_tool_call("memory.about", {"name": "Alice"})
         data = json.loads(result)
         rels = data["result"]["relationships"]
         assert len(rels) == 1
         assert rels[0]["type"] == "colleague"
-        assert rels[0]["to_entity_id"] == bob.id
+        assert rels[0]["to_entity_id"] == ids["bob"]
 
 
 # ─── shutdown ───────────────────────────────────────────────────────────
 
 
+class TestFlush:
+    def test_flush_returns_true_on_empty_queue(self, provider):
+        assert provider.flush(timeout=5.0) is True
+
+    def test_flush_waits_for_async_writes(self, provider):
+        # Enqueue a handful of async writes
+        for i in range(5):
+            provider.sync_turn(f"user {i}", f"asst {i}")
+        assert provider.flush(timeout=5.0)
+        # All 5 should be visible via reader pool
+        assert _count_memories(provider) == 5
+
+    def test_flush_on_uninitialized_provider(self):
+        p = ClaudiaMemoryProvider()
+        # Uninitialized provider has no writer; flush should no-op True
+        assert p.flush() is True
+
+
 class TestShutdown:
-    def test_closes_connection(self, tmp_path):
+    def test_closes_writer_and_pool(self, tmp_path):
         p = _TestProvider()
         p.initialize(session_id="s1", claudia_home=str(tmp_path), platform="cli")
-        assert p._conn is not None
+        assert p._writer is not None
+        assert p._reader_pool is not None
+        assert p._writer.is_running
 
         p.shutdown()
-        assert p._conn is None
+        assert p._writer is None
+        assert p._reader_pool is None
 
     def test_shutdown_idempotent(self, tmp_path):
         p = _TestProvider()
         p.initialize(session_id="s1", claudia_home=str(tmp_path), platform="cli")
         p.shutdown()
         p.shutdown()  # no-op, no error
+
+    def test_shutdown_drains_pending_writes(self, tmp_path):
+        """Graceful shutdown must wait for queued writes to commit."""
+        p = _TestProvider()
+        p.initialize(session_id="s1", claudia_home=str(tmp_path), platform="cli")
+
+        # Enqueue many writes, then shutdown immediately. The writer
+        # thread should drain them all before joining.
+        for i in range(20):
+            p.sync_turn(f"user {i}", f"assistant {i}")
+
+        p.shutdown()
+
+        # Open a fresh conn and verify all 20 rows are present
+        import sqlite3
+        db_path = tmp_path / "memory" / "claudia" / "claudia.db"
+        conn = sqlite3.connect(str(db_path))
+        try:
+            row = conn.execute("SELECT COUNT(*) FROM memories").fetchone()
+            assert row[0] == 20
+        finally:
+            conn.close()
 
 
 # ─── register() ─────────────────────────────────────────────────────────

@@ -180,19 +180,36 @@ MIGRATIONS: List[Tuple[int, str, str]] = [
 
 # ─── Public API ─────────────────────────────────────────────────────────
 
-def open_connection(db_path: Path) -> sqlite3.Connection:
+def open_connection(
+    db_path: Path,
+    *,
+    check_same_thread: bool = True,
+) -> sqlite3.Connection:
     """Open a SQLite connection configured for Claudia memory.
 
     Sets WAL journal mode (required for the Phase 2A.3 concurrency
     design), enables foreign keys, and configures reasonable busy
     timeout.
 
+    ``check_same_thread`` defaults to True (the Python sqlite3
+    safe default), meaning the returned connection may only be
+    used from the thread that created it. The reader pool in
+    ``reader.py`` passes ``check_same_thread=False`` because its
+    connections migrate between threads on every acquire/release
+    cycle; the writer thread in ``writer.py`` uses the default
+    because a single thread owns the connection for its lifetime.
+    Everywhere else (tests, admin paths) uses the default.
+
     The caller is responsible for closing the connection.
     """
     db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
-    conn = sqlite3.connect(str(db_path), isolation_level=None)  # autocommit mode
+    conn = sqlite3.connect(
+        str(db_path),
+        isolation_level=None,  # autocommit mode
+        check_same_thread=check_same_thread,
+    )
     conn.row_factory = sqlite3.Row
 
     # Pragma configuration. Run before any schema application.

@@ -1,62 +1,70 @@
-"""ClaudiaMemoryProvider — MemoryProvider ABC implementation (Phase 2A.2f).
+"""ClaudiaMemoryProvider — MemoryProvider ABC implementation.
 
-The final sub-task of Phase 2A.2: wires the five implementation
-modules (schema, embeddings, hybrid_search, entities, offline) into
-a single class that satisfies ``agent/memory_provider.MemoryProvider``
-and registers with the plugin system via ``register(ctx)``.
+Wires the seven implementation modules (schema, embeddings,
+hybrid_search, entities, offline, writer, reader) into a single
+class that satisfies ``agent/memory_provider.MemoryProvider`` and
+registers with the plugin system via ``register(ctx)``.
 
-Layered design, from bottom to top:
+Layered design (Phase 2A.3 concurrent update):
 
-1. ``schema.ensure_database(db_path)`` — opens a WAL-mode connection,
-   applies pending migrations. One per provider instance. Lives for
-   the duration of the session.
-2. ``embeddings.OllamaEmbedder`` — lazy Ollama client. Probed on
-   first embed call, cached thereafter.
-3. ``offline.OfflineRouter(embedder)`` — decides which
+1. ``schema.ensure_database(db_path)`` — applies migrations on a
+   one-shot connection during ``initialize``. The writer and reader
+   pool each open their own connections after migrations are done.
+2. ``writer.WriterQueue`` — single background thread owning one
+   sqlite3 connection. All writes go through its enqueue path.
+3. ``reader.ReaderPool`` — bounded pool of N reader connections
+   (default 4) for concurrent prefetch / memory.recall / memory.about
+   calls. Uses ``check_same_thread=False`` so connections travel
+   between threads.
+4. ``embeddings.OllamaEmbedder`` — lazy Ollama client. Probed on
+   first embed call, cached thereafter. Embeddings are generated
+   BEFORE enqueueing the write job so HTTP latency doesn't stall
+   the writer thread.
+5. ``offline.OfflineRouter(embedder)`` — decides which
    ``HybridWeights`` preset to use each query.
-4. ``hybrid_search.search`` — called via ``router.search`` or
-   directly for the 50/25/10/15 composite scoring.
-5. ``entities.*`` — entity CRUD for the memory.about tool handler
-   and for extraction during sync_turn.
+6. ``hybrid_search.search`` — called via ``router.search`` for the
+   50/25/10/15 composite ranking.
+7. ``entities.*`` — entity CRUD for ``memory.about``.
 
-Lifecycle:
+Thread safety:
 
-- ``initialize(session_id, **kwargs)`` reads ``claudia_home``,
-  resolves a profile name, opens the DB, and constructs the
-  embedder + router. Does NOT probe Ollama (the ABC forbids
-  network I/O in initialize).
-- ``prefetch(query)`` and ``sync_turn(u, a)`` are the hot paths —
-  called before and after each API call respectively.
-- ``handle_tool_call`` dispatches memory.recall / memory.remember
-  / memory.about.
-- ``shutdown()`` closes the connection.
+- ``sync_turn`` is non-blocking: it generates the embedding on the
+  caller thread, then enqueues a fire-and-forget job into the
+  writer queue.
+- ``memory.remember`` is blocking: the caller expects the new row
+  id in the JSON response, so the provider enqueues a job and
+  waits on a marker event until the writer processes it.
+- ``prefetch``, ``memory.recall``, and ``memory.about`` run on the
+  caller's thread but acquire a reader connection from the pool
+  for each call, allowing N concurrent readers without cursor
+  contention.
+- ``system_prompt_block`` also uses the reader pool.
+- ``shutdown()`` stops the writer (draining pending jobs) and
+  closes the reader pool.
 
 Profile resolution priority: ``user_id`` > ``agent_identity`` >
-``agent_workspace`` > ``"default"``. The design doc calls for
-per-user memory isolation in gateway sessions, which means the
-platform user id wins when present; otherwise the provider falls
-back to the agent's identity scope.
+``agent_workspace`` > ``"default"``. Gateway sessions get
+per-user memory isolation automatically.
 
-agent_context filtering: writes are skipped for non-primary
-contexts (cron, subagent, flush) per the ABC guidance. Reads are
-always allowed — a subagent can recall from the parent's memory,
-it just can't write back.
+agent_context filtering: writes are skipped entirely for
+non-primary contexts (cron, subagent, flush). Reads are always
+allowed — a subagent can recall from the parent's memory, it
+just can't write back.
 
 Testability:
 
-The embedder and router are constructed via ``_make_embedder`` and
-``_make_router`` methods. Tests subclass ``ClaudiaMemoryProvider``
-and override these to inject scripted fakes without touching
-``httpx`` or a real Ollama daemon.
+The embedder, router, writer, and reader pool are constructed via
+``_make_*`` factory methods. Tests subclass
+``ClaudiaMemoryProvider`` and override these to inject scripted
+fakes without touching httpx or spawning real threads.
 
-Reference: docs/decisions/memory-provider-design.md (Phase 2A.2f)
+Reference: docs/decisions/memory-provider-design.md (Phase 2A.3)
 """
 
 from __future__ import annotations
 
 import json
 import logging
-import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -65,6 +73,8 @@ from agent.memory_provider import MemoryProvider
 from plugins.memory.claudia import entities, hybrid_search, schema
 from plugins.memory.claudia.embeddings import OllamaEmbedder
 from plugins.memory.claudia.offline import MemoryMode, OfflineRouter
+from plugins.memory.claudia.reader import DEFAULT_POOL_SIZE, ReaderPool
+from plugins.memory.claudia.writer import WriterQueue
 
 logger = logging.getLogger(__name__)
 
@@ -171,6 +181,17 @@ _ALL_TOOL_SCHEMAS = [
 ]
 
 
+# SQL for inserting a memory row. Shared between sync and async
+# insert paths so there's one source of truth for the column order.
+_INSERT_MEMORY_SQL = """
+INSERT INTO memories (
+    content, origin, confidence, importance, access_count,
+    embedding, embedding_dim, source_type, source_ref,
+    profile, created_at, accessed_at
+) VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)
+"""
+
+
 # ─── Provider implementation ────────────────────────────────────────────
 
 
@@ -178,7 +199,8 @@ class ClaudiaMemoryProvider(MemoryProvider):
     """Claudia's hybrid memory provider plugin."""
 
     def __init__(self) -> None:
-        self._conn: Optional[sqlite3.Connection] = None
+        self._writer: Optional[WriterQueue] = None
+        self._reader_pool: Optional[ReaderPool] = None
         self._db_path: Optional[Path] = None
         self._embedder: Optional[OllamaEmbedder] = None
         self._router: Optional[OfflineRouter] = None
@@ -205,7 +227,7 @@ class ClaudiaMemoryProvider(MemoryProvider):
         return True
 
     def initialize(self, session_id: str, **kwargs: Any) -> None:
-        """Open the DB, build the embedder, and wire up the router.
+        """Open the DB, apply migrations, start writer + reader pool.
 
         Required kwargs per the ABC: ``claudia_home``, ``platform``.
         Optional: ``agent_context``, ``agent_identity``,
@@ -218,13 +240,24 @@ class ClaudiaMemoryProvider(MemoryProvider):
         self._profile = self._resolve_profile(kwargs)
 
         self._db_path = self._claudia_home / "memory" / "claudia" / "claudia.db"
-        self._conn = schema.ensure_database(self._db_path)
+
+        # Apply migrations via a one-shot connection. The writer thread
+        # and reader pool will each open their own connections after
+        # this returns, so they never race on migration state.
+        init_conn = schema.ensure_database(self._db_path)
+        init_conn.close()
 
         self._embedder = self._make_embedder()
         self._router = self._make_router(self._embedder)
 
+        self._writer = self._make_writer()
+        self._writer.start()
+
+        self._reader_pool = self._make_reader_pool()
+
         logger.info(
-            "Claudia memory provider initialized: session=%s profile=%s context=%s db=%s",
+            "Claudia memory provider initialized: session=%s profile=%s "
+            "context=%s db=%s",
             session_id,
             self._profile,
             self._agent_context,
@@ -244,6 +277,16 @@ class ClaudiaMemoryProvider(MemoryProvider):
         """Construct the router. Tests override for custom presets or force modes."""
         return OfflineRouter(embedder)
 
+    def _make_writer(self) -> WriterQueue:
+        """Construct the writer queue. Tests can override for synchronous fakes."""
+        assert self._db_path is not None
+        return WriterQueue(self._db_path)
+
+    def _make_reader_pool(self) -> ReaderPool:
+        """Construct the reader pool. Tests can override pool size."""
+        assert self._db_path is not None
+        return ReaderPool(self._db_path, size=DEFAULT_POOL_SIZE)
+
     # ── Profile and home resolution ───────────────────────────────────
 
     @staticmethod
@@ -252,9 +295,6 @@ class ClaudiaMemoryProvider(MemoryProvider):
         explicit = kwargs.get("claudia_home")
         if explicit:
             return Path(explicit).expanduser()
-        # Lazy import — avoid forcing the claudia_constants dependency
-        # at module import time (tests may not have the full fork on
-        # sys.path when they subclass this provider).
         try:
             from claudia_constants import get_claudia_home
 
@@ -264,12 +304,7 @@ class ClaudiaMemoryProvider(MemoryProvider):
 
     @staticmethod
     def _resolve_profile(kwargs: Dict[str, Any]) -> str:
-        """Priority: user_id > agent_identity > agent_workspace > 'default'.
-
-        Platform user id wins when present so a gateway session with
-        multiple users gets per-user memory isolation automatically.
-        Otherwise the agent's identity or workspace scope is used.
-        """
+        """Priority: user_id > agent_identity > agent_workspace > 'default'."""
         for key in ("user_id", "agent_identity", "agent_workspace"):
             value = kwargs.get(key)
             if value:
@@ -281,13 +316,15 @@ class ClaudiaMemoryProvider(MemoryProvider):
     def system_prompt_block(self) -> str:
         """Inject mode + compact stats into the system prompt.
 
-        Budgeted ~500 tokens per the design doc, but in practice this
-        stays well under 100 tokens because the stats are just counts.
+        Uses a reader pool connection for the schema introspection
+        query so it doesn't contend with the writer thread.
         """
-        if self._conn is None or self._router is None:
+        if self._reader_pool is None or self._router is None:
             return ""
 
-        stats = schema.describe_schema(self._conn)
+        with self._reader_pool.acquire() as conn:
+            stats = schema.describe_schema(conn)
+
         decision = self._router.select_mode()
 
         return (
@@ -304,23 +341,24 @@ class ClaudiaMemoryProvider(MemoryProvider):
     def prefetch(self, query: str, *, session_id: str = "") -> str:
         """Run hybrid search on the current turn's query and format the result.
 
-        The router handles mode selection and the embed-then-search
-        orchestration; we just format the ``SearchResult`` list as
-        compact bullets with score, importance, and provenance.
-        Returns an empty string when there are no matches or the
-        provider is not yet initialized.
+        Acquires a reader connection from the pool, runs the router's
+        one-shot search, and formats results as compact bullets. The
+        reader connection is returned to the pool on exit, allowing
+        other threads to run prefetch in parallel.
         """
-        if self._conn is None or self._router is None:
+        if self._reader_pool is None or self._router is None:
             return ""
         if not query or not query.strip():
             return ""
 
-        results = self._router.search(
-            self._conn,
-            query,
-            profile=self._profile,
-            limit=10,
-        )
+        with self._reader_pool.acquire() as conn:
+            results = self._router.search(
+                conn,
+                query,
+                profile=self._profile,
+                limit=10,
+            )
+
         if not results:
             return ""
 
@@ -342,14 +380,17 @@ class ClaudiaMemoryProvider(MemoryProvider):
         *,
         session_id: str = "",
     ) -> None:
-        """Store the completed turn as a memory row.
+        """Store the completed turn as a memory row (async, non-blocking).
 
         Skipped entirely for non-primary agent contexts (cron,
         subagent, flush) per the ABC guidance — those contexts
-        should read but not write. A subagent's ephemeral work
-        does not belong in the user's long-term memory.
+        should read but not write.
+
+        Generates the embedding on the caller's thread so HTTP to
+        Ollama doesn't stall the writer, then enqueues a
+        fire-and-forget insert job.
         """
-        if self._conn is None:
+        if self._writer is None:
             return
         if self._agent_context != "primary":
             return
@@ -358,7 +399,7 @@ class ClaudiaMemoryProvider(MemoryProvider):
         if not combined:
             return
 
-        self._insert_memory(
+        self._enqueue_insert_memory(
             combined,
             origin="extracted",
             source_type="conversation",
@@ -366,14 +407,32 @@ class ClaudiaMemoryProvider(MemoryProvider):
             importance=0.5,
         )
 
+    def flush(self, timeout: float = 5.0) -> bool:
+        """Wait for all pending writes to drain.
+
+        Useful for tests, for callers that need read-your-writes
+        consistency, and for the shutdown path before stopping the
+        writer. Returns True if the queue drained within the timeout.
+        """
+        if self._writer is None:
+            return True
+        return self._writer.flush(timeout=timeout)
+
     def shutdown(self) -> None:
-        """Close the DB connection and clear state."""
-        if self._conn is not None:
+        """Stop the writer (draining pending jobs) and close the reader pool."""
+        if self._writer is not None:
             try:
-                self._conn.close()
-            except Exception as exc:  # pragma: no cover - defensive
-                logger.debug("Error closing claudia memory DB: %s", exc)
-            self._conn = None
+                self._writer.stop(timeout=10.0)
+            except Exception:  # pragma: no cover - defensive
+                logger.debug("Error stopping claudia writer")
+            self._writer = None
+
+        if self._reader_pool is not None:
+            try:
+                self._reader_pool.close()
+            except Exception:  # pragma: no cover - defensive
+                logger.debug("Error closing claudia reader pool")
+            self._reader_pool = None
 
     # ── Tool call dispatch ────────────────────────────────────────────
 
@@ -384,7 +443,7 @@ class ClaudiaMemoryProvider(MemoryProvider):
         **kwargs: Any,
     ) -> str:
         """Dispatch a memory.* tool call to its handler. Returns JSON string."""
-        if self._conn is None:
+        if self._writer is None or self._reader_pool is None:
             return json.dumps({"error": "claudia memory provider not initialized"})
 
         try:
@@ -410,13 +469,14 @@ class ClaudiaMemoryProvider(MemoryProvider):
         if limit > 50:
             limit = 50
 
-        assert self._conn is not None and self._router is not None
-        results = self._router.search(
-            self._conn,
-            query,
-            profile=self._profile,
-            limit=limit,
-        )
+        assert self._reader_pool is not None and self._router is not None
+        with self._reader_pool.acquire() as conn:
+            results = self._router.search(
+                conn,
+                query,
+                profile=self._profile,
+                limit=limit,
+            )
 
         return json.dumps(
             {
@@ -445,13 +505,16 @@ class ClaudiaMemoryProvider(MemoryProvider):
 
         source_type = str(args.get("source_type", "conversation"))
 
-        memory_id = self._insert_memory(
+        memory_id = self._insert_memory_sync(
             content,
             origin="user_stated",
             source_type=source_type,
             source_ref=self._session_id or "",
             importance=importance,
         )
+
+        if memory_id is None:
+            return json.dumps({"error": "failed to store memory (writer queue)"})
 
         return json.dumps(
             {
@@ -469,27 +532,29 @@ class ClaudiaMemoryProvider(MemoryProvider):
         if kind is not None:
             kind = str(kind)
 
-        assert self._conn is not None
-        entity = entities.find_entity(
-            self._conn,
-            name,
-            kind=kind,
-            profile=self._profile,
-        )
+        assert self._reader_pool is not None
 
-        if entity is None:
-            return json.dumps(
-                {
-                    "result": None,
-                    "message": f"no entity named {name!r}",
-                }
+        with self._reader_pool.acquire() as conn:
+            entity = entities.find_entity(
+                conn,
+                name,
+                kind=kind,
+                profile=self._profile,
             )
 
-        rels = entities.get_relationships(
-            self._conn,
-            entity.id,
-            profile=self._profile,
-        )
+            if entity is None:
+                return json.dumps(
+                    {
+                        "result": None,
+                        "message": f"no entity named {name!r}",
+                    }
+                )
+
+            rels = entities.get_relationships(
+                conn,
+                entity.id,
+                profile=self._profile,
+            )
 
         return json.dumps(
             {
@@ -515,7 +580,7 @@ class ClaudiaMemoryProvider(MemoryProvider):
             }
         )
 
-    # ── Internal helpers ──────────────────────────────────────────────
+    # ── Internal write helpers ────────────────────────────────────────
 
     @staticmethod
     def _format_turn(user: str, assistant: str) -> str:
@@ -528,7 +593,7 @@ class ClaudiaMemoryProvider(MemoryProvider):
             return f"User: {user}\nAssistant: {assistant}"
         return user or assistant
 
-    def _insert_memory(
+    def _build_insert_params(
         self,
         content: str,
         *,
@@ -536,43 +601,89 @@ class ClaudiaMemoryProvider(MemoryProvider):
         source_type: str,
         source_ref: str,
         importance: float,
-    ) -> int:
-        """Insert a memory row, generating an embedding if Ollama is available.
+    ) -> tuple:
+        """Build the parameter tuple for an _INSERT_MEMORY_SQL job.
 
-        Returns the new memory id. Safe to call even when the embedder
-        is offline — the embedding columns will be NULL and
-        hybrid_search will fall back to the non-vector signals.
+        Generates the embedding on the CALLER'S thread (not the
+        writer thread) so Ollama HTTP latency doesn't stall queue
+        processing. If the embedder is offline, ``embedding_blob``
+        and ``embedding_dim`` are None and hybrid_search will fall
+        back to the non-vector signals.
         """
-        assert self._conn is not None
-
-        embedding_blob: Optional[bytes] = None
-        embedding_dim: Optional[int] = None
+        embedding_blob = None
+        embedding_dim = None
         if self._embedder is not None:
             result = self._embedder.embed(content)
             if result is not None:
                 embedding_blob, embedding_dim = result
 
         now_iso = datetime.now(timezone.utc).isoformat()
-        cur = self._conn.execute(
-            """
-            INSERT INTO memories (
-                content, origin, confidence, importance, access_count,
-                embedding, embedding_dim, source_type, source_ref,
-                profile, created_at, accessed_at
-            ) VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                content,
-                origin,
-                0.9,
-                importance,
-                embedding_blob,
-                embedding_dim,
-                source_type,
-                source_ref,
-                self._profile,
-                now_iso,
-                now_iso,
-            ),
+        return (
+            content,
+            origin,
+            0.9,  # confidence
+            importance,
+            embedding_blob,
+            embedding_dim,
+            source_type,
+            source_ref,
+            self._profile,
+            now_iso,
+            now_iso,
         )
-        return int(cur.lastrowid)
+
+    def _enqueue_insert_memory(
+        self,
+        content: str,
+        *,
+        origin: str,
+        source_type: str,
+        source_ref: str,
+        importance: float,
+    ) -> None:
+        """Fire-and-forget async insert. Used by sync_turn."""
+        assert self._writer is not None
+
+        params = self._build_insert_params(
+            content,
+            origin=origin,
+            source_type=source_type,
+            source_ref=source_ref,
+            importance=importance,
+        )
+
+        def _job(conn):
+            conn.execute(_INSERT_MEMORY_SQL, params)
+
+        self._writer.enqueue(_job, block=False)
+
+    def _insert_memory_sync(
+        self,
+        content: str,
+        *,
+        origin: str,
+        source_type: str,
+        source_ref: str,
+        importance: float,
+    ) -> Optional[int]:
+        """Enqueue an insert and block until the writer processes it.
+
+        Used by memory.remember because the caller expects the new
+        row id in the tool response. Returns None on timeout or
+        enqueue failure.
+        """
+        assert self._writer is not None
+
+        params = self._build_insert_params(
+            content,
+            origin=origin,
+            source_type=source_type,
+            source_ref=source_ref,
+            importance=importance,
+        )
+
+        def _job(conn):
+            cur = conn.execute(_INSERT_MEMORY_SQL, params)
+            return int(cur.lastrowid)
+
+        return self._writer.enqueue_and_wait(_job, timeout=5.0)
