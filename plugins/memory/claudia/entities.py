@@ -327,13 +327,47 @@ def search_entities(
     Substring match, case-insensitive. Ordered by importance DESC,
     access_count DESC. Used for the "show me candidates" path — when
     the caller is not sure of the exact name.
+
+    Two non-query special cases:
+
+    - ``query == ""`` returns an empty list. An empty search is
+      treated as "no query, no results" rather than "give me
+      everything". This is a deliberate divergence from the v1
+      daemon's behavior: accidentally passing an empty string is a
+      common bug, and silently returning every entity would mask
+      it. Callers that explicitly want all entities should use the
+      ``"*"`` wildcard below.
+
+    - ``query == "*"`` returns all non-deleted entities in the
+      profile, respecting ``kind`` and ``limit``. Convenience for
+      UIs that want to show every known entity without a typed
+      query. Ported from v1's test_entity_search.py wildcard path.
     """
-    if not query:
+    if query is None or query == "":
         return []
 
     if kind is not None:
         _validate_kind(kind)
 
+    # Wildcard path: "*" returns all entities in the profile
+    if query.strip() == "*":
+        rows = conn.execute(
+            """
+            SELECT e.id, e.kind, e.name, e.aliases_json, e.attributes_json,
+                   e.importance, e.access_count, e.profile,
+                   e.created_at, e.updated_at
+            FROM entities e
+            WHERE e.profile = ?
+              AND e.deleted_at IS NULL
+              AND (? IS NULL OR e.kind = ?)
+            ORDER BY e.importance DESC, e.access_count DESC
+            LIMIT ?
+            """,
+            (profile, kind, kind, limit),
+        ).fetchall()
+        return [_row_to_entity(row) for row in rows]
+
+    # Normal path: substring match on name or aliases
     pattern = f"%{query.lower()}%"
 
     rows = conn.execute(

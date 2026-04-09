@@ -263,6 +263,11 @@ class TestSearchEntities:
         assert len(results) == 3
 
     def test_empty_query_returns_empty(self, db):
+        """Empty query is "no query", not "give me everything".
+
+        This is a deliberate divergence from v1's search_entities("")
+        behavior. Use the explicit "*" wildcard below for "all entities".
+        """
         create_entity(db, "person", "Sarah", now=NOW)
         assert search_entities(db, "") == []
 
@@ -274,6 +279,84 @@ class TestSearchEntities:
         results = search_entities(db, "mercury", kind="person")
         assert len(results) == 1
         assert results[0].kind == "person"
+
+
+# ─── Wildcard search (ported from v1 test_entity_search.py) ─────────────
+
+
+class TestWildcardSearch:
+    """Wildcard "*" returns all non-deleted entities.
+
+    Ported from claudia/memory-daemon/tests/test_entity_search.py
+    Discussion #25 fix. v1 returned all entities for both "" and "*";
+    we keep "" strict (returns empty) and accept "*" explicitly.
+    """
+
+    def test_star_returns_all_entities(self, db):
+        create_entity(db, "person", "Sarah Chen", now=NOW)
+        create_entity(db, "organization", "Acme Corp", now=NOW)
+        create_entity(db, "project", "Project Alpha", now=NOW)
+
+        results = search_entities(db, "*")
+        assert len(results) == 3
+        names = {e.name for e in results}
+        assert names == {"Sarah Chen", "Acme Corp", "Project Alpha"}
+
+    def test_star_with_kind_filter(self, db):
+        create_entity(db, "person", "Sarah Chen", now=NOW)
+        create_entity(db, "organization", "Acme Corp", now=NOW)
+        create_entity(db, "project", "Project Alpha", now=NOW)
+
+        results = search_entities(db, "*", kind="person")
+        assert len(results) == 1
+        assert results[0].name == "Sarah Chen"
+
+    def test_star_respects_limit(self, db):
+        for i in range(5):
+            create_entity(db, "concept", f"concept_{i}", now=NOW)
+
+        results = search_entities(db, "*", limit=3)
+        assert len(results) == 3
+
+    def test_star_excludes_deleted(self, db):
+        alive = create_entity(db, "person", "Alice", now=NOW)
+        dead = create_entity(db, "person", "Deleted Person", now=NOW)
+        soft_delete_entity(db, dead.id, now=NOW)
+
+        results = search_entities(db, "*")
+        assert len(results) == 1
+        assert results[0].name == "Alice"
+
+    def test_star_orders_by_importance(self, db):
+        create_entity(db, "person", "low", importance=0.1, now=NOW)
+        create_entity(db, "person", "high", importance=0.9, now=NOW)
+        create_entity(db, "person", "medium", importance=0.5, now=NOW)
+
+        results = search_entities(db, "*")
+        assert [e.name for e in results] == ["high", "medium", "low"]
+
+    def test_star_respects_profile_isolation(self, db):
+        create_entity(db, "person", "alice", profile="user_a", now=NOW)
+        create_entity(db, "person", "bob", profile="user_b", now=NOW)
+
+        alice_results = search_entities(db, "*", profile="user_a")
+        bob_results = search_entities(db, "*", profile="user_b")
+
+        assert len(alice_results) == 1
+        assert alice_results[0].name == "alice"
+        assert len(bob_results) == 1
+        assert bob_results[0].name == "bob"
+
+    def test_star_with_whitespace_is_still_wildcard(self, db):
+        """Leading/trailing whitespace on "*" should still trigger wildcard."""
+        create_entity(db, "person", "Sarah", now=NOW)
+        assert len(search_entities(db, "  * ")) == 1
+
+    def test_empty_string_stays_empty_even_with_other_entities(self, db):
+        """Regression guard: empty query must not return all entities."""
+        for i in range(10):
+            create_entity(db, "concept", f"c{i}", now=NOW)
+        assert search_entities(db, "") == []
 
 
 # ─── update_entity ──────────────────────────────────────────────────────
