@@ -366,6 +366,40 @@ MEMORY_CONTRADICTS_MEMORY_SCHEMA: Dict[str, Any] = {
 }
 
 
+MEMORY_SEARCH_ENTITIES_SCHEMA: Dict[str, Any] = {
+    "name": "memory.search_entities",
+    "description": (
+        "Search entities by substring match on name or any alias. "
+        "Complements memory.about (exact lookup) for queries like "
+        "'who do I know at Acme' or 'list people named Sarah'. "
+        "Use '*' as the query to return every entity in the profile."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": (
+                    "Substring to match on name or aliases. Pass "
+                    "'*' to return everything (wildcard)."
+                ),
+            },
+            "kind": {
+                "type": "string",
+                "enum": ["person", "organization", "project", "location", "concept"],
+                "description": "Optional filter to one entity kind.",
+            },
+            "limit": {
+                "type": "integer",
+                "description": "Max results. Default 10.",
+                "default": 10,
+            },
+        },
+        "required": ["query"],
+    },
+}
+
+
 MEMORY_RELATE_SCHEMA: Dict[str, Any] = {
     "name": "memory.relate",
     "description": (
@@ -448,6 +482,7 @@ _ALL_TOOL_SCHEMAS = [
     MEMORY_CONTRADICTS_MEMORY_SCHEMA,
     MEMORY_CORRECT_MEMORY_SCHEMA,
     MEMORY_RELATE_SCHEMA,
+    MEMORY_SEARCH_ENTITIES_SCHEMA,
 ]
 
 
@@ -1339,6 +1374,8 @@ class ClaudiaMemoryProvider(MemoryProvider):
                 return self._handle_correct_memory(args)
             if tool_name == "memory.relate":
                 return self._handle_relate(args)
+            if tool_name == "memory.search_entities":
+                return self._handle_search_entities(args)
             return json.dumps({"error": f"unknown tool: {tool_name}"})
         except Exception as exc:
             logger.exception("claudia memory tool call failed: %s", tool_name)
@@ -1554,6 +1591,69 @@ class ClaudiaMemoryProvider(MemoryProvider):
         return self._handle_commitment_status_transition(
             args, "dropped", "memory.commitment_drop"
         )
+
+    def _handle_search_entities(self, args: Dict[str, Any]) -> str:
+        """Fuzzy entity search (Phase 2C.11).
+
+        Wraps entities.search_entities via the reader pool. Supports
+        substring match, '*' wildcard, optional kind filter, and
+        limit. Invalid kind returns a structured error (rather than
+        letting entities._validate_kind raise).
+        """
+        query = args.get("query")
+        if not isinstance(query, str):
+            return json.dumps({
+                "error": "memory.search_entities: 'query' is required"
+            })
+
+        kind = args.get("kind")
+        if kind is not None:
+            if not isinstance(kind, str):
+                return json.dumps({
+                    "error": "memory.search_entities: 'kind' must be a string"
+                })
+            if kind not in entities.VALID_KINDS:
+                return json.dumps({
+                    "error": (
+                        f"memory.search_entities: invalid kind {kind!r}. "
+                        f"Must be one of {sorted(entities.VALID_KINDS)}."
+                    )
+                })
+
+        limit = int(args.get("limit", 10))
+        if limit < 1:
+            limit = 1
+        if limit > 100:
+            limit = 100
+
+        if self._reader_pool is None:
+            return json.dumps({
+                "error": "memory.search_entities: provider not initialized"
+            })
+
+        with self._reader_pool.acquire() as conn:
+            results = entities.search_entities(
+                conn,
+                query,
+                kind=kind,
+                profile=self._profile,
+                limit=limit,
+            )
+
+        return json.dumps({
+            "entities": [
+                {
+                    "id": e.id,
+                    "name": e.name,
+                    "kind": e.kind,
+                    "aliases": e.aliases,
+                    "attributes": e.attributes,
+                    "importance": e.importance,
+                    "access_count": e.access_count,
+                }
+                for e in results
+            ]
+        })
 
     def _handle_relate(self, args: Dict[str, Any]) -> str:
         """Create an explicit entity relationship (Phase 2C.10).
