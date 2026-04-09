@@ -98,6 +98,50 @@ DEFAULT_RESULT_LIMIT = 10
 DEFAULT_CANDIDATE_LIMIT = 200
 
 
+# ─── Trust weighting (Phase 2C.1) ────────────────────────────────────────
+
+#: Verification-status multipliers. Applied to the final composite
+#: score (base + boost) so the ordering reflects how much Claudia
+#: trusts the memory, not just how relevant it is lexically or
+#: semantically. The trust north star principle says low-confidence
+#: and contradicted memories should rank lower; this is the
+#: ranking-side enforcement.
+#:
+#: - ``verified``: explicitly confirmed. Full weight.
+#: - ``pending``: default state for newly-stored memories. Not yet
+#:   verified, but nothing suggests a problem. No penalty — a fresh
+#:   extracted memory ranks with its full composite score.
+#: - ``flagged``: marked as "needs review" (by the user or by the
+#:   verification service's stale-flagging pass). Halved — still
+#:   reachable via recall but demoted so verified memories win ties.
+#: - ``contradicts``: explicitly flagged as conflicting with another
+#:   memory. Strong demotion to keep the contradicted memory out of
+#:   prefetch output unless nothing better matches.
+VERIFICATION_WEIGHTS = {
+    "verified": 1.0,
+    "pending": 1.0,
+    "flagged": 0.5,
+    "contradicts": 0.3,
+}
+
+#: Fallback multiplier for unrecognized verification values. Schema
+#: has a CHECK constraint so this should never fire in practice,
+#: but defensive: unknown status gets the "treat as pending" default
+#: rather than silently excluded or boosted.
+DEFAULT_VERIFICATION_WEIGHT = 1.0
+
+
+def _verification_weight(status: Optional[str]) -> float:
+    """Return the multiplier for a verification status string.
+
+    Falls back to ``DEFAULT_VERIFICATION_WEIGHT`` for None, empty,
+    or unknown values so a stray NULL never crashes the scoring loop.
+    """
+    if not status:
+        return DEFAULT_VERIFICATION_WEIGHT
+    return VERIFICATION_WEIGHTS.get(status, DEFAULT_VERIFICATION_WEIGHT)
+
+
 # ─── Weight presets ──────────────────────────────────────────────────────
 
 
@@ -171,10 +215,20 @@ class HybridWeights:
 class ScoreBreakdown:
     """Per-memory component scores for debugging and explainability.
 
-    Each field is in [0, 1] after normalization. ``total`` is the
-    composite after applying ``HybridWeights`` and adding the rehearsal
-    boost — it can exceed 1.0 when a memory has a strong rehearsal
-    history on top of a full weighted base.
+    Each signal field is in [0, 1] after normalization. ``total`` is
+    the composite after ``HybridWeights``, the rehearsal boost, AND
+    the Phase 2C.1 trust multiplier (confidence × verification weight).
+    It can exceed 1.0 when a memory has a strong rehearsal history on
+    top of a full weighted base and a trust factor of 1.0.
+
+    Trust fields:
+      - ``confidence``: memories.confidence column, [0, 1]. Reflects
+        certainty at storage + 2B.4 decay.
+      - ``verification``: memories.verification column value.
+      - ``verification_multiplier``: numeric weight from
+        ``VERIFICATION_WEIGHTS`` for the status.
+      - ``trust_factor``: confidence × verification_multiplier. This
+        is what ``total`` was multiplied by before being returned.
     """
 
     vec: float = 0.0
@@ -183,11 +237,22 @@ class ScoreBreakdown:
     fts: float = 0.0
     rehearsal: float = 0.0
     total: float = 0.0
+    confidence: float = 1.0
+    verification: str = "pending"
+    verification_multiplier: float = 1.0
+    trust_factor: float = 1.0
 
 
 @dataclass
 class SearchResult:
-    """A single scored memory returned from hybrid search."""
+    """A single scored memory returned from hybrid search.
+
+    ``score`` is the post-trust-factor composite: the raw weighted
+    base plus rehearsal boost, multiplied by
+    ``confidence × verification_multiplier``. A high-relevance
+    memory with low trust can rank below a moderately-relevant
+    memory with high trust.
+    """
 
     memory_id: int
     content: str
@@ -201,6 +266,7 @@ class SearchResult:
     source_type: Optional[str]
     source_ref: Optional[str]
     confidence: float
+    verification: str = "pending"
 
 
 # ─── Vector math helper ─────────────────────────────────────────────────
@@ -533,7 +599,7 @@ def search(
         f"""
         SELECT id, content, entity_id, origin, confidence, importance,
                access_count, embedding, embedding_dim, source_type,
-               source_ref, created_at, accessed_at
+               source_ref, created_at, accessed_at, verification
         FROM memories
         WHERE id IN ({placeholders})
           AND profile = ?
@@ -593,7 +659,22 @@ def search(
             + weights.fts * fts_score
         )
         boost = weights.rehearsal_boost * rehearsal_score
-        total = base + boost
+        raw_total = base + boost
+
+        # Phase 2C.1: apply the trust factor. Confidence is clamped
+        # to [0, 1] defensively in case of a schema violation;
+        # verification weight comes from the constant table with a
+        # default for unknown statuses.
+        confidence = float(row["confidence"])
+        if confidence < 0.0:
+            confidence = 0.0
+        elif confidence > 1.0:
+            confidence = 1.0
+
+        verification_status = row["verification"] or "pending"
+        verification_multiplier = _verification_weight(verification_status)
+        trust_factor = confidence * verification_multiplier
+        total = raw_total * trust_factor
 
         breakdown = ScoreBreakdown(
             vec=vec_score,
@@ -602,6 +683,10 @@ def search(
             fts=fts_score,
             rehearsal=rehearsal_score,
             total=total,
+            confidence=confidence,
+            verification=verification_status,
+            verification_multiplier=verification_multiplier,
+            trust_factor=trust_factor,
         )
 
         results.append(
@@ -617,7 +702,8 @@ def search(
                 accessed_at=row["accessed_at"],
                 source_type=row["source_type"],
                 source_ref=row["source_ref"],
-                confidence=float(row["confidence"]),
+                confidence=confidence,
+                verification=verification_status,
             )
         )
 

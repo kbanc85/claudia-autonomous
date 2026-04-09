@@ -73,6 +73,7 @@ def insert_memory(
     source_ref: str = "test-1",
     origin: str = "user_stated",
     confidence: float = 0.9,
+    verification: str = "pending",
     created_at: Optional[datetime] = None,
     accessed_at: Optional[datetime] = None,
     deleted_at: Optional[datetime] = None,
@@ -92,8 +93,8 @@ def insert_memory(
         INSERT INTO memories (
             content, importance, access_count, embedding, embedding_dim,
             profile, source_type, source_ref, origin, confidence,
-            created_at, accessed_at, deleted_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            verification, created_at, accessed_at, deleted_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             content,
@@ -106,6 +107,7 @@ def insert_memory(
             source_ref,
             origin,
             confidence,
+            verification,
             created_at.isoformat(),
             accessed_at.isoformat(),
             deleted_at.isoformat() if deleted_at else None,
@@ -260,10 +262,14 @@ class TestPureFtsSearch:
         # row's raw importance. The weights only affect the composite total.
         assert results[0].breakdown.fts > 0
         assert results[0].breakdown.vec == 0.0  # no embeddings stored
-        # With pure_fts weights, total == fts component only (other
-        # weights are zero) — the raw importance/recency fields are
-        # still populated but don't contribute to the composite.
-        assert results[0].score == pytest.approx(results[0].breakdown.fts)
+        # With pure_fts weights, the base composite equals the fts
+        # component only (other weights are zero). The final score is
+        # then multiplied by the trust factor (Phase 2C.1):
+        # score == fts * confidence * verification_multiplier.
+        expected = (
+            results[0].breakdown.fts * results[0].breakdown.trust_factor
+        )
+        assert results[0].score == pytest.approx(expected)
 
     def test_no_lexical_match_falls_back_to_importance(self, memory_db):
         """When FTS finds nothing, the importance safety net still returns results."""
@@ -601,3 +607,161 @@ class TestEmptyAndEdgeCases:
         # Should return the row with recency=0, not crash
         assert len(results) == 1
         assert results[0].breakdown.recency == 0.0
+
+
+# ─── Phase 2C.1: verification-status weighting ──────────────────────────
+
+
+class TestVerificationWeighting:
+    """Flagged and contradicted memories should rank lower than
+    verified and pending memories with the same base score."""
+
+    def test_verified_ranks_equal_to_pending_on_same_base(self, memory_db):
+        """Default pending and explicit verified both have multiplier 1.0."""
+        insert_memory(
+            memory_db, "pending fact about widgets",
+            importance=0.8, confidence=1.0, verification="pending",
+        )
+        insert_memory(
+            memory_db, "verified fact about widgets",
+            importance=0.8, confidence=1.0, verification="verified",
+        )
+        results = search(memory_db, "widgets", now=NOW)
+        assert len(results) == 2
+        # Same multiplier → same rank (order depends on FTS ties)
+        assert abs(results[0].score - results[1].score) < 0.01
+
+    def test_flagged_ranks_below_verified_on_same_base(self, memory_db):
+        insert_memory(
+            memory_db, "verified widget fact",
+            importance=0.8, confidence=1.0, verification="verified",
+        )
+        insert_memory(
+            memory_db, "flagged widget fact",
+            importance=0.8, confidence=1.0, verification="flagged",
+        )
+        results = search(memory_db, "widget", now=NOW)
+        assert len(results) == 2
+        # verified should come first
+        assert "verified" in results[0].content
+        assert "flagged" in results[1].content
+        # flagged score should be ~0.5 × verified
+        assert results[1].score < results[0].score * 0.6
+
+    def test_contradicts_ranks_below_flagged(self, memory_db):
+        insert_memory(
+            memory_db, "verified widget",
+            importance=0.8, confidence=1.0, verification="verified",
+        )
+        insert_memory(
+            memory_db, "flagged widget",
+            importance=0.8, confidence=1.0, verification="flagged",
+        )
+        insert_memory(
+            memory_db, "contradicts widget",
+            importance=0.8, confidence=1.0, verification="contradicts",
+        )
+        results = search(memory_db, "widget", now=NOW)
+        assert len(results) == 3
+        # Ordered: verified > flagged > contradicts
+        assert "verified" in results[0].content
+        assert "flagged" in results[1].content
+        assert "contradicts" in results[2].content
+
+    def test_breakdown_records_verification(self, memory_db):
+        insert_memory(
+            memory_db, "widget",
+            importance=0.8, confidence=1.0, verification="flagged",
+        )
+        results = search(memory_db, "widget", now=NOW)
+        assert len(results) == 1
+        assert results[0].breakdown.verification == "flagged"
+        assert results[0].breakdown.verification_multiplier == 0.5
+        assert results[0].breakdown.trust_factor == 0.5
+        assert results[0].verification == "flagged"
+
+    def test_confidence_factor_also_demotes(self, memory_db):
+        """Low-confidence memory ranks below high-confidence memory."""
+        insert_memory(
+            memory_db, "high confidence widget",
+            importance=0.8, confidence=1.0, verification="verified",
+        )
+        insert_memory(
+            memory_db, "low confidence widget",
+            importance=0.8, confidence=0.3, verification="verified",
+        )
+        results = search(memory_db, "widget", now=NOW)
+        assert len(results) == 2
+        assert "high" in results[0].content
+        assert "low" in results[1].content
+        # Low confidence score should be ~0.3 × high confidence
+        assert results[1].score < results[0].score * 0.4
+
+    def test_trust_factor_combines_confidence_and_verification(self, memory_db):
+        """A low-confidence, flagged memory gets hit by both multipliers."""
+        insert_memory(
+            memory_db, "widget",
+            importance=0.8, confidence=0.5, verification="flagged",
+        )
+        results = search(memory_db, "widget", now=NOW)
+        assert len(results) == 1
+        # trust_factor = 0.5 * 0.5 = 0.25
+        assert results[0].breakdown.trust_factor == pytest.approx(0.25)
+        assert results[0].breakdown.confidence == 0.5
+        assert results[0].breakdown.verification_multiplier == 0.5
+
+    def test_verified_high_relevance_outranks_low_relevance(self, memory_db):
+        """Sanity: trust weighting doesn't flip the normal order when
+        relevance differences are large enough."""
+        # Very relevant but flagged
+        insert_memory(
+            memory_db, "flagged precise widget match",
+            importance=0.9, confidence=1.0, verification="flagged",
+        )
+        # Barely relevant and verified
+        insert_memory(
+            memory_db, "verified unrelated thing",
+            importance=0.1, confidence=1.0, verification="verified",
+        )
+        results = search(memory_db, "widget", now=NOW)
+        assert len(results) >= 1
+        # Flagged but highly relevant still wins over unrelated verified
+        assert "widget" in results[0].content
+
+    def test_zero_confidence_rank_zero(self, memory_db):
+        """Confidence 0 zeroes the trust factor → score 0."""
+        insert_memory(
+            memory_db, "widget",
+            importance=1.0, confidence=0.0, verification="verified",
+        )
+        results = search(memory_db, "widget", now=NOW)
+        # May still appear but score is 0
+        assert len(results) == 1
+        assert results[0].score == 0.0
+
+    def test_unknown_verification_treated_as_default(self, memory_db):
+        """Defensive: a bogus status string is caught by the CHECK
+        constraint at INSERT time. But if it slipped through somehow
+        (migration bug, raw SQL), the weight function returns the
+        default (1.0). Verify by calling _verification_weight directly."""
+        from plugins.memory.claudia.hybrid_search import (
+            DEFAULT_VERIFICATION_WEIGHT,
+            _verification_weight,
+        )
+
+        assert _verification_weight("bogus") == DEFAULT_VERIFICATION_WEIGHT
+        assert _verification_weight(None) == DEFAULT_VERIFICATION_WEIGHT
+        assert _verification_weight("") == DEFAULT_VERIFICATION_WEIGHT
+
+    def test_verification_weights_constants(self):
+        """Tripwire: lock the multiplier values."""
+        from plugins.memory.claudia.hybrid_search import VERIFICATION_WEIGHTS
+
+        assert VERIFICATION_WEIGHTS["verified"] == 1.0
+        assert VERIFICATION_WEIGHTS["pending"] == 1.0
+        assert VERIFICATION_WEIGHTS["flagged"] == 0.5
+        assert VERIFICATION_WEIGHTS["contradicts"] == 0.3
+        # All four status values must be present
+        assert set(VERIFICATION_WEIGHTS.keys()) == {
+            "verified", "pending", "flagged", "contradicts"
+        }
