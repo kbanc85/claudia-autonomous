@@ -2,6 +2,8 @@
 
 Local-first, trust-aware memory provider for the claudia-autonomous fork. SQLite + vector embeddings via Ollama. Extracts entities and commitments from conversations, merges duplicates, decays unverified facts, and lets the user verify, flag, contradict, or correct any memory via LLM tool calls. 100% local — no network beyond `localhost:11434`.
 
+**New here?** Start with the [**Getting Started tutorial**](docs/getting-started.md) — a 15-minute walkthrough from zero to working memory. This README is the reference.
+
 ## Requirements
 
 - **Ollama** running on `http://localhost:11434` (recommended)
