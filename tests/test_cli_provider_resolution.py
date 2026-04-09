@@ -322,7 +322,7 @@ def test_model_flow_nous_prints_subscription_guidance_without_mutating_explicit_
     monkeypatch.setattr(
         "claudia_cli.auth.resolve_nous_runtime_credentials",
         lambda *args, **kwargs: {
-            "base_url": "https://inference.example.com/v1",
+            "base_url": "https://inference.nousresearch.com/v1",
             "api_key": "nous-key",
         },
     )
@@ -360,7 +360,7 @@ def test_model_flow_nous_applies_managed_tts_default_when_unconfigured(monkeypat
     monkeypatch.setattr(
         "claudia_cli.auth.resolve_nous_runtime_credentials",
         lambda *args, **kwargs: {
-            "base_url": "https://inference.example.com/v1",
+            "base_url": "https://inference.nousresearch.com/v1",
             "api_key": "nous-key",
         },
     )
@@ -619,8 +619,8 @@ def test_cmd_model_forwards_nous_login_tls_options(monkeypatch):
 
     claudia_main.cmd_model(
         SimpleNamespace(
-            portal_url="https://portal.example.com",
-            inference_url="https://inference.example.com/v1",
+            portal_url="https://portal.nousresearch.com",
+            inference_url="https://inference.nousresearch.com/v1",
             client_id="claudia-local",
             scope="openid profile",
             no_browser=True,
@@ -631,8 +631,8 @@ def test_cmd_model_forwards_nous_login_tls_options(monkeypatch):
     )
 
     assert captured == {
-        "portal_url": "https://portal.example.com",
-        "inference_url": "https://inference.example.com/v1",
+        "portal_url": "https://portal.nousresearch.com",
+        "inference_url": "https://inference.nousresearch.com/v1",
         "client_id": "claudia-local",
         "scope": "openid profile",
         "no_browser": True,

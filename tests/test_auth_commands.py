@@ -101,8 +101,8 @@ def test_auth_add_nous_oauth_persists_pool_entry(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "claudia_cli.auth._nous_device_code_login",
         lambda **kwargs: {
-            "portal_base_url": "https://portal.example.com",
-            "inference_base_url": "https://inference.example.com/v1",
+            "portal_base_url": "https://portal.nousresearch.com",
+            "inference_base_url": "https://inference.nousresearch.com/v1",
             "client_id": "claudia-cli",
             "scope": "inference:mint_agent_key",
             "token_type": "Bearer",
@@ -145,7 +145,7 @@ def test_auth_add_nous_oauth_persists_pool_entry(tmp_path, monkeypatch):
     assert entry["label"] == "nous@example.com"
     assert entry["source"] == "manual:device_code"
     assert entry["agent_key"] == "ak-test"
-    assert entry["portal_base_url"] == "https://portal.example.com"
+    assert entry["portal_base_url"] == "https://portal.nousresearch.com"
 
 
 def test_auth_add_codex_oauth_persists_pool_entry(tmp_path, monkeypatch):

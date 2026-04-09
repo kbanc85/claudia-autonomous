@@ -22,8 +22,8 @@ def _setup_nous_auth(
         "active_provider": "nous",
         "providers": {
             "nous": {
-                "portal_base_url": "https://portal.example.com",
-                "inference_base_url": "https://inference.example.com/v1",
+                "portal_base_url": "https://portal.nousresearch.com",
+                "inference_base_url": "https://inference.nousresearch.com/v1",
                 "client_id": "claudia-cli",
                 "token_type": "Bearer",
                 "scope": "inference:mint_agent_key",

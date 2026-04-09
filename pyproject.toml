@@ -65,7 +65,12 @@ acp = ["agent-client-protocol>=0.8.1,<0.9"]
 dingtalk = ["dingtalk-stream>=0.1.0,<1"]
 feishu = ["lark-oapi>=1.5.3,<2"]
 rl = [
-  "atroposlib @ git+https://github.com/kbanc85/atropos.git",
+  # Note: atroposlib and tinker are Nous Research / Thinking Machines
+  # research packages. Claudia Autonomous does not run RL training
+  # workflows, but this extra is kept for experimental use. The
+  # atroposlib URL was rebranded by the Phase 0.2 sweep and has been
+  # manually reverted here because it references an external package.
+  "atroposlib @ git+https://github.com/NousResearch/atropos.git",
   "tinker @ git+https://github.com/thinking-machines-lab/tinker.git",
   "fastapi>=0.104.0,<1",
   "uvicorn[standard]>=0.24.0,<1",
@@ -99,17 +104,18 @@ all = [
 [project.scripts]
 claudia = "claudia_cli.main:main"
 claudia-autonomous = "run_agent:main"
-claudia-acp = "acp_adapter.entry:main"
 
 [tool.setuptools]
 py-modules = ["run_agent", "model_tools", "toolsets", "batch_runner", "trajectory_compressor", "toolset_distributions", "cli", "claudia_constants", "claudia_state", "claudia_time", "rl_cli", "utils"]
 
 [tool.setuptools.packages.find]
-include = ["agent", "tools", "tools.*", "claudia_cli", "gateway", "gateway.*", "cron", "acp_adapter", "plugins", "plugins.*"]
+include = ["agent", "tools", "tools.*", "claudia_cli", "gateway", "gateway.*", "cron", "plugins", "plugins.*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = [
     "integration: marks tests requiring external services (API keys, Modal, etc.)",
+    "frontier: marks tests requiring frontier models (Anthropic, OpenAI, OpenRouter) — see Claudia Autonomous roadmap Task 3.2",
+    "local: marks tests requiring local models (Ollama) — see Claudia Autonomous roadmap Task 3.2",
 ]
-addopts = "-m 'not integration' -n auto"
+addopts = "-m 'not integration and not frontier and not local' -n auto"

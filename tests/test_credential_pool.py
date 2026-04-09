@@ -376,8 +376,8 @@ def test_load_pool_migrates_nous_provider_state(tmp_path, monkeypatch):
             "active_provider": "nous",
             "providers": {
                 "nous": {
-                    "portal_base_url": "https://portal.example.com",
-                    "inference_base_url": "https://inference.example.com/v1",
+                    "portal_base_url": "https://portal.nousresearch.com",
+                    "inference_base_url": "https://inference.nousresearch.com/v1",
                     "client_id": "claudia-cli",
                     "token_type": "Bearer",
                     "scope": "inference:mint_agent_key",
@@ -398,7 +398,7 @@ def test_load_pool_migrates_nous_provider_state(tmp_path, monkeypatch):
 
     assert entry is not None
     assert entry.source == "device_code"
-    assert entry.portal_base_url == "https://portal.example.com"
+    assert entry.portal_base_url == "https://portal.nousresearch.com"
     assert entry.agent_key == "agent-key"
 
 
@@ -456,8 +456,8 @@ def test_load_pool_migrates_nous_provider_state_preserves_tls(tmp_path, monkeypa
             "active_provider": "nous",
             "providers": {
                 "nous": {
-                    "portal_base_url": "https://portal.example.com",
-                    "inference_base_url": "https://inference.example.com/v1",
+                    "portal_base_url": "https://portal.nousresearch.com",
+                    "inference_base_url": "https://inference.nousresearch.com/v1",
                     "client_id": "claudia-cli",
                     "token_type": "Bearer",
                     "scope": "inference:mint_agent_key",
