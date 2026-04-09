@@ -53,7 +53,7 @@ def _write_model_config(tmp_path, provider, base_url="", model_name="test-model"
 
 def test_setup_delegates_to_select_provider_and_model(tmp_path, monkeypatch):
     """setup_model_provider calls select_provider_and_model and syncs config."""
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
     _clear_provider_env(monkeypatch)
     _stub_tts(monkeypatch)
 
@@ -77,7 +77,7 @@ def test_setup_delegates_to_select_provider_and_model(tmp_path, monkeypatch):
 def test_setup_syncs_openrouter_from_disk(tmp_path, monkeypatch):
     """When select_provider_and_model saves OpenRouter config to disk,
     the wizard's config dict picks it up."""
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
     _clear_provider_env(monkeypatch)
     _stub_tts(monkeypatch)
 
@@ -99,7 +99,7 @@ def test_setup_syncs_openrouter_from_disk(tmp_path, monkeypatch):
 
 def test_setup_syncs_nous_from_disk(tmp_path, monkeypatch):
     """Nous OAuth writes config to disk; wizard config dict must pick it up."""
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
     _clear_provider_env(monkeypatch)
     _stub_tts(monkeypatch)
 
@@ -121,7 +121,7 @@ def test_setup_syncs_nous_from_disk(tmp_path, monkeypatch):
 
 def test_setup_custom_providers_synced(tmp_path, monkeypatch):
     """custom_providers written by select_provider_and_model must survive."""
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
     _clear_provider_env(monkeypatch)
     _stub_tts(monkeypatch)
 
@@ -144,7 +144,7 @@ def test_setup_custom_providers_synced(tmp_path, monkeypatch):
 
 def test_setup_cancel_preserves_existing_config(tmp_path, monkeypatch):
     """When the user cancels provider selection, existing config is preserved."""
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
     _clear_provider_env(monkeypatch)
     _stub_tts(monkeypatch)
 
@@ -170,7 +170,7 @@ def test_setup_cancel_preserves_existing_config(tmp_path, monkeypatch):
 
 def test_setup_exception_in_select_gracefully_handled(tmp_path, monkeypatch):
     """If select_provider_and_model raises, setup continues with existing config."""
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
     _clear_provider_env(monkeypatch)
     _stub_tts(monkeypatch)
 
@@ -187,7 +187,7 @@ def test_setup_exception_in_select_gracefully_handled(tmp_path, monkeypatch):
 
 def test_setup_keyboard_interrupt_gracefully_handled(tmp_path, monkeypatch):
     """KeyboardInterrupt during provider selection is handled."""
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
     _clear_provider_env(monkeypatch)
     _stub_tts(monkeypatch)
 
@@ -203,7 +203,7 @@ def test_setup_keyboard_interrupt_gracefully_handled(tmp_path, monkeypatch):
 
 def test_codex_setup_uses_runtime_access_token_for_live_model_list(tmp_path, monkeypatch):
     """Codex model list fetching uses the runtime access token."""
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
     monkeypatch.setenv("OPENROUTER_API_KEY", "or-test-key")
     _clear_provider_env(monkeypatch)
     monkeypatch.setenv("OPENROUTER_API_KEY", "or-test-key")
@@ -225,8 +225,8 @@ def test_codex_setup_uses_runtime_access_token_for_live_model_list(tmp_path, mon
 
 
 def test_modal_setup_can_use_nous_subscription_without_modal_creds(tmp_path, monkeypatch, capsys):
-    monkeypatch.setenv("HERMES_ENABLE_NOUS_MANAGED_TOOLS", "1")
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("CLAUDIA_ENABLE_NOUS_MANAGED_TOOLS", "1")
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
     config = load_config()
 
     def fake_prompt_choice(question, choices, default=0):
@@ -267,8 +267,8 @@ def test_modal_setup_can_use_nous_subscription_without_modal_creds(tmp_path, mon
 
 
 def test_modal_setup_persists_direct_mode_when_user_chooses_their_own_account(tmp_path, monkeypatch):
-    monkeypatch.setenv("HERMES_ENABLE_NOUS_MANAGED_TOOLS", "1")
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("CLAUDIA_ENABLE_NOUS_MANAGED_TOOLS", "1")
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
     monkeypatch.delenv("MODAL_TOKEN_ID", raising=False)
     monkeypatch.delenv("MODAL_TOKEN_SECRET", raising=False)
     config = load_config()

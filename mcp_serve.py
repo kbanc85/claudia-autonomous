@@ -61,12 +61,12 @@ except ImportError:
 # ---------------------------------------------------------------------------
 
 def _get_sessions_dir() -> Path:
-    """Return the sessions directory using HERMES_HOME."""
+    """Return the sessions directory using CLAUDIA_HOME."""
     try:
-        from claudia_constants import get_hermes_home
-        return get_hermes_home() / "sessions"
+        from claudia_constants import get_claudia_home
+        return get_claudia_home() / "sessions"
     except ImportError:
-        return Path(os.environ.get("HERMES_HOME", Path.home() / ".hermes")) / "sessions"
+        return Path(os.environ.get("CLAUDIA_HOME", Path.home() / ".claudia")) / "sessions"
 
 
 def _get_session_db():
@@ -99,11 +99,11 @@ def _load_sessions_index() -> dict:
 def _load_channel_directory() -> dict:
     """Load the cached channel directory for available targets."""
     try:
-        from claudia_constants import get_hermes_home
-        directory_file = get_hermes_home() / "channel_directory.json"
+        from claudia_constants import get_claudia_home
+        directory_file = get_claudia_home() / "channel_directory.json"
     except ImportError:
         directory_file = Path(
-            os.environ.get("HERMES_HOME", Path.home() / ".hermes")
+            os.environ.get("CLAUDIA_HOME", Path.home() / ".claudia")
         ) / "channel_directory.json"
 
     if not directory_file.exists():
@@ -344,10 +344,10 @@ class EventBridge:
 
         # Check if state.db has changed
         try:
-            from claudia_constants import get_hermes_home
-            db_file = get_hermes_home() / "state.db"
+            from claudia_constants import get_claudia_home
+            db_file = get_claudia_home() / "state.db"
         except ImportError:
-            db_file = Path(os.environ.get("HERMES_HOME", Path.home() / ".hermes")) / "state.db"
+            db_file = Path(os.environ.get("CLAUDIA_HOME", Path.home() / ".claudia")) / "state.db"
 
         try:
             db_mtime = db_file.stat().st_mtime if db_file.exists() else 0.0

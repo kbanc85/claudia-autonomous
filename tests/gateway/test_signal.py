@@ -303,7 +303,7 @@ class TestSignalSessionSource:
 class TestSignalPhoneRedaction:
     @pytest.fixture(autouse=True)
     def _ensure_redaction_enabled(self, monkeypatch):
-        monkeypatch.delenv("HERMES_REDACT_SECRETS", raising=False)
+        monkeypatch.delenv("CLAUDIA_REDACT_SECRETS", raising=False)
 
     def test_us_number(self):
         from agent.redact import redact_sensitive_text

@@ -1,4 +1,4 @@
-"""Tests for --yolo (HERMES_YOLO_MODE) approval bypass."""
+"""Tests for --yolo (CLAUDIA_YOLO_MODE) approval bypass."""
 
 import os
 import pytest
@@ -25,15 +25,15 @@ def _clear_approval_state():
 
 
 class TestYoloMode:
-    """When HERMES_YOLO_MODE is set, all dangerous commands are auto-approved."""
+    """When CLAUDIA_YOLO_MODE is set, all dangerous commands are auto-approved."""
 
     def test_dangerous_command_blocked_normally(self, monkeypatch):
         """Without yolo mode, dangerous commands in interactive mode require approval."""
-        monkeypatch.setenv("HERMES_INTERACTIVE", "1")
-        monkeypatch.setenv("HERMES_SESSION_KEY", "test-session")
-        monkeypatch.delenv("HERMES_YOLO_MODE", raising=False)
-        monkeypatch.delenv("HERMES_GATEWAY_SESSION", raising=False)
-        monkeypatch.delenv("HERMES_EXEC_ASK", raising=False)
+        monkeypatch.setenv("CLAUDIA_INTERACTIVE", "1")
+        monkeypatch.setenv("CLAUDIA_SESSION_KEY", "test-session")
+        monkeypatch.delenv("CLAUDIA_YOLO_MODE", raising=False)
+        monkeypatch.delenv("CLAUDIA_GATEWAY_SESSION", raising=False)
+        monkeypatch.delenv("CLAUDIA_EXEC_ASK", raising=False)
 
         # Verify the command IS detected as dangerous
         is_dangerous, _, _ = detect_dangerous_command("rm -rf /tmp/stuff")
@@ -46,10 +46,10 @@ class TestYoloMode:
         assert not result["approved"]
 
     def test_dangerous_command_approved_in_yolo_mode(self, monkeypatch):
-        """With HERMES_YOLO_MODE, dangerous commands are auto-approved."""
-        monkeypatch.setenv("HERMES_YOLO_MODE", "1")
-        monkeypatch.setenv("HERMES_INTERACTIVE", "1")
-        monkeypatch.setenv("HERMES_SESSION_KEY", "test-session")
+        """With CLAUDIA_YOLO_MODE, dangerous commands are auto-approved."""
+        monkeypatch.setenv("CLAUDIA_YOLO_MODE", "1")
+        monkeypatch.setenv("CLAUDIA_INTERACTIVE", "1")
+        monkeypatch.setenv("CLAUDIA_SESSION_KEY", "test-session")
 
         result = check_dangerous_command("rm -rf /", "local")
         assert result["approved"]
@@ -57,8 +57,8 @@ class TestYoloMode:
 
     def test_yolo_mode_works_for_all_patterns(self, monkeypatch):
         """Yolo mode bypasses all dangerous patterns, not just some."""
-        monkeypatch.setenv("HERMES_YOLO_MODE", "1")
-        monkeypatch.setenv("HERMES_INTERACTIVE", "1")
+        monkeypatch.setenv("CLAUDIA_YOLO_MODE", "1")
+        monkeypatch.setenv("CLAUDIA_INTERACTIVE", "1")
 
         dangerous_commands = [
             "rm -rf /",
@@ -75,8 +75,8 @@ class TestYoloMode:
 
     def test_combined_guard_bypasses_yolo_mode(self, monkeypatch):
         """The new combined guard should preserve yolo bypass semantics."""
-        monkeypatch.setenv("HERMES_YOLO_MODE", "1")
-        monkeypatch.setenv("HERMES_INTERACTIVE", "1")
+        monkeypatch.setenv("CLAUDIA_YOLO_MODE", "1")
+        monkeypatch.setenv("CLAUDIA_INTERACTIVE", "1")
 
         called = {"value": False}
 
@@ -92,18 +92,18 @@ class TestYoloMode:
         assert called["value"] is False
 
     def test_yolo_mode_not_set_by_default(self):
-        """HERMES_YOLO_MODE should not be set by default."""
+        """CLAUDIA_YOLO_MODE should not be set by default."""
         # Clean env check — if it happens to be set in test env, that's fine,
         # we just verify the mechanism exists
-        assert os.getenv("HERMES_YOLO_MODE") is None or True  # no-op, documents intent
+        assert os.getenv("CLAUDIA_YOLO_MODE") is None or True  # no-op, documents intent
 
     def test_yolo_mode_empty_string_does_not_bypass(self, monkeypatch):
-        """Empty string for HERMES_YOLO_MODE should not trigger bypass."""
-        monkeypatch.setenv("HERMES_YOLO_MODE", "")
-        monkeypatch.setenv("HERMES_INTERACTIVE", "1")
-        monkeypatch.setenv("HERMES_SESSION_KEY", "test-session")
+        """Empty string for CLAUDIA_YOLO_MODE should not trigger bypass."""
+        monkeypatch.setenv("CLAUDIA_YOLO_MODE", "")
+        monkeypatch.setenv("CLAUDIA_INTERACTIVE", "1")
+        monkeypatch.setenv("CLAUDIA_SESSION_KEY", "test-session")
 
-        # Empty string is falsy in Python, so getenv("HERMES_YOLO_MODE") returns ""
+        # Empty string is falsy in Python, so getenv("CLAUDIA_YOLO_MODE") returns ""
         # which is falsy — bypass should NOT activate
         result = check_dangerous_command("rm -rf /", "local",
                                          approval_callback=lambda *a: "deny")

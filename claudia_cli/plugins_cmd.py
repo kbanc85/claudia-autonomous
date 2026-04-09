@@ -1,6 +1,6 @@
 """``hermes plugins`` CLI subcommand — install, update, remove, and list plugins.
 
-Plugins are installed from Git repositories into ``~/.hermes/plugins/``.
+Plugins are installed from Git repositories into ``~/.claudia/plugins/``.
 Supports full URLs and ``owner/repo`` shorthand (resolves to GitHub).
 
 After install, if the plugin ships an ``after-install.md`` file it is
@@ -26,8 +26,8 @@ _SUPPORTED_MANIFEST_VERSION = 1
 
 def _plugins_dir() -> Path:
     """Return the user plugins directory, creating it if needed."""
-    hermes_home = os.environ.get("HERMES_HOME", os.path.expanduser("~/.hermes"))
-    plugins = Path(hermes_home) / "plugins"
+    claudia_home = os.environ.get("CLAUDIA_HOME", os.path.expanduser("~/.claudia"))
+    plugins = Path(claudia_home) / "plugins"
     plugins.mkdir(parents=True, exist_ok=True)
     return plugins
 

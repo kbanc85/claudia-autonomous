@@ -16,13 +16,13 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from claudia_constants import get_hermes_home
+from claudia_constants import get_claudia_home
 from tools.environments.base import BaseEnvironment
 from tools.interrupt import is_interrupted
 
 logger = logging.getLogger(__name__)
 
-_SNAPSHOT_STORE = get_hermes_home() / "singularity_snapshots.json"
+_SNAPSHOT_STORE = get_claudia_home() / "singularity_snapshots.json"
 
 
 def _find_singularity_executable() -> str:
@@ -101,7 +101,7 @@ def _get_scratch_dir() -> Path:
       1. TERMINAL_SCRATCH_DIR (explicit override)
       2. TERMINAL_SANDBOX_DIR / singularity (shared sandbox root)
       3. /scratch (common on HPC clusters)
-      4. ~/.hermes/sandboxes/singularity (fallback)
+      4. ~/.claudia/sandboxes/singularity (fallback)
     """
     custom_scratch = os.getenv("TERMINAL_SCRATCH_DIR")
     if custom_scratch:
@@ -222,7 +222,7 @@ class SingularityEnvironment(BaseEnvironment):
         super().__init__(cwd=cwd, timeout=timeout)
         self.executable = _ensure_singularity_available()
         self.image = _get_or_build_sif(image, self.executable)
-        self.instance_id = f"hermes_{uuid.uuid4().hex[:12]}"
+        self.instance_id = f"claudia_{uuid.uuid4().hex[:12]}"
         self._instance_started = False
         self._persistent = persistent_filesystem
         self._task_id = task_id

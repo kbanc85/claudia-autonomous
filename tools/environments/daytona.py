@@ -67,7 +67,7 @@ class DaytonaEnvironment(BaseEnvironment):
             disk_gib = 10
         resources = Resources(cpu=cpu, memory=memory_gib, disk=disk_gib)
 
-        labels = {"hermes_task_id": task_id}
+        labels = {"claudia_task_id": task_id}
         sandbox_name = f"hermes-{task_id}"
 
         # Try to resume an existing sandbox for this task
@@ -154,12 +154,12 @@ class DaytonaEnvironment(BaseEnvironment):
 
     def _sync_skills_and_credentials(self) -> None:
         """Upload changed credential files and skill files into the sandbox."""
-        container_base = f"{self._remote_home}/.hermes"
+        container_base = f"{self._remote_home}/.claudia"
         try:
             from tools.credential_files import get_credential_file_mounts, iter_skills_files
 
             for mount_entry in get_credential_file_mounts():
-                remote_path = mount_entry["container_path"].replace("/root/.hermes", container_base, 1)
+                remote_path = mount_entry["container_path"].replace("/root/.claudia", container_base, 1)
                 if self._upload_if_changed(mount_entry["host_path"], remote_path):
                     logger.debug("Daytona: synced credential %s", remote_path)
 
@@ -242,9 +242,9 @@ class DaytonaEnvironment(BaseEnvironment):
         self._sync_skills_and_credentials()
 
         if stdin_data is not None:
-            marker = f"HERMES_EOF_{uuid.uuid4().hex[:8]}"
+            marker = f"CLAUDIA_EOF_{uuid.uuid4().hex[:8]}"
             while marker in stdin_data:
-                marker = f"HERMES_EOF_{uuid.uuid4().hex[:8]}"
+                marker = f"CLAUDIA_EOF_{uuid.uuid4().hex[:8]}"
             command = f"{command} << '{marker}'\n{stdin_data}\n{marker}"
 
         exec_command, sudo_stdin = self._prepare_command(command)

@@ -141,7 +141,7 @@ def _handle_send(args):
 
     pconfig = config.platforms.get(platform)
     if not pconfig or not pconfig.enabled:
-        return json.dumps({"error": f"Platform '{platform_name}' is not configured. Set up credentials in ~/.hermes/config.yaml or environment variables."})
+        return json.dumps({"error": f"Platform '{platform_name}' is not configured. Set up credentials in ~/.claudia/config.yaml or environment variables."})
 
     from gateway.platforms.base import BasePlatformAdapter
 
@@ -184,7 +184,7 @@ def _handle_send(args):
         if isinstance(result, dict) and result.get("success") and mirror_text:
             try:
                 from gateway.mirror import mirror_to_session
-                source_label = os.getenv("HERMES_SESSION_PLATFORM", "cli")
+                source_label = os.getenv("CLAUDIA_SESSION_PLATFORM", "cli")
                 if mirror_to_session(platform_name, chat_id, mirror_text, source_label=source_label, thread_id=thread_id):
                     result["mirrored"] = True
             except Exception:
@@ -231,11 +231,11 @@ def _describe_media_for_mirror(media_files):
 
 def _get_cron_auto_delivery_target():
     """Return the cron scheduler's auto-delivery target for the current run, if any."""
-    platform = os.getenv("HERMES_CRON_AUTO_DELIVER_PLATFORM", "").strip().lower()
-    chat_id = os.getenv("HERMES_CRON_AUTO_DELIVER_CHAT_ID", "").strip()
+    platform = os.getenv("CLAUDIA_CRON_AUTO_DELIVER_PLATFORM", "").strip().lower()
+    chat_id = os.getenv("CLAUDIA_CRON_AUTO_DELIVER_CHAT_ID", "").strip()
     if not platform or not chat_id:
         return None
-    thread_id = os.getenv("HERMES_CRON_AUTO_DELIVER_THREAD_ID", "").strip() or None
+    thread_id = os.getenv("CLAUDIA_CRON_AUTO_DELIVER_THREAD_ID", "").strip() or None
     return {
         "platform": platform,
         "chat_id": chat_id,
@@ -729,7 +729,7 @@ async def _send_matrix(token, extra, chat_id, message):
         token = token or os.getenv("MATRIX_ACCESS_TOKEN", "")
         if not homeserver or not token:
             return {"error": "Matrix not configured (MATRIX_HOMESERVER, MATRIX_ACCESS_TOKEN required)"}
-        txn_id = f"hermes_{int(time.time() * 1000)}"
+        txn_id = f"claudia_{int(time.time() * 1000)}"
         url = f"{homeserver}/_matrix/client/v3/rooms/{chat_id}/send/m.room.message/{txn_id}"
         headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
@@ -883,7 +883,7 @@ async def _send_feishu(pconfig, chat_id, message, media_files=None, thread_id=No
 
 def _check_send_message():
     """Gate send_message on gateway running (always available on messaging platforms)."""
-    platform = os.getenv("HERMES_SESSION_PLATFORM", "")
+    platform = os.getenv("CLAUDIA_SESSION_PLATFORM", "")
     if platform and platform != "local":
         return True
     try:

@@ -17,16 +17,16 @@ from tools.interrupt import is_interrupted
 
 # Unique marker to isolate real command output from shell init/exit noise.
 # printf (no trailing newline) keeps the boundaries clean for splitting.
-_OUTPUT_FENCE = "__HERMES_FENCE_a9f7b3__"
+_OUTPUT_FENCE = "__CLAUDIA_FENCE_a9f7b3__"
 
 # Hermes-internal env vars that should NOT leak into terminal subprocesses.
-# These are loaded from ~/.hermes/.env for Hermes' own LLM/provider calls
+# These are loaded from ~/.claudia/.env for Hermes' own LLM/provider calls
 # but can break external CLIs (e.g. codex) that also honor them.
 # See: https://github.com/NousResearch/hermes-agent/issues/1002
 #
 # Built dynamically from the provider registry so new providers are
 # automatically covered without manual blocklist maintenance.
-_HERMES_PROVIDER_ENV_FORCE_PREFIX = "_HERMES_FORCE_"
+_CLAUDIA_PROVIDER_ENV_FORCE_PREFIX = "_CLAUDIA_FORCE_"
 
 
 def _build_provider_env_blocklist() -> frozenset:
@@ -128,13 +128,13 @@ def _build_provider_env_blocklist() -> frozenset:
     return frozenset(blocked)
 
 
-_HERMES_PROVIDER_ENV_BLOCKLIST = _build_provider_env_blocklist()
+_CLAUDIA_PROVIDER_ENV_BLOCKLIST = _build_provider_env_blocklist()
 
 
 def _sanitize_subprocess_env(base_env: dict | None, extra_env: dict | None = None) -> dict:
     """Filter Hermes-managed secrets from a subprocess environment.
 
-    `_HERMES_FORCE_<VAR>` entries in ``extra_env`` opt a blocked variable back in
+    `_CLAUDIA_FORCE_<VAR>` entries in ``extra_env`` opt a blocked variable back in
     intentionally for callers that truly need it.  Vars registered via
     :mod:`tools.env_passthrough` (skill-declared or user-configured) also
     bypass the blocklist.
@@ -147,16 +147,16 @@ def _sanitize_subprocess_env(base_env: dict | None, extra_env: dict | None = Non
     sanitized: dict[str, str] = {}
 
     for key, value in (base_env or {}).items():
-        if key.startswith(_HERMES_PROVIDER_ENV_FORCE_PREFIX):
+        if key.startswith(_CLAUDIA_PROVIDER_ENV_FORCE_PREFIX):
             continue
-        if key not in _HERMES_PROVIDER_ENV_BLOCKLIST or _is_passthrough(key):
+        if key not in _CLAUDIA_PROVIDER_ENV_BLOCKLIST or _is_passthrough(key):
             sanitized[key] = value
 
     for key, value in (extra_env or {}).items():
-        if key.startswith(_HERMES_PROVIDER_ENV_FORCE_PREFIX):
-            real_key = key[len(_HERMES_PROVIDER_ENV_FORCE_PREFIX):]
+        if key.startswith(_CLAUDIA_PROVIDER_ENV_FORCE_PREFIX):
+            real_key = key[len(_CLAUDIA_PROVIDER_ENV_FORCE_PREFIX):]
             sanitized[real_key] = value
-        elif key not in _HERMES_PROVIDER_ENV_BLOCKLIST or _is_passthrough(key):
+        elif key not in _CLAUDIA_PROVIDER_ENV_BLOCKLIST or _is_passthrough(key):
             sanitized[key] = value
 
     return sanitized
@@ -180,7 +180,7 @@ def _find_bash() -> str:
 
     # Windows: look for Git Bash (installed with Git for Windows).
     # Allow override via env var (same pattern as Claude Code).
-    custom = os.environ.get("HERMES_GIT_BASH_PATH")
+    custom = os.environ.get("CLAUDIA_GIT_BASH_PATH")
     if custom and os.path.isfile(custom):
         return custom
 
@@ -201,7 +201,7 @@ def _find_bash() -> str:
     raise RuntimeError(
         "Git Bash not found. Hermes Agent requires Git for Windows on Windows.\n"
         "Install it from: https://git-scm.com/download/win\n"
-        "Or set HERMES_GIT_BASH_PATH to your bash.exe location."
+        "Or set CLAUDIA_GIT_BASH_PATH to your bash.exe location."
     )
 
 
@@ -279,10 +279,10 @@ def _make_run_env(env: dict) -> dict:
     merged = dict(os.environ | env)
     run_env = {}
     for k, v in merged.items():
-        if k.startswith(_HERMES_PROVIDER_ENV_FORCE_PREFIX):
-            real_key = k[len(_HERMES_PROVIDER_ENV_FORCE_PREFIX):]
+        if k.startswith(_CLAUDIA_PROVIDER_ENV_FORCE_PREFIX):
+            real_key = k[len(_CLAUDIA_PROVIDER_ENV_FORCE_PREFIX):]
             run_env[real_key] = v
-        elif k not in _HERMES_PROVIDER_ENV_BLOCKLIST or _is_passthrough(k):
+        elif k not in _CLAUDIA_PROVIDER_ENV_BLOCKLIST or _is_passthrough(k):
             run_env[k] = v
     existing_path = run_env.get("PATH", "")
     if "/usr/bin" not in existing_path.split(":"):
@@ -391,17 +391,17 @@ class LocalEnvironment(PersistentShellMixin, BaseEnvironment):
             effective_stdin = stdin_data
 
         user_shell = _find_bash()
-        # Newline-separated wrapper (not `cmd; __hermes_rc=...` on one line).
-        # A trailing `; __hermes_rc` glued to `<<EOF` / a closing `EOF` line breaks
+        # Newline-separated wrapper (not `cmd; __claudia_rc=...` on one line).
+        # A trailing `; __claudia_rc` glued to `<<EOF` / a closing `EOF` line breaks
         # heredoc parsing: the delimiter must be alone on its line, otherwise the
         # rest of this script becomes heredoc body and leaks into stdout (e.g. gh
         # issue/PR flows that use here-documents for bodies).
         fenced_cmd = (
             f"printf '{_OUTPUT_FENCE}'\n"
             f"{exec_command}\n"
-            f"__hermes_rc=$?\n"
+            f"__claudia_rc=$?\n"
             f"printf '{_OUTPUT_FENCE}'\n"
-            f"exit $__hermes_rc\n"
+            f"exit $__claudia_rc\n"
         )
         run_env = _make_run_env(self.env)
 

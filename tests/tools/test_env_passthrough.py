@@ -62,7 +62,7 @@ class TestConfigPassthrough:
         config = {"terminal": {"env_passthrough": ["MY_CUSTOM_KEY", "ANOTHER_TOKEN"]}}
         config_path = tmp_path / "config.yaml"
         config_path.write_text(yaml.dump(config))
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
         reset_config_cache()
 
         assert is_env_passthrough("MY_CUSTOM_KEY")
@@ -73,7 +73,7 @@ class TestConfigPassthrough:
         config = {"terminal": {"env_passthrough": []}}
         config_path = tmp_path / "config.yaml"
         config_path.write_text(yaml.dump(config))
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
         reset_config_cache()
 
         assert not is_env_passthrough("ANYTHING")
@@ -82,13 +82,13 @@ class TestConfigPassthrough:
         config = {"terminal": {"backend": "local"}}
         config_path = tmp_path / "config.yaml"
         config_path.write_text(yaml.dump(config))
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
         reset_config_cache()
 
         assert not is_env_passthrough("ANYTHING")
 
     def test_no_config_file(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
         reset_config_cache()
 
         assert not is_env_passthrough("ANYTHING")
@@ -97,7 +97,7 @@ class TestConfigPassthrough:
         config = {"terminal": {"env_passthrough": ["CONFIG_KEY"]}}
         config_path = tmp_path / "config.yaml"
         config_path.write_text(yaml.dump(config))
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
         reset_config_cache()
 
         register_env_passthrough(["SKILL_KEY"])
@@ -163,19 +163,19 @@ class TestTerminalIntegration:
     """Verify that the passthrough is checked in terminal's env sanitizers."""
 
     def test_blocklisted_var_blocked_by_default(self):
-        from tools.environments.local import _sanitize_subprocess_env, _HERMES_PROVIDER_ENV_BLOCKLIST
+        from tools.environments.local import _sanitize_subprocess_env, _CLAUDIA_PROVIDER_ENV_BLOCKLIST
 
         # Pick a var we know is in the blocklist
-        blocked_var = next(iter(_HERMES_PROVIDER_ENV_BLOCKLIST))
+        blocked_var = next(iter(_CLAUDIA_PROVIDER_ENV_BLOCKLIST))
         env = {blocked_var: "secret_value", "PATH": "/usr/bin"}
         result = _sanitize_subprocess_env(env)
         assert blocked_var not in result
         assert "PATH" in result
 
     def test_passthrough_allows_blocklisted_var(self):
-        from tools.environments.local import _sanitize_subprocess_env, _HERMES_PROVIDER_ENV_BLOCKLIST
+        from tools.environments.local import _sanitize_subprocess_env, _CLAUDIA_PROVIDER_ENV_BLOCKLIST
 
-        blocked_var = next(iter(_HERMES_PROVIDER_ENV_BLOCKLIST))
+        blocked_var = next(iter(_CLAUDIA_PROVIDER_ENV_BLOCKLIST))
         register_env_passthrough([blocked_var])
 
         env = {blocked_var: "secret_value", "PATH": "/usr/bin"}
@@ -184,9 +184,9 @@ class TestTerminalIntegration:
         assert result[blocked_var] == "secret_value"
 
     def test_make_run_env_passthrough(self, monkeypatch):
-        from tools.environments.local import _make_run_env, _HERMES_PROVIDER_ENV_BLOCKLIST
+        from tools.environments.local import _make_run_env, _CLAUDIA_PROVIDER_ENV_BLOCKLIST
 
-        blocked_var = next(iter(_HERMES_PROVIDER_ENV_BLOCKLIST))
+        blocked_var = next(iter(_CLAUDIA_PROVIDER_ENV_BLOCKLIST))
         monkeypatch.setenv(blocked_var, "secret_value")
 
         # Without passthrough — blocked

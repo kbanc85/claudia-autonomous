@@ -250,7 +250,7 @@ class TestGatewayConfigGate:
         # Write a config with the gate off (default)
         config_file = tmp_path / "config.yaml"
         config_file.write_text("display:\n  tool_progress_command: false\n")
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
 
         lines = gateway_help_lines()
         joined = "\n".join(lines)
@@ -260,7 +260,7 @@ class TestGatewayConfigGate:
         """When the config gate is truthy, the command should appear in help."""
         config_file = tmp_path / "config.yaml"
         config_file.write_text("display:\n  tool_progress_command: true\n")
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
 
         lines = gateway_help_lines()
         joined = "\n".join(lines)
@@ -269,7 +269,7 @@ class TestGatewayConfigGate:
     def test_config_gate_excluded_from_telegram_when_off(self, tmp_path, monkeypatch):
         config_file = tmp_path / "config.yaml"
         config_file.write_text("display:\n  tool_progress_command: false\n")
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
 
         names = {name for name, _ in telegram_bot_commands()}
         assert "verbose" not in names
@@ -277,7 +277,7 @@ class TestGatewayConfigGate:
     def test_config_gate_included_in_telegram_when_on(self, tmp_path, monkeypatch):
         config_file = tmp_path / "config.yaml"
         config_file.write_text("display:\n  tool_progress_command: true\n")
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
 
         names = {name for name, _ in telegram_bot_commands()}
         assert "verbose" in names
@@ -285,7 +285,7 @@ class TestGatewayConfigGate:
     def test_config_gate_excluded_from_slack_when_off(self, tmp_path, monkeypatch):
         config_file = tmp_path / "config.yaml"
         config_file.write_text("display:\n  tool_progress_command: false\n")
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
 
         mapping = slack_subcommand_map()
         assert "verbose" not in mapping
@@ -293,7 +293,7 @@ class TestGatewayConfigGate:
     def test_config_gate_included_in_slack_when_on(self, tmp_path, monkeypatch):
         config_file = tmp_path / "config.yaml"
         config_file.write_text("display:\n  tool_progress_command: true\n")
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
 
         mapping = slack_subcommand_map()
         assert "verbose" in mapping
@@ -600,7 +600,7 @@ class TestTelegramMenuCommands:
             "    telegram:\n"
             "      - my-disabled-skill\n"
         )
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
 
         # Mock get_skill_commands to return two skills
         fake_skills_dir = str(tmp_path / "skills")

@@ -44,7 +44,7 @@ _TOKEN_DIR_NAME = "mcp-tokens"
 
 
 # ---------------------------------------------------------------------------
-# Token storage — persists tokens + client info to ~/.hermes/mcp-tokens/
+# Token storage — persists tokens + client info to ~/.claudia/mcp-tokens/
 # ---------------------------------------------------------------------------
 
 def _sanitize_server_name(name: str) -> str:
@@ -62,7 +62,7 @@ class HermesTokenStorage:
         self._server_name = _sanitize_server_name(server_name)
 
     def _base_dir(self) -> Path:
-        home = Path(os.environ.get("HERMES_HOME", Path.home() / ".hermes"))
+        home = Path(os.environ.get("CLAUDIA_HOME", Path.home() / ".claudia"))
         d = home / _TOKEN_DIR_NAME
         d.mkdir(parents=True, exist_ok=True)
         return d

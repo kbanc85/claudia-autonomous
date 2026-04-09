@@ -292,7 +292,7 @@ def _resolve_config_gates() -> set[str]:
     try:
         import yaml
         config_path = os.path.join(
-            os.getenv("HERMES_HOME", os.path.expanduser("~/.hermes")),
+            os.getenv("CLAUDIA_HOME", os.path.expanduser("~/.claudia")),
             "config.yaml",
         )
         if os.path.exists(config_path):

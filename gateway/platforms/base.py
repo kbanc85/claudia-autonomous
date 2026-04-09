@@ -26,13 +26,13 @@ sys.path.insert(0, str(_Path(__file__).resolve().parents[2]))
 
 from gateway.config import Platform, PlatformConfig
 from gateway.session import SessionSource, build_session_key
-from claudia_cli.config import get_hermes_home
-from claudia_constants import get_hermes_dir
+from claudia_cli.config import get_claudia_home
+from claudia_constants import get_claudia_dir
 
 
 GATEWAY_SECRET_CAPTURE_UNSUPPORTED_MESSAGE = (
     "Secure secret entry is not supported over messaging. "
-    "Load this skill in the local CLI to be prompted, or add the key to ~/.hermes/.env manually."
+    "Load this skill in the local CLI to be prompted, or add the key to ~/.claudia/.env manually."
 )
 
 
@@ -45,8 +45,8 @@ GATEWAY_SECRET_CAPTURE_UNSUPPORTED_MESSAGE = (
 # (e.g. Telegram file URLs expire after ~1 hour).
 # ---------------------------------------------------------------------------
 
-# Default location: {HERMES_HOME}/cache/images/ (legacy: image_cache/)
-IMAGE_CACHE_DIR = get_hermes_dir("cache/images", "image_cache")
+# Default location: {CLAUDIA_HOME}/cache/images/ (legacy: image_cache/)
+IMAGE_CACHE_DIR = get_claudia_dir("cache/images", "image_cache")
 
 
 def get_image_cache_dir() -> Path:
@@ -148,7 +148,7 @@ def cleanup_image_cache(max_age_hours: int = 24) -> int:
 # here so the STT tool (OpenAI Whisper) can transcribe them from local files.
 # ---------------------------------------------------------------------------
 
-AUDIO_CACHE_DIR = get_hermes_dir("cache/audio", "audio_cache")
+AUDIO_CACHE_DIR = get_claudia_dir("cache/audio", "audio_cache")
 
 
 def get_audio_cache_dir() -> Path:
@@ -229,7 +229,7 @@ async def cache_audio_from_url(url: str, ext: str = ".ogg", retries: int = 2) ->
 # here so the agent can reference them by local file path.
 # ---------------------------------------------------------------------------
 
-DOCUMENT_CACHE_DIR = get_hermes_dir("cache/documents", "document_cache")
+DOCUMENT_CACHE_DIR = get_claudia_dir("cache/documents", "document_cache")
 
 SUPPORTED_DOCUMENT_TYPES = {
     ".pdf": "application/pdf",
@@ -1070,17 +1070,17 @@ class BasePlatformAdapter(ABC):
         Return a random delay in seconds for human-like response pacing.
 
         Reads from env vars:
-          HERMES_HUMAN_DELAY_MODE: "off" (default) | "natural" | "custom"
-          HERMES_HUMAN_DELAY_MIN_MS: minimum delay in ms (default 800, custom mode)
-          HERMES_HUMAN_DELAY_MAX_MS: maximum delay in ms (default 2500, custom mode)
+          CLAUDIA_HUMAN_DELAY_MODE: "off" (default) | "natural" | "custom"
+          CLAUDIA_HUMAN_DELAY_MIN_MS: minimum delay in ms (default 800, custom mode)
+          CLAUDIA_HUMAN_DELAY_MAX_MS: maximum delay in ms (default 2500, custom mode)
         """
         import random
 
-        mode = os.getenv("HERMES_HUMAN_DELAY_MODE", "off").lower()
+        mode = os.getenv("CLAUDIA_HUMAN_DELAY_MODE", "off").lower()
         if mode == "off":
             return 0.0
-        min_ms = int(os.getenv("HERMES_HUMAN_DELAY_MIN_MS", "800"))
-        max_ms = int(os.getenv("HERMES_HUMAN_DELAY_MAX_MS", "2500"))
+        min_ms = int(os.getenv("CLAUDIA_HUMAN_DELAY_MIN_MS", "800"))
+        max_ms = int(os.getenv("CLAUDIA_HUMAN_DELAY_MAX_MS", "2500"))
         if mode == "natural":
             min_ms, max_ms = 800, 2500
         return random.uniform(min_ms / 1000.0, max_ms / 1000.0)

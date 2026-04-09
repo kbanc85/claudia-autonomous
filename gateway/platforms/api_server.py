@@ -69,8 +69,8 @@ class ResponseStore:
         self._max_size = max_size
         if db_path is None:
             try:
-                from claudia_cli.config import get_hermes_home
-                db_path = str(get_hermes_home() / "response_store.db")
+                from claudia_cli.config import get_claudia_home
+                db_path = str(get_claudia_home() / "response_store.db")
             except Exception:
                 db_path = ":memory:"
         try:
@@ -419,7 +419,7 @@ class APIServerAdapter(BasePlatformAdapter):
         user_config = _load_gateway_config()
         enabled_toolsets = sorted(_get_platform_tools(user_config, "api_server"))
 
-        max_iterations = int(os.getenv("HERMES_MAX_ITERATIONS", "90"))
+        max_iterations = int(os.getenv("CLAUDIA_MAX_ITERATIONS", "90"))
 
         agent = AIAgent(
             model=model,

@@ -9,9 +9,9 @@ This is NOT a tool — the LLM never sees it.  It's transparent infrastructure
 controlled by the ``checkpoints`` config flag or ``--checkpoints`` CLI flag.
 
 Architecture:
-    ~/.hermes/checkpoints/{sha256(abs_dir)[:16]}/   — shadow git repo
+    ~/.claudia/checkpoints/{sha256(abs_dir)[:16]}/   — shadow git repo
         HEAD, refs/, objects/                        — standard git internals
-        HERMES_WORKDIR                               — original dir path
+        CLAUDIA_WORKDIR                               — original dir path
         info/exclude                                 — default excludes
 
 The shadow repo uses GIT_DIR + GIT_WORK_TREE so no git state leaks
@@ -24,7 +24,7 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
-from claudia_constants import get_hermes_home
+from claudia_constants import get_claudia_home
 from typing import Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 # Constants
 # ---------------------------------------------------------------------------
 
-CHECKPOINT_BASE = get_hermes_home() / "checkpoints"
+CHECKPOINT_BASE = get_claudia_home() / "checkpoints"
 
 DEFAULT_EXCLUDES = [
     "node_modules/",
@@ -59,7 +59,7 @@ DEFAULT_EXCLUDES = [
 ]
 
 # Git subprocess timeout (seconds).
-_GIT_TIMEOUT: int = max(10, min(60, int(os.getenv("HERMES_CHECKPOINT_TIMEOUT", "30"))))
+_GIT_TIMEOUT: int = max(10, min(60, int(os.getenv("CLAUDIA_CHECKPOINT_TIMEOUT", "30"))))
 
 # Max files to snapshot — skip huge directories to avoid slowdowns.
 _MAX_FILES = 50_000
@@ -153,7 +153,7 @@ def _init_shadow_repo(shadow_repo: Path, working_dir: str) -> Optional[str]:
         "\n".join(DEFAULT_EXCLUDES) + "\n", encoding="utf-8"
     )
 
-    (shadow_repo / "HERMES_WORKDIR").write_text(
+    (shadow_repo / "CLAUDIA_WORKDIR").write_text(
         str(Path(working_dir).resolve()) + "\n", encoding="utf-8"
     )
 

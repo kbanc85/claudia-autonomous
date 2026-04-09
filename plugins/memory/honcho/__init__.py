@@ -8,7 +8,7 @@ The 4 tools (profile, search, context, conclude) are exposed through
 the MemoryProvider interface.
 
 Config: Uses the existing Honcho config chain:
-  1. $HERMES_HOME/honcho.json (profile-scoped)
+  1. $CLAUDIA_HOME/honcho.json (profile-scoped)
   2. ~/.honcho/config.json (legacy global)
   3. Environment variables
 """
@@ -170,11 +170,11 @@ class HonchoMemoryProvider(MemoryProvider):
         except Exception:
             return False
 
-    def save_config(self, values, hermes_home):
-        """Write config to $HERMES_HOME/honcho.json (Honcho SDK native format)."""
+    def save_config(self, values, claudia_home):
+        """Write config to $CLAUDIA_HOME/honcho.json (Honcho SDK native format)."""
         import json
         from pathlib import Path
-        config_path = Path(hermes_home) / "honcho.json"
+        config_path = Path(claudia_home) / "honcho.json"
         existing = {}
         if config_path.exists():
             try:
@@ -235,9 +235,9 @@ class HonchoMemoryProvider(MemoryProvider):
 
             # ----- Port #1969: aiPeer sync from SOUL.md -----
             try:
-                hermes_home = kwargs.get("hermes_home", "")
-                if hermes_home and not cfg.raw.get("aiPeer"):
-                    soul_path = Path(hermes_home) / "SOUL.md"
+                claudia_home = kwargs.get("claudia_home", "")
+                if claudia_home and not cfg.raw.get("aiPeer"):
+                    soul_path = Path(claudia_home) / "SOUL.md"
                     if soul_path.exists():
                         soul_text = soul_path.read_text(encoding="utf-8").strip()
                         if soul_text:
@@ -323,8 +323,8 @@ class HonchoMemoryProvider(MemoryProvider):
         # ----- B6: Memory file migration (one-time, for new sessions) -----
         try:
             if not session.messages:
-                from claudia_constants import get_hermes_home
-                mem_dir = str(get_hermes_home() / "memories")
+                from claudia_constants import get_claudia_home
+                mem_dir = str(get_claudia_home() / "memories")
                 self._manager.migrate_memory_files(self._session_key, mem_dir)
                 logger.debug("Honcho memory file migration attempted for new session: %s", self._session_key)
         except Exception as e:

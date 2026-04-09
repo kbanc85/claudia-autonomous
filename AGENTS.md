@@ -14,7 +14,7 @@ source venv/bin/activate  # ALWAYS activate before running Python
 hermes-agent/
 ├── run_agent.py          # AIAgent class — core conversation loop
 ├── model_tools.py        # Tool orchestration, _discover_tools(), handle_function_call()
-├── toolsets.py           # Toolset definitions, _HERMES_CORE_TOOLS list
+├── toolsets.py           # Toolset definitions, _CLAUDIA_CORE_TOOLS list
 ├── cli.py                # HermesCLI class — interactive CLI orchestrator
 ├── claudia_state.py       # SessionDB — SQLite session store (FTS5 search)
 ├── agent/                # Agent internals
@@ -63,7 +63,7 @@ hermes-agent/
 └── batch_runner.py       # Parallel batch processing
 ```
 
-**User config:** `~/.hermes/config.yaml` (settings), `~/.hermes/.env` (API keys)
+**User config:** `~/.claudia/config.yaml` (settings), `~/.claudia/.env` (API keys)
 
 ## File Dependency Chain
 
@@ -132,7 +132,7 @@ Messages follow OpenAI format: `{"role": "system/user/assistant/tool", ...}`. Re
 - `load_cli_config()` in cli.py merges hardcoded defaults + user config YAML
 - **Skin engine** (`claudia_cli/skin_engine.py`) — data-driven CLI theming; initialized from `display.skin` config key at startup; skins customize banner colors, spinner faces/verbs/wings, tool prefix, response box, branding text
 - `process_command()` is a method on `HermesCLI` — dispatches on canonical command name resolved via `resolve_command()` from the central registry
-- Skill slash commands: `agent/skill_commands.py` scans `~/.hermes/skills/`, injects as **user message** (not system prompt) to preserve prompt caching
+- Skill slash commands: `agent/skill_commands.py` scans `~/.claudia/skills/`, injects as **user message** (not system prompt) to preserve prompt caching
 
 ### Slash Command Registry (`claudia_cli/commands.py`)
 
@@ -206,13 +206,13 @@ registry.register(
 
 **2. Add import** in `model_tools.py` `_discover_tools()` list.
 
-**3. Add to `toolsets.py`** — either `_HERMES_CORE_TOOLS` (all platforms) or a new toolset.
+**3. Add to `toolsets.py`** — either `_CLAUDIA_CORE_TOOLS` (all platforms) or a new toolset.
 
 The registry handles schema collection, dispatch, availability checking, and error wrapping. All handlers MUST return a JSON string.
 
-**Path references in tool schemas**: If the schema description mentions file paths (e.g. default output directories), use `display_hermes_home()` to make them profile-aware. The schema is generated at import time, which is after `_apply_profile_override()` sets `HERMES_HOME`.
+**Path references in tool schemas**: If the schema description mentions file paths (e.g. default output directories), use `display_claudia_home()` to make them profile-aware. The schema is generated at import time, which is after `_apply_profile_override()` sets `CLAUDIA_HOME`.
 
-**State files**: If a tool stores persistent state (caches, logs, checkpoints), use `get_hermes_home()` for the base directory — never `Path.home() / ".hermes"`. This ensures each profile gets its own state.
+**State files**: If a tool stores persistent state (caches, logs, checkpoints), use `get_claudia_home()` for the base directory — never `Path.home() / ".claudia"`. This ensures each profile gets its own state.
 
 **Agent-level tools** (todo, memory): intercepted by `run_agent.py` before `handle_function_call()`. See `todo_tool.py` for the pattern.
 
@@ -254,7 +254,7 @@ The skin engine (`claudia_cli/skin_engine.py`) provides data-driven CLI visual c
 
 ```
 claudia_cli/skin_engine.py    # SkinConfig dataclass, built-in skins, YAML loader
-~/.hermes/skins/*.yaml       # User-installed custom skins (drop-in)
+~/.claudia/skins/*.yaml       # User-installed custom skins (drop-in)
 ```
 
 - `init_skin_from_config()` — called at CLI startup, reads `display.skin` from config
@@ -308,7 +308,7 @@ Add to `_BUILTIN_SKINS` dict in `claudia_cli/skin_engine.py`:
 
 ### User skins (YAML)
 
-Users create `~/.hermes/skins/<name>.yaml`:
+Users create `~/.claudia/skins/<name>.yaml`:
 
 ```yaml
 name: cyberpunk
@@ -353,7 +353,7 @@ Cache-breaking forces dramatically higher costs. The ONLY time we alter context 
 
 When `terminal(background=true, check_interval=...)` is used, the gateway runs a watcher that
 pushes status updates to the user's chat. Control verbosity with `display.background_process_notifications`
-in config.yaml (or `HERMES_BACKGROUND_NOTIFICATIONS` env var):
+in config.yaml (or `CLAUDIA_BACKGROUND_NOTIFICATIONS` env var):
 
 - `all` — running-output updates + final message (default)
 - `result` — only the final completion message
@@ -365,45 +365,45 @@ in config.yaml (or `HERMES_BACKGROUND_NOTIFICATIONS` env var):
 ## Profiles: Multi-Instance Support
 
 Hermes supports **profiles** — multiple fully isolated instances, each with its own
-`HERMES_HOME` directory (config, API keys, memory, sessions, skills, gateway, etc.).
+`CLAUDIA_HOME` directory (config, API keys, memory, sessions, skills, gateway, etc.).
 
 The core mechanism: `_apply_profile_override()` in `claudia_cli/main.py` sets
-`HERMES_HOME` before any module imports. All 119+ references to `get_hermes_home()`
+`CLAUDIA_HOME` before any module imports. All 119+ references to `get_claudia_home()`
 automatically scope to the active profile.
 
 ### Rules for profile-safe code
 
-1. **Use `get_hermes_home()` for all HERMES_HOME paths.** Import from `claudia_constants`.
-   NEVER hardcode `~/.hermes` or `Path.home() / ".hermes"` in code that reads/writes state.
+1. **Use `get_claudia_home()` for all CLAUDIA_HOME paths.** Import from `claudia_constants`.
+   NEVER hardcode `~/.claudia` or `Path.home() / ".claudia"` in code that reads/writes state.
    ```python
    # GOOD
-   from claudia_constants import get_hermes_home
-   config_path = get_hermes_home() / "config.yaml"
+   from claudia_constants import get_claudia_home
+   config_path = get_claudia_home() / "config.yaml"
 
    # BAD — breaks profiles
-   config_path = Path.home() / ".hermes" / "config.yaml"
+   config_path = Path.home() / ".claudia" / "config.yaml"
    ```
 
-2. **Use `display_hermes_home()` for user-facing messages.** Import from `claudia_constants`.
-   This returns `~/.hermes` for default or `~/.hermes/profiles/<name>` for profiles.
+2. **Use `display_claudia_home()` for user-facing messages.** Import from `claudia_constants`.
+   This returns `~/.claudia` for default or `~/.claudia/profiles/<name>` for profiles.
    ```python
    # GOOD
-   from claudia_constants import display_hermes_home
-   print(f"Config saved to {display_hermes_home()}/config.yaml")
+   from claudia_constants import display_claudia_home
+   print(f"Config saved to {display_claudia_home()}/config.yaml")
 
    # BAD — shows wrong path for profiles
-   print("Config saved to ~/.hermes/config.yaml")
+   print("Config saved to ~/.claudia/config.yaml")
    ```
 
-3. **Module-level constants are fine** — they cache `get_hermes_home()` at import time,
-   which is AFTER `_apply_profile_override()` sets the env var. Just use `get_hermes_home()`,
-   not `Path.home() / ".hermes"`.
+3. **Module-level constants are fine** — they cache `get_claudia_home()` at import time,
+   which is AFTER `_apply_profile_override()` sets the env var. Just use `get_claudia_home()`,
+   not `Path.home() / ".claudia"`.
 
-4. **Tests that mock `Path.home()` must also set `HERMES_HOME`** — since code now uses
-   `get_hermes_home()` (reads env var), not `Path.home() / ".hermes"`:
+4. **Tests that mock `Path.home()` must also set `CLAUDIA_HOME`** — since code now uses
+   `get_claudia_home()` (reads env var), not `Path.home() / ".claudia"`:
    ```python
    with patch.object(Path, "home", return_value=tmp_path), \
-        patch.dict(os.environ, {"HERMES_HOME": str(tmp_path / ".hermes")}):
+        patch.dict(os.environ, {"CLAUDIA_HOME": str(tmp_path / ".claudia")}):
        ...
    ```
 
@@ -413,17 +413,17 @@ automatically scope to the active profile.
    `disconnect()`/`stop()`. This prevents two profiles from using the same credential.
    See `gateway/platforms/telegram.py` for the canonical pattern.
 
-6. **Profile operations are HOME-anchored, not HERMES_HOME-anchored** — `_get_profiles_root()`
-   returns `Path.home() / ".hermes" / "profiles"`, NOT `get_hermes_home() / "profiles"`.
+6. **Profile operations are HOME-anchored, not CLAUDIA_HOME-anchored** — `_get_profiles_root()`
+   returns `Path.home() / ".claudia" / "profiles"`, NOT `get_claudia_home() / "profiles"`.
    This is intentional — it lets `hermes -p coder profile list` see all profiles regardless
    of which one is active.
 
 ## Known Pitfalls
 
-### DO NOT hardcode `~/.hermes` paths
-Use `get_hermes_home()` from `claudia_constants` for code paths. Use `display_hermes_home()`
-for user-facing print/log messages. Hardcoding `~/.hermes` breaks profiles — each profile
-has its own `HERMES_HOME` directory. This was the source of 5 bugs fixed in PR #3575.
+### DO NOT hardcode `~/.claudia` paths
+Use `get_claudia_home()` from `claudia_constants` for code paths. Use `display_claudia_home()`
+for user-facing print/log messages. Hardcoding `~/.claudia` breaks profiles — each profile
+has its own `CLAUDIA_HOME` directory. This was the source of 5 bugs fixed in PR #3575.
 
 ### DO NOT use `simple_term_menu` for interactive menus
 Rendering bugs in tmux/iTerm2 — ghosting on scroll. Use `curses` (stdlib) instead. See `claudia_cli/tools_config.py` for the pattern.
@@ -437,19 +437,19 @@ Leaks as literal `?[K` text under `prompt_toolkit`'s `patch_stdout`. Use space-p
 ### DO NOT hardcode cross-tool references in schema descriptions
 Tool schema descriptions must not mention tools from other toolsets by name (e.g., `browser_navigate` saying "prefer web_search"). Those tools may be unavailable (missing API keys, disabled toolset), causing the model to hallucinate calls to non-existent tools. If a cross-reference is needed, add it dynamically in `get_tool_definitions()` in `model_tools.py` — see the `browser_navigate` / `execute_code` post-processing blocks for the pattern.
 
-### Tests must not write to `~/.hermes/`
-The `_isolate_hermes_home` autouse fixture in `tests/conftest.py` redirects `HERMES_HOME` to a temp dir. Never hardcode `~/.hermes/` paths in tests.
+### Tests must not write to `~/.claudia/`
+The `_isolate_claudia_home` autouse fixture in `tests/conftest.py` redirects `CLAUDIA_HOME` to a temp dir. Never hardcode `~/.claudia/` paths in tests.
 
 **Profile tests**: When testing profile features, also mock `Path.home()` so that
-`_get_profiles_root()` and `_get_default_hermes_home()` resolve within the temp dir.
+`_get_profiles_root()` and `_get_default_claudia_home()` resolve within the temp dir.
 Use the pattern from `tests/claudia_cli/test_profiles.py`:
 ```python
 @pytest.fixture
 def profile_env(tmp_path, monkeypatch):
-    home = tmp_path / ".hermes"
+    home = tmp_path / ".claudia"
     home.mkdir()
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("CLAUDIA_HOME", str(home))
     return home
 ```
 

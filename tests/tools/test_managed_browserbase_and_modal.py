@@ -47,7 +47,7 @@ def _restore_tool_and_agent_modules():
 
 @pytest.fixture(autouse=True)
 def _enable_managed_nous_tools(monkeypatch):
-    monkeypatch.setenv("HERMES_ENABLE_NOUS_MANAGED_TOOLS", "1")
+    monkeypatch.setenv("CLAUDIA_ENABLE_NOUS_MANAGED_TOOLS", "1")
 
 
 def _install_fake_tools_package():
@@ -120,7 +120,7 @@ def test_browserbase_explicit_local_mode_stays_local_even_when_managed_gateway_i
     env.pop("BROWSERBASE_API_KEY", None)
     env.pop("BROWSERBASE_PROJECT_ID", None)
     env.update({
-        "HERMES_HOME": str(tmp_path),
+        "CLAUDIA_HOME": str(tmp_path),
         "TOOL_GATEWAY_USER_TOKEN": "nous-token",
         "BROWSERBASE_GATEWAY_URL": "http://127.0.0.1:3009",
     })

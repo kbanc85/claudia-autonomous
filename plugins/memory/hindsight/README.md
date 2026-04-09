@@ -16,12 +16,12 @@ hermes memory setup    # select "hindsight"
 Or manually:
 ```bash
 hermes config set memory.provider hindsight
-echo "HINDSIGHT_API_KEY=your-key" >> ~/.hermes/.env
+echo "HINDSIGHT_API_KEY=your-key" >> ~/.claudia/.env
 ```
 
 ## Config
 
-Config file: `$HERMES_HOME/hindsight/config.json` (or `~/.hindsight/config.json` legacy)
+Config file: `$CLAUDIA_HOME/hindsight/config.json` (or `~/.hindsight/config.json` legacy)
 
 | Key | Default | Description |
 |-----|---------|-------------|

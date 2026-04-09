@@ -21,8 +21,8 @@ Remote backends (``tools/environments/modal.py``, ``docker.py``) call
 Each registered entry is a dict::
 
     {
-        "host_path": "/home/user/.hermes/google_token.json",
-        "container_path": "/root/.hermes/google_token.json",
+        "host_path": "/home/user/.claudia/google_token.json",
+        "container_path": "/root/.claudia/google_token.json",
     }
 """
 
@@ -43,49 +43,49 @@ _registered_files: Dict[str, str] = {}
 _config_files: List[Dict[str, str]] | None = None
 
 
-def _resolve_hermes_home() -> Path:
-    return Path(os.environ.get("HERMES_HOME", Path.home() / ".hermes"))
+def _resolve_claudia_home() -> Path:
+    return Path(os.environ.get("CLAUDIA_HOME", Path.home() / ".claudia"))
 
 
 def register_credential_file(
     relative_path: str,
-    container_base: str = "/root/.hermes",
+    container_base: str = "/root/.claudia",
 ) -> bool:
     """Register a credential file for mounting into remote sandboxes.
 
-    *relative_path* is relative to ``HERMES_HOME`` (e.g. ``google_token.json``).
+    *relative_path* is relative to ``CLAUDIA_HOME`` (e.g. ``google_token.json``).
     Returns True if the file exists on the host and was registered.
 
     Security: rejects absolute paths and path traversal sequences (``..``).
-    The resolved host path must remain inside HERMES_HOME so that a malicious
+    The resolved host path must remain inside CLAUDIA_HOME so that a malicious
     skill cannot declare ``required_credential_files: ['../../.ssh/id_rsa']``
     and exfiltrate sensitive host files into a container sandbox.
     """
-    hermes_home = _resolve_hermes_home()
+    claudia_home = _resolve_claudia_home()
 
-    # Reject absolute paths — they bypass the HERMES_HOME sandbox entirely.
+    # Reject absolute paths — they bypass the CLAUDIA_HOME sandbox entirely.
     if os.path.isabs(relative_path):
         logger.warning(
-            "credential_files: rejected absolute path %r (must be relative to HERMES_HOME)",
+            "credential_files: rejected absolute path %r (must be relative to CLAUDIA_HOME)",
             relative_path,
         )
         return False
 
-    host_path = hermes_home / relative_path
+    host_path = claudia_home / relative_path
 
     # Resolve symlinks and normalise ``..`` before the containment check so
-    # that traversal like ``../. ssh/id_rsa`` cannot escape HERMES_HOME.
+    # that traversal like ``../. ssh/id_rsa`` cannot escape CLAUDIA_HOME.
     try:
         resolved = host_path.resolve()
-        hermes_home_resolved = hermes_home.resolve()
-        resolved.relative_to(hermes_home_resolved)  # raises ValueError if outside
+        claudia_home_resolved = claudia_home.resolve()
+        resolved.relative_to(claudia_home_resolved)  # raises ValueError if outside
     except ValueError:
         logger.warning(
             "credential_files: rejected path traversal %r "
-            "(resolves to %s, outside HERMES_HOME %s)",
+            "(resolves to %s, outside CLAUDIA_HOME %s)",
             relative_path,
             resolved,
-            hermes_home_resolved,
+            claudia_home_resolved,
         )
         return False
 
@@ -101,7 +101,7 @@ def register_credential_file(
 
 def register_credential_files(
     entries: list,
-    container_base: str = "/root/.hermes",
+    container_base: str = "/root/.claudia",
 ) -> List[str]:
     """Register multiple credential files from skill frontmatter entries.
 
@@ -132,8 +132,8 @@ def _load_config_files() -> List[Dict[str, str]]:
 
     result: List[Dict[str, str]] = []
     try:
-        hermes_home = _resolve_hermes_home()
-        config_path = hermes_home / "config.yaml"
+        claudia_home = _resolve_claudia_home()
+        config_path = claudia_home / "config.yaml"
         if config_path.exists():
             import yaml
 
@@ -141,7 +141,7 @@ def _load_config_files() -> List[Dict[str, str]]:
                 cfg = yaml.safe_load(f) or {}
             cred_files = cfg.get("terminal", {}).get("credential_files")
             if isinstance(cred_files, list):
-                hermes_home_resolved = hermes_home.resolve()
+                claudia_home_resolved = claudia_home.resolve()
                 for item in cred_files:
                     if isinstance(item, str) and item.strip():
                         rel = item.strip()
@@ -150,18 +150,18 @@ def _load_config_files() -> List[Dict[str, str]]:
                                 "credential_files: rejected absolute config path %r", rel,
                             )
                             continue
-                        host_path = (hermes_home / rel).resolve()
+                        host_path = (claudia_home / rel).resolve()
                         try:
-                            host_path.relative_to(hermes_home_resolved)
+                            host_path.relative_to(claudia_home_resolved)
                         except ValueError:
                             logger.warning(
                                 "credential_files: rejected config path traversal %r "
-                                "(resolves to %s, outside HERMES_HOME %s)",
-                                rel, host_path, hermes_home_resolved,
+                                "(resolves to %s, outside CLAUDIA_HOME %s)",
+                                rel, host_path, claudia_home_resolved,
                             )
                             continue
                         if host_path.is_file():
-                            container_path = f"/root/.hermes/{rel}"
+                            container_path = f"/root/.claudia/{rel}"
                             result.append({
                                 "host_path": str(host_path),
                                 "container_path": container_path,
@@ -200,7 +200,7 @@ def get_credential_file_mounts() -> List[Dict[str, str]]:
 
 
 def get_skills_directory_mount(
-    container_base: str = "/root/.hermes",
+    container_base: str = "/root/.claudia",
 ) -> Dict[str, str] | None:
     """Return mount info for a symlink-safe copy of the skills directory.
 
@@ -216,8 +216,8 @@ def get_skills_directory_mount(
 
     Returns a dict with ``host_path`` and ``container_path`` keys, or None.
     """
-    hermes_home = _resolve_hermes_home()
-    skills_dir = hermes_home / "skills"
+    claudia_home = _resolve_claudia_home()
+    skills_dir = claudia_home / "skills"
     if not skills_dir.is_dir():
         return None
 
@@ -275,15 +275,15 @@ def _safe_skills_path(skills_dir: Path) -> str:
 
 
 def iter_skills_files(
-    container_base: str = "/root/.hermes",
+    container_base: str = "/root/.claudia",
 ) -> List[Dict[str, str]]:
     """Yield individual (host_path, container_path) entries for skills files.
 
     Skips symlinks entirely.  Preferred for backends that upload files
     individually (Daytona, Modal) rather than mounting a directory.
     """
-    hermes_home = _resolve_hermes_home()
-    skills_dir = hermes_home / "skills"
+    claudia_home = _resolve_claudia_home()
+    skills_dir = claudia_home / "skills"
     if not skills_dir.is_dir():
         return []
 

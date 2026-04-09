@@ -1961,8 +1961,8 @@ class DiscordAdapter(BasePlatformAdapter):
     @staticmethod
     def _thread_state_path() -> Path:
         """Path to the persisted thread participation set."""
-        from claudia_cli.config import get_hermes_home
-        return get_hermes_home() / "discord_threads.json"
+        from claudia_cli.config import get_claudia_home
+        return get_claudia_home() / "discord_threads.json"
 
     @classmethod
     def _load_participated_threads(cls) -> set:

@@ -155,10 +155,10 @@ class RetainDBMemoryProvider(MemoryProvider):
         if explicit_project:
             self._project = explicit_project
         else:
-            hermes_home = kwargs.get("hermes_home", "")
-            profile_name = os.path.basename(hermes_home) if hermes_home else ""
-            # Default profile (~/.hermes) → "hermes"; named profiles → "hermes-<name>"
-            if profile_name and profile_name != ".hermes":
+            claudia_home = kwargs.get("claudia_home", "")
+            profile_name = os.path.basename(claudia_home) if claudia_home else ""
+            # Default profile (~/.claudia) → "hermes"; named profiles → "hermes-<name>"
+            if profile_name and profile_name != ".claudia":
                 self._project = f"hermes-{profile_name}"
             else:
                 self._project = "hermes"

@@ -97,4 +97,4 @@ body:
       placeholder: |
         - Ran `hermes update`
         - Tried reinstalling with `pip install -e ".[all]"`
-        - Checked that OPENROUTER_API_KEY is set in ~/.hermes/.env
+        - Checked that OPENROUTER_API_KEY is set in ~/.claudia/.env

@@ -7,7 +7,7 @@ terminal_tool_module = importlib.import_module("tools.terminal_tool")
 def _clear_terminal_env(monkeypatch):
     """Remove terminal env vars that could affect requirements checks."""
     keys = [
-        "HERMES_ENABLE_NOUS_MANAGED_TOOLS",
+        "CLAUDIA_ENABLE_NOUS_MANAGED_TOOLS",
         "TERMINAL_ENV",
         "TERMINAL_MODAL_MODE",
         "TERMINAL_SSH_HOST",
@@ -81,7 +81,7 @@ def test_modal_backend_without_token_or_config_logs_specific_error(monkeypatch, 
 
 def test_modal_backend_with_managed_gateway_does_not_require_direct_creds_or_minisweagent(monkeypatch, tmp_path):
     _clear_terminal_env(monkeypatch)
-    monkeypatch.setenv("HERMES_ENABLE_NOUS_MANAGED_TOOLS", "1")
+    monkeypatch.setenv("CLAUDIA_ENABLE_NOUS_MANAGED_TOOLS", "1")
     monkeypatch.setenv("TERMINAL_ENV", "modal")
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("USERPROFILE", str(tmp_path))
@@ -103,7 +103,7 @@ def test_modal_backend_with_managed_gateway_does_not_require_direct_creds_or_min
 
 def test_modal_backend_auto_mode_prefers_managed_gateway_over_direct_creds(monkeypatch, tmp_path):
     _clear_terminal_env(monkeypatch)
-    monkeypatch.setenv("HERMES_ENABLE_NOUS_MANAGED_TOOLS", "1")
+    monkeypatch.setenv("CLAUDIA_ENABLE_NOUS_MANAGED_TOOLS", "1")
     monkeypatch.setenv("TERMINAL_ENV", "modal")
     monkeypatch.setenv("MODAL_TOKEN_ID", "tok-id")
     monkeypatch.setenv("MODAL_TOKEN_SECRET", "tok-secret")
@@ -152,7 +152,7 @@ def test_modal_backend_managed_mode_does_not_fall_back_to_direct(monkeypatch, ca
 
     assert ok is False
     assert any(
-        "HERMES_ENABLE_NOUS_MANAGED_TOOLS is not enabled" in record.getMessage()
+        "CLAUDIA_ENABLE_NOUS_MANAGED_TOOLS is not enabled" in record.getMessage()
         for record in caplog.records
     )
 
@@ -170,6 +170,6 @@ def test_modal_backend_managed_mode_without_feature_flag_logs_clear_error(monkey
 
     assert ok is False
     assert any(
-        "HERMES_ENABLE_NOUS_MANAGED_TOOLS is not enabled" in record.getMessage()
+        "CLAUDIA_ENABLE_NOUS_MANAGED_TOOLS is not enabled" in record.getMessage()
         for record in caplog.records
     )

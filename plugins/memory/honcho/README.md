@@ -16,12 +16,12 @@ hermes memory setup    # select "honcho"
 Or manually:
 ```bash
 hermes config set memory.provider honcho
-echo "HONCHO_API_KEY=your-key" >> ~/.hermes/.env
+echo "HONCHO_API_KEY=your-key" >> ~/.claudia/.env
 ```
 
 ## Config
 
-Config file: `$HERMES_HOME/honcho.json` (or `~/.honcho/config.json` legacy)
+Config file: `$CLAUDIA_HOME/honcho.json` (or `~/.honcho/config.json` legacy)
 
 Existing Honcho users: your config and data are preserved. Just set `memory.provider: honcho`.
 

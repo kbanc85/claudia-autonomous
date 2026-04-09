@@ -58,8 +58,8 @@ class TestLocalOneShotRegression:
 
     def test_state_does_not_persist(self):
         env = LocalEnvironment(persistent=False)
-        env.execute("export HERMES_ONESHOT_LOCAL=yes")
-        r = env.execute("echo $HERMES_ONESHOT_LOCAL")
+        env.execute("export CLAUDIA_ONESHOT_LOCAL=yes")
+        r = env.execute("echo $CLAUDIA_ONESHOT_LOCAL")
         assert r["output"].strip() == ""
         env.cleanup()
 
@@ -71,7 +71,7 @@ class TestLocalOneShotRegression:
         env.cleanup()
         assert r["returncode"] == 0
         assert "heredoc body line" in r["output"]
-        assert "__hermes_rc" not in r["output"]
+        assert "__claudia_rc" not in r["output"]
         assert "printf '" not in r["output"]
         assert "exit $" not in r["output"]
 
@@ -89,8 +89,8 @@ class TestLocalPersistent:
         assert "hello-persistent" in r["output"]
 
     def test_env_var_persists(self, env):
-        env.execute("export HERMES_LOCAL_PERSIST_TEST=works")
-        r = env.execute("echo $HERMES_LOCAL_PERSIST_TEST")
+        env.execute("export CLAUDIA_LOCAL_PERSIST_TEST=works")
+        r = env.execute("echo $CLAUDIA_LOCAL_PERSIST_TEST")
         assert r["output"].strip() == "works"
 
     def test_cwd_persists(self, env):

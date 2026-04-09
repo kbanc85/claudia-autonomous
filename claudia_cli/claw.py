@@ -15,7 +15,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from claudia_cli.config import get_hermes_home, get_config_path, load_config, save_config
+from claudia_cli.config import get_claudia_home, get_config_path, load_config, save_config
 from claudia_constants import get_optional_skills_dir
 from claudia_cli.setup import (
     Colors,
@@ -42,7 +42,7 @@ _OPENCLAW_SCRIPT = (
 
 # Fallback: user may have installed the skill from the Hub
 _OPENCLAW_SCRIPT_INSTALLED = (
-    get_hermes_home()
+    get_claudia_home()
     / "skills"
     / "migration"
     / "openclaw-migration"
@@ -238,11 +238,11 @@ def _cmd_migrate(args):
         return
 
     # Show what we're doing
-    hermes_home = get_hermes_home()
+    claudia_home = get_claudia_home()
     print()
     print_header("Migration Settings")
     print_info(f"Source:      {source_dir}")
-    print_info(f"Target:      {hermes_home}")
+    print_info(f"Target:      {claudia_home}")
     print_info(f"Preset:      {preset}")
     print_info(f"Mode:        {'dry run (preview only)' if dry_run else 'execute'}")
     print_info(f"Overwrite:   {'yes' if overwrite else 'no (skip conflicts)'}")
@@ -276,7 +276,7 @@ def _cmd_migrate(args):
 
         migrator = mod.Migrator(
             source_root=source_dir.resolve(),
-            target_root=hermes_home.resolve(),
+            target_root=claudia_home.resolve(),
             execute=not dry_run,
             workspace_target=ws_target,
             overwrite=overwrite,

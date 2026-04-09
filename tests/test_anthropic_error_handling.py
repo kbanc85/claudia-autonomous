@@ -162,7 +162,7 @@ def _run_with_agent(monkeypatch, agent_cls):
             "api_key": "sk-ant-api03-test-key",
         },
     )
-    monkeypatch.setenv("HERMES_TOOL_PROGRESS", "false")
+    monkeypatch.setenv("CLAUDIA_TOOL_PROGRESS", "false")
 
     runner = gateway_run.GatewayRunner.__new__(gateway_run.GatewayRunner)
     runner.adapters = {}
@@ -251,7 +251,7 @@ def test_401_credential_refresh_recovers(monkeypatch):
     monkeypatch.setattr(
         "agent.anthropic_adapter.build_anthropic_client", _fake_build_anthropic_client
     )
-    monkeypatch.setenv("HERMES_TOOL_PROGRESS", "false")
+    monkeypatch.setenv("CLAUDIA_TOOL_PROGRESS", "false")
 
     refresh_count = {"n": 0}
 
@@ -335,7 +335,7 @@ def test_401_refresh_fails_is_non_retryable(monkeypatch):
     monkeypatch.setattr(
         "agent.anthropic_adapter.build_anthropic_client", _fake_build_anthropic_client
     )
-    monkeypatch.setenv("HERMES_TOOL_PROGRESS", "false")
+    monkeypatch.setenv("CLAUDIA_TOOL_PROGRESS", "false")
 
     class _Auth401AlwaysFailAgent(run_agent.AIAgent):
         def __init__(self, *args, **kwargs):
@@ -409,7 +409,7 @@ def test_prompt_too_long_triggers_compression(monkeypatch):
     monkeypatch.setattr(
         "agent.anthropic_adapter.build_anthropic_client", _fake_build_anthropic_client
     )
-    monkeypatch.setenv("HERMES_TOOL_PROGRESS", "false")
+    monkeypatch.setenv("CLAUDIA_TOOL_PROGRESS", "false")
 
     class _PromptTooLongThenSuccessAgent(run_agent.AIAgent):
         compress_called = 0

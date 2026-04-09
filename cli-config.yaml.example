@@ -34,7 +34,7 @@ model:
   #     base_url: "http://localhost:1234/v1"
   #   No API key needed — local servers typically ignore auth.
   #
-  # Can also be overridden with --provider flag or HERMES_INFERENCE_PROVIDER env var.
+  # Can also be overridden with --provider flag or CLAUDIA_INFERENCE_PROVIDER env var.
   provider: "auto"
   
   # API configuration (falls back to OPENROUTER_API_KEY env var)
@@ -140,7 +140,7 @@ terminal:
 #   docker_image: "nikolaik/python-nodejs:python3.11-nodejs20"
 #   docker_mount_cwd_to_workspace: true   # Explicit opt-in: mount your launch cwd into /workspace
 #   # Optional: explicitly forward selected env vars into Docker.
-#   # These values come from your current shell first, then ~/.hermes/.env.
+#   # These values come from your current shell first, then ~/.claudia/.env.
 #   # Warning: anything forwarded here is visible to commands run in the container.
 #   docker_forward_env:
 #     - "GITHUB_TOKEN"
@@ -421,9 +421,9 @@ skills:
   creation_nudge_interval: 15
 
   # External skill directories — share skills across tools/agents without
-  # copying them into ~/.hermes/skills/.  Each path is expanded (~ and ${VAR})
+  # copying them into ~/.claudia/skills/.  Each path is expanded (~ and ${VAR})
   # and resolved to an absolute path.  External dirs are read-only: skill
-  # creation always writes to ~/.hermes/skills/.  Local skills take precedence
+  # creation always writes to ~/.claudia/skills/.  Local skills take precedence
   # when names collide.
   # external_dirs:
   #   - ~/.agents/skills
@@ -696,7 +696,7 @@ delegation:
 #
 # Requires: pip install honcho-ai
 # Config: ~/.honcho/config.json (shared with Claude Code, Cursor, etc.)
-# API key: HONCHO_API_KEY in ~/.hermes/.env or ~/.honcho/config.json
+# API key: HONCHO_API_KEY in ~/.claudia/.env or ~/.honcho/config.json
 #
 # Hermes-specific overrides (optional — most config comes from ~/.honcho/config.json):
 # honcho: {}
@@ -760,7 +760,7 @@ display:
   #   mono     — Clean grayscale monochrome
   #   slate    — Cool blue developer-focused
   #
-  # Custom skins: drop a YAML file in ~/.hermes/skins/<name>.yaml
+  # Custom skins: drop a YAML file in ~/.claudia/skins/<name>.yaml
   # Schema (all fields optional, missing values inherit from default):
   #
   #   name: my-theme

@@ -10,7 +10,7 @@ import os
 import sys
 from pathlib import Path
 
-from claudia_constants import get_hermes_home
+from claudia_constants import get_claudia_home
 from plugins.memory.honcho.client import resolve_active_host, resolve_config_path, GLOBAL_CONFIG_PATH, HOST
 
 
@@ -243,11 +243,11 @@ def _config_path() -> Path:
 def _local_config_path() -> Path:
     """Return the instance-local Honcho config path for writing.
 
-    Always returns $HERMES_HOME/honcho.json so each profile/instance gets
+    Always returns $CLAUDIA_HOME/honcho.json so each profile/instance gets
     its own config file.  The global ~/.honcho/config.json is only used as
     a read fallback (via resolve_config_path) for cross-app interop.
     """
-    return get_hermes_home() / "honcho.json"
+    return get_claudia_home() / "honcho.json"
 
 
 def _read_config() -> dict:
@@ -340,7 +340,7 @@ def cmd_setup(args) -> None:
     # All writes go to the active host block — root keys are managed by
     # the user or the honcho CLI only.
     hosts = cfg.setdefault("hosts", {})
-    hermes_host = hosts.setdefault(_host_key(), {})
+    claudia_host = hosts.setdefault(_host_key(), {})
 
     # API key — shared credential, lives at root so all hosts can read it
     current_key = cfg.get("apiKey", "")
@@ -357,31 +357,31 @@ def cmd_setup(args) -> None:
         return
 
     # Peer name
-    current_peer = hermes_host.get("peerName") or cfg.get("peerName", "")
+    current_peer = claudia_host.get("peerName") or cfg.get("peerName", "")
     new_peer = _prompt("Your name (user peer)", default=current_peer or os.getenv("USER", "user"))
     if new_peer:
-        hermes_host["peerName"] = new_peer
+        claudia_host["peerName"] = new_peer
 
-    current_workspace = hermes_host.get("workspace") or cfg.get("workspace", "hermes")
+    current_workspace = claudia_host.get("workspace") or cfg.get("workspace", "hermes")
     new_workspace = _prompt("Workspace ID", default=current_workspace)
     if new_workspace:
-        hermes_host["workspace"] = new_workspace
+        claudia_host["workspace"] = new_workspace
 
-    hermes_host.setdefault("aiPeer", _host_key())
+    claudia_host.setdefault("aiPeer", _host_key())
 
     # Memory mode
-    current_mode = hermes_host.get("memoryMode") or cfg.get("memoryMode", "hybrid")
+    current_mode = claudia_host.get("memoryMode") or cfg.get("memoryMode", "hybrid")
     print("\n  Memory mode options:")
     print("    hybrid  — write to both Honcho and local MEMORY.md (default)")
     print("    honcho  — Honcho only, skip MEMORY.md writes")
     new_mode = _prompt("Memory mode", default=current_mode)
     if new_mode in ("hybrid", "honcho"):
-        hermes_host["memoryMode"] = new_mode
+        claudia_host["memoryMode"] = new_mode
     else:
-        hermes_host["memoryMode"] = "hybrid"
+        claudia_host["memoryMode"] = "hybrid"
 
     # Write frequency
-    current_wf = str(hermes_host.get("writeFrequency") or cfg.get("writeFrequency", "async"))
+    current_wf = str(claudia_host.get("writeFrequency") or cfg.get("writeFrequency", "async"))
     print("\n  Write frequency options:")
     print("    async   — background thread, no token cost (recommended)")
     print("    turn    — sync write after every turn")
@@ -389,12 +389,12 @@ def cmd_setup(args) -> None:
     print("    N       — write every N turns (e.g. 5)")
     new_wf = _prompt("Write frequency", default=current_wf)
     try:
-        hermes_host["writeFrequency"] = int(new_wf)
+        claudia_host["writeFrequency"] = int(new_wf)
     except (ValueError, TypeError):
-        hermes_host["writeFrequency"] = new_wf if new_wf in ("async", "turn", "session") else "async"
+        claudia_host["writeFrequency"] = new_wf if new_wf in ("async", "turn", "session") else "async"
 
     # Recall mode
-    _raw_recall = hermes_host.get("recallMode") or cfg.get("recallMode", "hybrid")
+    _raw_recall = claudia_host.get("recallMode") or cfg.get("recallMode", "hybrid")
     current_recall = "hybrid" if _raw_recall not in ("hybrid", "context", "tools") else _raw_recall
     print("\n  Recall mode options:")
     print("    hybrid  — auto-injected context + Honcho tools available (default)")
@@ -402,10 +402,10 @@ def cmd_setup(args) -> None:
     print("    tools   — Honcho tools only, no auto-injected context")
     new_recall = _prompt("Recall mode", default=current_recall)
     if new_recall in ("hybrid", "context", "tools"):
-        hermes_host["recallMode"] = new_recall
+        claudia_host["recallMode"] = new_recall
 
     # Session strategy
-    current_strat = hermes_host.get("sessionStrategy") or cfg.get("sessionStrategy", "per-directory")
+    current_strat = claudia_host.get("sessionStrategy") or cfg.get("sessionStrategy", "per-directory")
     print("\n  Session strategy options:")
     print("    per-directory — one session per working directory (default)")
     print("    per-session   — new Honcho session each run, named by Hermes session ID")
@@ -413,10 +413,10 @@ def cmd_setup(args) -> None:
     print("    global        — single session across all directories")
     new_strat = _prompt("Session strategy", default=current_strat)
     if new_strat in ("per-session", "per-repo", "per-directory", "global"):
-        hermes_host["sessionStrategy"] = new_strat
+        claudia_host["sessionStrategy"] = new_strat
 
-    hermes_host.setdefault("enabled", True)
-    hermes_host.setdefault("saveMessages", True)
+    claudia_host.setdefault("enabled", True)
+    claudia_host.setdefault("saveMessages", True)
 
     _write_config(cfg)
     print(f"\n  Config written to {write_path}")

@@ -31,26 +31,26 @@ from claudia_cli.profiles import (
     generate_bash_completion,
     generate_zsh_completion,
     _get_profiles_root,
-    _get_default_hermes_home,
+    _get_default_claudia_home,
 )
 
 
 # ---------------------------------------------------------------------------
-# Shared fixture: redirect Path.home() and HERMES_HOME for profile tests
+# Shared fixture: redirect Path.home() and CLAUDIA_HOME for profile tests
 # ---------------------------------------------------------------------------
 
 @pytest.fixture()
 def profile_env(tmp_path, monkeypatch):
     """Set up an isolated environment for profile tests.
 
-    * Path.home() -> tmp_path  (so _get_profiles_root() = tmp_path/.hermes/profiles)
-    * HERMES_HOME  -> tmp_path/.hermes  (so get_hermes_home() agrees)
-    * Creates the bare-minimum ~/.hermes directory.
+    * Path.home() -> tmp_path  (so _get_profiles_root() = tmp_path/.claudia/profiles)
+    * CLAUDIA_HOME  -> tmp_path/.claudia  (so get_claudia_home() agrees)
+    * Creates the bare-minimum ~/.claudia directory.
     """
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    default_home = tmp_path / ".hermes"
+    default_home = tmp_path / ".claudia"
     default_home.mkdir(exist_ok=True)
-    monkeypatch.setenv("HERMES_HOME", str(default_home))
+    monkeypatch.setenv("CLAUDIA_HOME", str(default_home))
     return tmp_path
 
 
@@ -97,15 +97,15 @@ class TestValidateProfileName:
 class TestGetProfileDir:
     """Tests for get_profile_dir()."""
 
-    def test_default_returns_hermes_home(self, profile_env):
+    def test_default_returns_claudia_home(self, profile_env):
         tmp_path = profile_env
         result = get_profile_dir("default")
-        assert result == tmp_path / ".hermes"
+        assert result == tmp_path / ".claudia"
 
     def test_named_profile_returns_profiles_subdir(self, profile_env):
         tmp_path = profile_env
         result = get_profile_dir("coder")
-        assert result == tmp_path / ".hermes" / "profiles" / "coder"
+        assert result == tmp_path / ".claudia" / "profiles" / "coder"
 
 
 # ===================================================================
@@ -137,7 +137,7 @@ class TestCreateProfile:
 
     def test_clone_config_copies_files(self, profile_env):
         tmp_path = profile_env
-        default_home = tmp_path / ".hermes"
+        default_home = tmp_path / ".claudia"
         # Create source config files in default profile
         (default_home / "config.yaml").write_text("model: test")
         (default_home / ".env").write_text("KEY=val")
@@ -151,7 +151,7 @@ class TestCreateProfile:
 
     def test_clone_all_copies_entire_tree(self, profile_env):
         tmp_path = profile_env
-        default_home = tmp_path / ".hermes"
+        default_home = tmp_path / ".claudia"
         # Populate default with some content
         (default_home / "memories").mkdir(exist_ok=True)
         (default_home / "memories" / "note.md").write_text("remember this")
@@ -256,7 +256,7 @@ class TestActiveProfile:
 
     def test_empty_file_returns_default(self, profile_env):
         tmp_path = profile_env
-        active_path = tmp_path / ".hermes" / "active_profile"
+        active_path = tmp_path / ".claudia" / "active_profile"
         active_path.write_text("")
         assert get_active_profile() == "default"
 
@@ -264,7 +264,7 @@ class TestActiveProfile:
         tmp_path = profile_env
         create_profile("coder", no_alias=True)
         set_active_profile("coder")
-        active_path = tmp_path / ".hermes" / "active_profile"
+        active_path = tmp_path / ".claudia" / "active_profile"
         assert active_path.exists()
 
         set_active_profile("default")
@@ -282,22 +282,22 @@ class TestActiveProfile:
 class TestGetActiveProfileName:
     """Tests for get_active_profile_name()."""
 
-    def test_default_hermes_home_returns_default(self, profile_env):
-        # HERMES_HOME points to tmp_path/.hermes which is the default
+    def test_default_claudia_home_returns_default(self, profile_env):
+        # CLAUDIA_HOME points to tmp_path/.claudia which is the default
         assert get_active_profile_name() == "default"
 
     def test_profile_path_returns_profile_name(self, profile_env, monkeypatch):
         tmp_path = profile_env
         create_profile("coder", no_alias=True)
-        profile_dir = tmp_path / ".hermes" / "profiles" / "coder"
-        monkeypatch.setenv("HERMES_HOME", str(profile_dir))
+        profile_dir = tmp_path / ".claudia" / "profiles" / "coder"
+        monkeypatch.setenv("CLAUDIA_HOME", str(profile_dir))
         assert get_active_profile_name() == "coder"
 
     def test_custom_path_returns_custom(self, profile_env, monkeypatch):
         tmp_path = profile_env
         custom = tmp_path / "some" / "other" / "path"
         custom.mkdir(parents=True)
-        monkeypatch.setenv("HERMES_HOME", str(custom))
+        monkeypatch.setenv("CLAUDIA_HOME", str(custom))
         assert get_active_profile_name() == "custom"
 
 
@@ -312,12 +312,12 @@ class TestResolveProfileEnv:
         tmp_path = profile_env
         create_profile("coder", no_alias=True)
         result = resolve_profile_env("coder")
-        assert result == str(tmp_path / ".hermes" / "profiles" / "coder")
+        assert result == str(tmp_path / ".claudia" / "profiles" / "coder")
 
     def test_default_returns_default_home(self, profile_env):
         tmp_path = profile_env
         result = resolve_profile_env("default")
-        assert result == str(tmp_path / ".hermes")
+        assert result == str(tmp_path / ".claudia")
 
     def test_nonexistent_raises_file_not_found(self, profile_env):
         with pytest.raises(FileNotFoundError):
@@ -368,7 +368,7 @@ class TestRenameProfile:
     def test_renames_directory(self, profile_env):
         tmp_path = profile_env
         create_profile("oldname", no_alias=True)
-        old_dir = tmp_path / ".hermes" / "profiles" / "oldname"
+        old_dir = tmp_path / ".claudia" / "profiles" / "oldname"
         assert old_dir.is_dir()
 
         # Mock alias collision to avoid subprocess calls
@@ -377,7 +377,7 @@ class TestRenameProfile:
 
         assert not old_dir.is_dir()
         assert new_dir.is_dir()
-        assert new_dir == tmp_path / ".hermes" / "profiles" / "newname"
+        assert new_dir == tmp_path / ".claudia" / "profiles" / "newname"
 
     def test_default_raises_value_error(self, profile_env):
         with pytest.raises(ValueError, match="default"):
@@ -539,7 +539,7 @@ class TestExportImport:
             (sub / "marker.txt").write_text("excluded")
 
         for f in ("state.db", "gateway.pid", "gateway_state.json",
-                  "processes.json", "errors.log", ".hermes_history",
+                  "processes.json", "errors.log", ".claudia_history",
                   "active_profile", ".update_check", "auth.lock"):
             (default_dir / f).write_text("excluded")
 
@@ -566,7 +566,7 @@ class TestExportImport:
         excluded_files = [
             "default/state.db", "default/gateway.pid",
             "default/gateway_state.json", "default/processes.json",
-            "default/errors.log", "default/.hermes_history",
+            "default/errors.log", "default/.claudia_history",
             "default/active_profile", "default/.update_check",
             "default/auth.lock",
         ]
@@ -680,11 +680,11 @@ class TestCompletion:
         assert len(script) > 0
         assert "compdef" in script
 
-    def test_bash_completion_has_hermes_profiles_function(self):
+    def test_bash_completion_has_claudia_profiles_function(self):
         script = generate_bash_completion()
-        assert "_hermes_profiles" in script
+        assert "_claudia_profiles" in script
 
-    def test_zsh_completion_has_hermes_function(self):
+    def test_zsh_completion_has_claudia_function(self):
         script = generate_zsh_completion()
         assert "_hermes" in script
 
@@ -694,17 +694,17 @@ class TestCompletion:
 # ===================================================================
 
 class TestInternalHelpers:
-    """Tests for _get_profiles_root() and _get_default_hermes_home()."""
+    """Tests for _get_profiles_root() and _get_default_claudia_home()."""
 
     def test_profiles_root_under_home(self, profile_env):
         tmp_path = profile_env
         root = _get_profiles_root()
-        assert root == tmp_path / ".hermes" / "profiles"
+        assert root == tmp_path / ".claudia" / "profiles"
 
-    def test_default_hermes_home(self, profile_env):
+    def test_default_claudia_home(self, profile_env):
         tmp_path = profile_env
-        home = _get_default_hermes_home()
-        assert home == tmp_path / ".hermes"
+        home = _get_default_claudia_home()
+        assert home == tmp_path / ".claudia"
 
 
 # ===================================================================
@@ -717,7 +717,7 @@ class TestEdgeCases:
     def test_create_profile_returns_correct_path(self, profile_env):
         tmp_path = profile_env
         result = create_profile("mybot", no_alias=True)
-        expected = tmp_path / ".hermes" / "profiles" / "mybot"
+        expected = tmp_path / ".claudia" / "profiles" / "mybot"
         assert result == expected
 
     def test_list_profiles_default_info_fields(self, profile_env):
@@ -731,7 +731,7 @@ class TestEdgeCases:
         """Verify _check_gateway_running reads pid file and probes os.kill."""
         from claudia_cli.profiles import _check_gateway_running
         tmp_path = profile_env
-        default_home = tmp_path / ".hermes"
+        default_home = tmp_path / ".claudia"
 
         # No pid file -> not running
         assert _check_gateway_running(default_home) is False
@@ -751,7 +751,7 @@ class TestEdgeCases:
         """Pid file containing just a number (legacy format)."""
         from claudia_cli.profiles import _check_gateway_running
         tmp_path = profile_env
-        default_home = tmp_path / ".hermes"
+        default_home = tmp_path / ".claudia"
         pid_file = default_home / "gateway.pid"
         pid_file.write_text("99999")
 

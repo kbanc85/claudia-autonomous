@@ -78,16 +78,16 @@ class TestReasoningCommand:
 
     @pytest.mark.asyncio
     async def test_reasoning_command_reloads_current_state_from_config(self, tmp_path, monkeypatch):
-        hermes_home = tmp_path / "hermes"
-        hermes_home.mkdir()
-        config_path = hermes_home / "config.yaml"
+        claudia_home = tmp_path / "hermes"
+        claudia_home.mkdir()
+        config_path = claudia_home / "config.yaml"
         config_path.write_text(
             "agent:\n  reasoning_effort: none\ndisplay:\n  show_reasoning: true\n",
             encoding="utf-8",
         )
 
-        monkeypatch.setattr(gateway_run, "_hermes_home", hermes_home)
-        monkeypatch.delenv("HERMES_REASONING_EFFORT", raising=False)
+        monkeypatch.setattr(gateway_run, "_claudia_home", claudia_home)
+        monkeypatch.delenv("CLAUDIA_REASONING_EFFORT", raising=False)
 
         runner = _make_runner()
         runner._reasoning_config = {"enabled": True, "effort": "xhigh"}
@@ -102,13 +102,13 @@ class TestReasoningCommand:
 
     @pytest.mark.asyncio
     async def test_handle_reasoning_command_updates_config_and_cache(self, tmp_path, monkeypatch):
-        hermes_home = tmp_path / "hermes"
-        hermes_home.mkdir()
-        config_path = hermes_home / "config.yaml"
+        claudia_home = tmp_path / "hermes"
+        claudia_home.mkdir()
+        config_path = claudia_home / "config.yaml"
         config_path.write_text("agent:\n  reasoning_effort: medium\n", encoding="utf-8")
 
-        monkeypatch.setattr(gateway_run, "_hermes_home", hermes_home)
-        monkeypatch.delenv("HERMES_REASONING_EFFORT", raising=False)
+        monkeypatch.setattr(gateway_run, "_claudia_home", claudia_home)
+        monkeypatch.delenv("CLAUDIA_REASONING_EFFORT", raising=False)
 
         runner = _make_runner()
         runner._reasoning_config = {"enabled": True, "effort": "medium"}
@@ -121,12 +121,12 @@ class TestReasoningCommand:
         assert "takes effect on next message" in result
 
     def test_run_agent_reloads_reasoning_config_per_message(self, tmp_path, monkeypatch):
-        hermes_home = tmp_path / "hermes"
-        hermes_home.mkdir()
-        (hermes_home / "config.yaml").write_text("agent:\n  reasoning_effort: low\n", encoding="utf-8")
+        claudia_home = tmp_path / "hermes"
+        claudia_home.mkdir()
+        (claudia_home / "config.yaml").write_text("agent:\n  reasoning_effort: low\n", encoding="utf-8")
 
-        monkeypatch.setattr(gateway_run, "_hermes_home", hermes_home)
-        monkeypatch.setattr(gateway_run, "_env_path", hermes_home / ".env")
+        monkeypatch.setattr(gateway_run, "_claudia_home", claudia_home)
+        monkeypatch.setattr(gateway_run, "_env_path", claudia_home / ".env")
         monkeypatch.setattr(gateway_run, "load_dotenv", lambda *args, **kwargs: None)
         monkeypatch.setattr(
             gateway_run,
@@ -138,7 +138,7 @@ class TestReasoningCommand:
                 "api_key": "test-key",
             },
         )
-        monkeypatch.delenv("HERMES_REASONING_EFFORT", raising=False)
+        monkeypatch.delenv("CLAUDIA_REASONING_EFFORT", raising=False)
         fake_run_agent = types.ModuleType("run_agent")
         fake_run_agent.AIAgent = _CapturingAgent
         monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
@@ -171,12 +171,12 @@ class TestReasoningCommand:
         assert _CapturingAgent.last_init["reasoning_config"] == {"enabled": True, "effort": "low"}
 
     def test_run_agent_prefers_config_over_stale_reasoning_env(self, tmp_path, monkeypatch):
-        hermes_home = tmp_path / "hermes"
-        hermes_home.mkdir()
-        (hermes_home / "config.yaml").write_text("agent:\n  reasoning_effort: none\n", encoding="utf-8")
+        claudia_home = tmp_path / "hermes"
+        claudia_home.mkdir()
+        (claudia_home / "config.yaml").write_text("agent:\n  reasoning_effort: none\n", encoding="utf-8")
 
-        monkeypatch.setattr(gateway_run, "_hermes_home", hermes_home)
-        monkeypatch.setattr(gateway_run, "_env_path", hermes_home / ".env")
+        monkeypatch.setattr(gateway_run, "_claudia_home", claudia_home)
+        monkeypatch.setattr(gateway_run, "_env_path", claudia_home / ".env")
         monkeypatch.setattr(gateway_run, "load_dotenv", lambda *args, **kwargs: None)
         monkeypatch.setattr(
             gateway_run,
@@ -188,7 +188,7 @@ class TestReasoningCommand:
                 "api_key": "test-key",
             },
         )
-        monkeypatch.setenv("HERMES_REASONING_EFFORT", "low")
+        monkeypatch.setenv("CLAUDIA_REASONING_EFFORT", "low")
         fake_run_agent = types.ModuleType("run_agent")
         fake_run_agent.AIAgent = _CapturingAgent
         monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
@@ -220,9 +220,9 @@ class TestReasoningCommand:
         assert _CapturingAgent.last_init["reasoning_config"] == {"enabled": False}
 
     def test_run_agent_includes_enabled_mcp_servers_in_gateway_toolsets(self, tmp_path, monkeypatch):
-        hermes_home = tmp_path / "hermes"
-        hermes_home.mkdir()
-        (hermes_home / "config.yaml").write_text(
+        claudia_home = tmp_path / "hermes"
+        claudia_home.mkdir()
+        (claudia_home / "config.yaml").write_text(
             "platform_toolsets:\n"
             "  cli: [web, memory]\n"
             "mcp_servers:\n"
@@ -233,8 +233,8 @@ class TestReasoningCommand:
             encoding="utf-8",
         )
 
-        monkeypatch.setattr(gateway_run, "_hermes_home", hermes_home)
-        monkeypatch.setattr(gateway_run, "_env_path", hermes_home / ".env")
+        monkeypatch.setattr(gateway_run, "_claudia_home", claudia_home)
+        monkeypatch.setattr(gateway_run, "_env_path", claudia_home / ".env")
         monkeypatch.setattr(gateway_run, "load_dotenv", lambda *args, **kwargs: None)
         monkeypatch.setattr(
             gateway_run,
@@ -281,12 +281,12 @@ class TestReasoningCommand:
         assert "web-search-prime" in enabled_toolsets
 
     def test_run_agent_homeassistant_uses_default_platform_toolset(self, tmp_path, monkeypatch):
-        hermes_home = tmp_path / "hermes"
-        hermes_home.mkdir()
-        (hermes_home / "config.yaml").write_text("", encoding="utf-8")
+        claudia_home = tmp_path / "hermes"
+        claudia_home.mkdir()
+        (claudia_home / "config.yaml").write_text("", encoding="utf-8")
 
-        monkeypatch.setattr(gateway_run, "_hermes_home", hermes_home)
-        monkeypatch.setattr(gateway_run, "_env_path", hermes_home / ".env")
+        monkeypatch.setattr(gateway_run, "_claudia_home", claudia_home)
+        monkeypatch.setattr(gateway_run, "_env_path", claudia_home / ".env")
         monkeypatch.setattr(gateway_run, "load_dotenv", lambda *args, **kwargs: None)
         monkeypatch.setattr(
             gateway_run,

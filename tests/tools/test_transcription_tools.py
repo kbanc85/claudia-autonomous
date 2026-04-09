@@ -48,8 +48,8 @@ def clean_env(monkeypatch):
     monkeypatch.delenv("VOICE_TOOLS_OPENAI_KEY", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("GROQ_API_KEY", raising=False)
-    monkeypatch.delenv("HERMES_LOCAL_STT_COMMAND", raising=False)
-    monkeypatch.delenv("HERMES_LOCAL_STT_LANGUAGE", raising=False)
+    monkeypatch.delenv("CLAUDIA_LOCAL_STT_COMMAND", raising=False)
+    monkeypatch.delenv("CLAUDIA_LOCAL_STT_LANGUAGE", raising=False)
 
 
 # ============================================================================
@@ -152,7 +152,7 @@ class TestExplicitProviderRespected:
     def test_explicit_local_uses_local_command_fallback(self, monkeypatch):
         """Local-to-local_command fallback is fine — both are local."""
         monkeypatch.setenv(
-            "HERMES_LOCAL_STT_COMMAND",
+            "CLAUDIA_LOCAL_STT_COMMAND",
             "whisper {input_path} --output_dir {output_dir} --language {language}",
         )
         with patch("tools.transcription_tools._HAS_FASTER_WHISPER", False):
@@ -354,7 +354,7 @@ class TestTranscribeOpenAIExtended:
 
 class TestTranscribeLocalCommand:
     def test_auto_detects_local_whisper_binary(self, monkeypatch):
-        monkeypatch.delenv("HERMES_LOCAL_STT_COMMAND", raising=False)
+        monkeypatch.delenv("CLAUDIA_LOCAL_STT_COMMAND", raising=False)
         monkeypatch.setattr("tools.transcription_tools._find_whisper_binary", lambda: "/opt/homebrew/bin/whisper")
 
         from tools.transcription_tools import _get_local_command_template
@@ -371,10 +371,10 @@ class TestTranscribeLocalCommand:
         out_dir.mkdir()
 
         monkeypatch.setenv(
-            "HERMES_LOCAL_STT_COMMAND",
+            "CLAUDIA_LOCAL_STT_COMMAND",
             "whisper {input_path} --model {model} --output_dir {output_dir} --language {language}",
         )
-        monkeypatch.setenv("HERMES_LOCAL_STT_LANGUAGE", "en")
+        monkeypatch.setenv("CLAUDIA_LOCAL_STT_LANGUAGE", "en")
 
         def fake_tempdir(prefix=None):
             class _TempDir:
@@ -824,7 +824,7 @@ class TestGetSttModelFromConfig:
     def test_returns_model_from_config(self, tmp_path, monkeypatch):
         cfg = tmp_path / "config.yaml"
         cfg.write_text("stt:\n  model: whisper-large-v3\n")
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
 
         from tools.transcription_tools import get_stt_model_from_config
         assert get_stt_model_from_config() == "whisper-large-v3"
@@ -832,13 +832,13 @@ class TestGetSttModelFromConfig:
     def test_returns_none_when_no_stt_section(self, tmp_path, monkeypatch):
         cfg = tmp_path / "config.yaml"
         cfg.write_text("tts:\n  provider: edge\n")
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
 
         from tools.transcription_tools import get_stt_model_from_config
         assert get_stt_model_from_config() is None
 
     def test_returns_none_when_no_config_file(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
 
         from tools.transcription_tools import get_stt_model_from_config
         assert get_stt_model_from_config() is None
@@ -846,7 +846,7 @@ class TestGetSttModelFromConfig:
     def test_returns_none_on_invalid_yaml(self, tmp_path, monkeypatch):
         cfg = tmp_path / "config.yaml"
         cfg.write_text(": : :\n  bad yaml [[[")
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
 
         from tools.transcription_tools import get_stt_model_from_config
         assert get_stt_model_from_config() is None
@@ -854,7 +854,7 @@ class TestGetSttModelFromConfig:
     def test_returns_none_when_model_key_missing(self, tmp_path, monkeypatch):
         cfg = tmp_path / "config.yaml"
         cfg.write_text("stt:\n  enabled: true\n")
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
 
         from tools.transcription_tools import get_stt_model_from_config
         assert get_stt_model_from_config() is None

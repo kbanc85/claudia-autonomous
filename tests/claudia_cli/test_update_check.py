@@ -79,14 +79,14 @@ def test_check_for_updates_no_git_dir(tmp_path):
 
 
 def test_check_for_updates_fallback_to_project_root():
-    """Dev install: falls back to Path(__file__).parent.parent when HERMES_HOME has no git repo."""
+    """Dev install: falls back to Path(__file__).parent.parent when CLAUDIA_HOME has no git repo."""
     import claudia_cli.banner as banner
 
     project_root = Path(banner.__file__).parent.parent.resolve()
     if not (project_root / ".git").exists():
         pytest.skip("Not running from a git checkout")
 
-    # Point HERMES_HOME at a temp dir with no hermes-agent/.git
+    # Point CLAUDIA_HOME at a temp dir with no hermes-agent/.git
     import tempfile
     with tempfile.TemporaryDirectory() as td:
         with patch("claudia_cli.banner.os.getenv", return_value=td):
@@ -139,8 +139,8 @@ def test_invalidate_update_cache_clears_all_profiles(tmp_path):
     """_invalidate_update_cache() should delete .update_check from ALL profiles."""
     from claudia_cli.main import _invalidate_update_cache
 
-    # Build a fake ~/.hermes with default + two named profiles
-    default_home = tmp_path / ".hermes"
+    # Build a fake ~/.claudia with default + two named profiles
+    default_home = tmp_path / ".claudia"
     default_home.mkdir()
     (default_home / ".update_check").write_text('{"ts":1,"behind":50}')
 
@@ -163,7 +163,7 @@ def test_invalidate_update_cache_no_profiles_dir(tmp_path):
     """Works fine when no profiles directory exists (single-profile setup)."""
     from claudia_cli.main import _invalidate_update_cache
 
-    default_home = tmp_path / ".hermes"
+    default_home = tmp_path / ".claudia"
     default_home.mkdir()
     (default_home / ".update_check").write_text('{"ts":1,"behind":5}')
 

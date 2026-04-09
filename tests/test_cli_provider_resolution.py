@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from claudia_cli.auth import AuthError
-from claudia_cli import main as hermes_main
+from claudia_cli import main as claudia_main
 
 
 # ---------------------------------------------------------------------------
@@ -254,7 +254,7 @@ def test_cli_turn_routing_uses_cheap_model_when_simple(monkeypatch):
 def test_cli_prefers_config_provider_over_stale_env_override(monkeypatch):
     cli = _import_cli()
 
-    monkeypatch.setenv("HERMES_INFERENCE_PROVIDER", "openrouter")
+    monkeypatch.setenv("CLAUDIA_INFERENCE_PROVIDER", "openrouter")
     config_copy = dict(cli.CLI_CONFIG)
     model_copy = dict(config_copy.get("model", {}))
     model_copy["provider"] = "custom"
@@ -308,7 +308,7 @@ def test_codex_provider_replaces_incompatible_default_model(monkeypatch):
 
 
 def test_model_flow_nous_prints_subscription_guidance_without_mutating_explicit_tts(monkeypatch, capsys):
-    monkeypatch.setenv("HERMES_ENABLE_NOUS_MANAGED_TOOLS", "1")
+    monkeypatch.setenv("CLAUDIA_ENABLE_NOUS_MANAGED_TOOLS", "1")
     config = {
         "model": {"provider": "nous", "default": "claude-opus-4-6"},
         "tts": {"provider": "elevenlabs"},
@@ -338,7 +338,7 @@ def test_model_flow_nous_prints_subscription_guidance_without_mutating_explicit_
         lambda: ["Nous subscription enables managed web tools."],
     )
 
-    hermes_main._model_flow_nous(config, current_model="claude-opus-4-6")
+    claudia_main._model_flow_nous(config, current_model="claude-opus-4-6")
 
     out = capsys.readouterr().out
     assert "Nous subscription enables managed web tools." in out
@@ -347,7 +347,7 @@ def test_model_flow_nous_prints_subscription_guidance_without_mutating_explicit_
 
 
 def test_model_flow_nous_applies_managed_tts_default_when_unconfigured(monkeypatch, capsys):
-    monkeypatch.setenv("HERMES_ENABLE_NOUS_MANAGED_TOOLS", "1")
+    monkeypatch.setenv("CLAUDIA_ENABLE_NOUS_MANAGED_TOOLS", "1")
     config = {
         "model": {"provider": "nous", "default": "claude-opus-4-6"},
         "tts": {"provider": "edge"},
@@ -376,7 +376,7 @@ def test_model_flow_nous_applies_managed_tts_default_when_unconfigured(monkeypat
         lambda: ["Nous subscription enables managed web tools."],
     )
 
-    hermes_main._model_flow_nous(config, current_model="claude-opus-4-6")
+    claudia_main._model_flow_nous(config, current_model="claude-opus-4-6")
 
     out = capsys.readouterr().out
     assert "Nous subscription enables managed web tools." in out
@@ -538,10 +538,10 @@ def test_cmd_model_falls_back_to_auto_on_invalid_provider(monkeypatch, capsys):
         return "openrouter"
 
     monkeypatch.setattr("claudia_cli.auth.resolve_provider", _resolve_provider)
-    monkeypatch.setattr(hermes_main, "_prompt_provider_choice", lambda choices: len(choices) - 1)
+    monkeypatch.setattr(claudia_main, "_prompt_provider_choice", lambda choices: len(choices) - 1)
     monkeypatch.setattr("sys.stdin", type("FakeTTY", (), {"isatty": lambda self: True})())
 
-    hermes_main.cmd_model(SimpleNamespace())
+    claudia_main.cmd_model(SimpleNamespace())
     output = capsys.readouterr().out
 
     assert "Warning:" in output
@@ -580,7 +580,7 @@ def test_model_flow_custom_saves_verified_v1_base_url(monkeypatch, capsys):
     answers = iter(["http://localhost:8000", "local-key", "", ""])
     monkeypatch.setattr("builtins.input", lambda _prompt="": next(answers))
 
-    hermes_main._model_flow_custom({})
+    claudia_main._model_flow_custom({})
     output = capsys.readouterr().out
 
     assert "Saving the working base URL instead" in output
@@ -591,7 +591,7 @@ def test_model_flow_custom_saves_verified_v1_base_url(monkeypatch, capsys):
 
 
 def test_cmd_model_forwards_nous_login_tls_options(monkeypatch):
-    monkeypatch.setattr(hermes_main, "_require_tty", lambda *a: None)
+    monkeypatch.setattr(claudia_main, "_require_tty", lambda *a: None)
     monkeypatch.setattr(
         "claudia_cli.config.load_config",
         lambda: {"model": {"default": "gpt-5", "provider": "nous"}},
@@ -601,7 +601,7 @@ def test_cmd_model_forwards_nous_login_tls_options(monkeypatch):
     monkeypatch.setattr("claudia_cli.config.save_env_value", lambda key, value: None)
     monkeypatch.setattr("claudia_cli.auth.resolve_provider", lambda requested, **kwargs: "nous")
     monkeypatch.setattr("claudia_cli.auth.get_provider_auth_state", lambda provider_id: None)
-    monkeypatch.setattr(hermes_main, "_prompt_provider_choice", lambda choices: 0)
+    monkeypatch.setattr(claudia_main, "_prompt_provider_choice", lambda choices: 0)
 
     captured = {}
 
@@ -617,7 +617,7 @@ def test_cmd_model_forwards_nous_login_tls_options(monkeypatch):
 
     monkeypatch.setattr("claudia_cli.auth._login_nous", _fake_login)
 
-    hermes_main.cmd_model(
+    claudia_main.cmd_model(
         SimpleNamespace(
             portal_url="https://portal.nousresearch.com",
             inference_url="https://inference.nousresearch.com/v1",

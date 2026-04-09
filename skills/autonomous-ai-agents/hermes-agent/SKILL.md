@@ -290,16 +290,16 @@ Type these during an interactive chat session.
 ## Key Paths & Config
 
 ```
-~/.hermes/config.yaml       Main configuration
-~/.hermes/.env              API keys and secrets
-~/.hermes/skills/           Installed skills
-~/.hermes/sessions/         Session transcripts
-~/.hermes/logs/             Gateway and error logs
-~/.hermes/auth.json         OAuth tokens and credential pools
-~/.hermes/hermes-agent/     Source code (if git-installed)
+~/.claudia/config.yaml       Main configuration
+~/.claudia/.env              API keys and secrets
+~/.claudia/skills/           Installed skills
+~/.claudia/sessions/         Session transcripts
+~/.claudia/logs/             Gateway and error logs
+~/.claudia/auth.json         OAuth tokens and credential pools
+~/.claudia/hermes-agent/     Source code (if git-installed)
 ```
 
-Profiles use `~/.hermes/profiles/<name>/` with the same layout.
+Profiles use `~/.claudia/profiles/<name>/` with the same layout.
 
 ### Config Sections
 
@@ -518,7 +518,7 @@ terminal(command="tmux new-session -d -s resumed 'hermes --resume 20260225_14305
 ### Gateway issues
 Check logs first:
 ```bash
-grep -i "failed to send\|error" ~/.hermes/logs/gateway.log | tail -20
+grep -i "failed to send\|error" ~/.claudia/logs/gateway.log | tail -20
 ```
 
 ---
@@ -539,9 +539,9 @@ grep -i "failed to send\|error" ~/.hermes/logs/gateway.log | tail -20
 | Memory | `hermes memory status` or [Memory docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/memory) |
 | Env variables | `hermes config env-path` or [Env vars reference](https://hermes-agent.nousresearch.com/docs/reference/environment-variables) |
 | CLI commands | `hermes --help` or [CLI reference](https://hermes-agent.nousresearch.com/docs/reference/cli-commands) |
-| Gateway logs | `~/.hermes/logs/gateway.log` |
-| Session files | `~/.hermes/sessions/` or `hermes sessions browse` |
-| Source code | `~/.hermes/hermes-agent/` |
+| Gateway logs | `~/.claudia/logs/gateway.log` |
+| Session files | `~/.claudia/sessions/` or `hermes sessions browse` |
+| Source code | `~/.claudia/hermes-agent/` |
 
 ---
 
@@ -572,7 +572,7 @@ hermes-agent/
 └── website/              # Docusaurus docs site
 ```
 
-Config: `~/.hermes/config.yaml` (settings), `~/.hermes/.env` (API keys).
+Config: `~/.claudia/config.yaml` (settings), `~/.claudia/.env` (API keys).
 
 ### Adding a Tool (3 files)
 
@@ -600,9 +600,9 @@ registry.register(
 
 **2. Add import** in `model_tools.py` → `_discover_tools()` list.
 
-**3. Add to `toolsets.py`** → `_HERMES_CORE_TOOLS` list.
+**3. Add to `toolsets.py`** → `_CLAUDIA_CORE_TOOLS` list.
 
-All handlers must return JSON strings. Use `get_hermes_home()` for paths, never hardcode `~/.hermes`.
+All handlers must return JSON strings. Use `get_claudia_home()` for paths, never hardcode `~/.claudia`.
 
 ### Adding a Slash Command
 
@@ -632,7 +632,7 @@ python -m pytest tests/ -o 'addopts=' -q   # Full suite
 python -m pytest tests/tools/ -q            # Specific area
 ```
 
-- Tests auto-redirect `HERMES_HOME` to temp dirs — never touch real `~/.hermes/`
+- Tests auto-redirect `CLAUDIA_HOME` to temp dirs — never touch real `~/.claudia/`
 - Run full suite before pushing any change
 - Use `-o 'addopts='` to clear any baked-in pytest flags
 
@@ -650,6 +650,6 @@ Types: `fix:`, `feat:`, `refactor:`, `docs:`, `chore:`
 
 - **Never break prompt caching** — don't change context, tools, or system prompt mid-conversation
 - **Message role alternation** — never two assistant or two user messages in a row
-- Use `get_hermes_home()` from `claudia_constants` for all paths (profile-safe)
+- Use `get_claudia_home()` from `claudia_constants` for all paths (profile-safe)
 - Config values go in `config.yaml`, secrets go in `.env`
 - New tools need a `check_fn` so they only appear when requirements are met

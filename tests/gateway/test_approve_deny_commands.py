@@ -390,15 +390,15 @@ class TestBlockingApprovalE2E:
         result_holder = [None]
 
         def agent_thread():
-            os.environ["HERMES_EXEC_ASK"] = "1"
-            os.environ["HERMES_SESSION_KEY"] = session_key
+            os.environ["CLAUDIA_EXEC_ASK"] = "1"
+            os.environ["CLAUDIA_SESSION_KEY"] = session_key
             try:
                 result_holder[0] = check_all_command_guards(
                     "rm -rf /important", "local"
                 )
             finally:
-                os.environ.pop("HERMES_EXEC_ASK", None)
-                os.environ.pop("HERMES_SESSION_KEY", None)
+                os.environ.pop("CLAUDIA_EXEC_ASK", None)
+                os.environ.pop("CLAUDIA_SESSION_KEY", None)
 
         t = threading.Thread(target=agent_thread)
         t.start()
@@ -432,15 +432,15 @@ class TestBlockingApprovalE2E:
         result_holder = [None]
 
         def agent_thread():
-            os.environ["HERMES_EXEC_ASK"] = "1"
-            os.environ["HERMES_SESSION_KEY"] = session_key
+            os.environ["CLAUDIA_EXEC_ASK"] = "1"
+            os.environ["CLAUDIA_SESSION_KEY"] = session_key
             try:
                 result_holder[0] = check_all_command_guards(
                     "rm -rf /important", "local"
                 )
             finally:
-                os.environ.pop("HERMES_EXEC_ASK", None)
-                os.environ.pop("HERMES_SESSION_KEY", None)
+                os.environ.pop("CLAUDIA_EXEC_ASK", None)
+                os.environ.pop("CLAUDIA_SESSION_KEY", None)
 
         t = threading.Thread(target=agent_thread)
         t.start()
@@ -469,8 +469,8 @@ class TestBlockingApprovalE2E:
         result_holder = [None]
 
         def agent_thread():
-            os.environ["HERMES_EXEC_ASK"] = "1"
-            os.environ["HERMES_SESSION_KEY"] = session_key
+            os.environ["CLAUDIA_EXEC_ASK"] = "1"
+            os.environ["CLAUDIA_SESSION_KEY"] = session_key
             try:
                 with patch("tools.approval._get_approval_config",
                            return_value={"gateway_timeout": 1}):
@@ -478,8 +478,8 @@ class TestBlockingApprovalE2E:
                         "rm -rf /important", "local"
                     )
             finally:
-                os.environ.pop("HERMES_EXEC_ASK", None)
-                os.environ.pop("HERMES_SESSION_KEY", None)
+                os.environ.pop("CLAUDIA_EXEC_ASK", None)
+                os.environ.pop("CLAUDIA_SESSION_KEY", None)
 
         t = threading.Thread(target=agent_thread)
         t.start()
@@ -505,13 +505,13 @@ class TestBlockingApprovalE2E:
 
         def make_agent(idx, cmd):
             def run():
-                os.environ["HERMES_EXEC_ASK"] = "1"
-                os.environ["HERMES_SESSION_KEY"] = session_key
+                os.environ["CLAUDIA_EXEC_ASK"] = "1"
+                os.environ["CLAUDIA_SESSION_KEY"] = session_key
                 try:
                     results[idx] = check_all_command_guards(cmd, "local")
                 finally:
-                    os.environ.pop("HERMES_EXEC_ASK", None)
-                    os.environ.pop("HERMES_SESSION_KEY", None)
+                    os.environ.pop("CLAUDIA_EXEC_ASK", None)
+                    os.environ.pop("CLAUDIA_SESSION_KEY", None)
             return run
 
         threads = [
@@ -556,13 +556,13 @@ class TestBlockingApprovalE2E:
 
         def make_agent(idx, cmd):
             def run():
-                os.environ["HERMES_EXEC_ASK"] = "1"
-                os.environ["HERMES_SESSION_KEY"] = session_key
+                os.environ["CLAUDIA_EXEC_ASK"] = "1"
+                os.environ["CLAUDIA_SESSION_KEY"] = session_key
                 try:
                     results[idx] = check_all_command_guards(cmd, "local")
                 finally:
-                    os.environ.pop("HERMES_EXEC_ASK", None)
-                    os.environ.pop("HERMES_SESSION_KEY", None)
+                    os.environ.pop("CLAUDIA_EXEC_ASK", None)
+                    os.environ.pop("CLAUDIA_SESSION_KEY", None)
             return run
 
         threads = [
@@ -599,13 +599,13 @@ class TestFallbackNoCallback:
         """Without a registered callback, the old approval_required path is used."""
         from tools.approval import check_all_command_guards, _pending
 
-        os.environ["HERMES_EXEC_ASK"] = "1"
-        os.environ["HERMES_SESSION_KEY"] = "no-callback-test"
+        os.environ["CLAUDIA_EXEC_ASK"] = "1"
+        os.environ["CLAUDIA_SESSION_KEY"] = "no-callback-test"
         try:
             result = check_all_command_guards("rm -rf /important", "local")
         finally:
-            os.environ.pop("HERMES_EXEC_ASK", None)
-            os.environ.pop("HERMES_SESSION_KEY", None)
+            os.environ.pop("CLAUDIA_EXEC_ASK", None)
+            os.environ.pop("CLAUDIA_SESSION_KEY", None)
 
         assert result["approved"] is False
         assert result.get("status") == "approval_required"

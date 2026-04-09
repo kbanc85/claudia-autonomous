@@ -74,14 +74,14 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # ---------------------------------------------------------------------------
 # Profile override — MUST happen before any hermes module import.
 #
-# Many modules cache HERMES_HOME at import time (module-level constants).
+# Many modules cache CLAUDIA_HOME at import time (module-level constants).
 # We intercept --profile/-p from sys.argv here and set the env var so that
-# every subsequent ``os.getenv("HERMES_HOME", ...)`` resolves correctly.
+# every subsequent ``os.getenv("CLAUDIA_HOME", ...)`` resolves correctly.
 # The flag is stripped from sys.argv so argparse never sees it.
-# Falls back to ~/.hermes/active_profile for sticky default.
+# Falls back to ~/.claudia/active_profile for sticky default.
 # ---------------------------------------------------------------------------
 def _apply_profile_override() -> None:
-    """Pre-parse --profile/-p and set HERMES_HOME before module imports."""
+    """Pre-parse --profile/-p and set CLAUDIA_HOME before module imports."""
     argv = sys.argv[1:]
     profile_name = None
     consume = 0
@@ -97,10 +97,10 @@ def _apply_profile_override() -> None:
             consume = 1
             break
 
-    # 2. If no flag, check ~/.hermes/active_profile
+    # 2. If no flag, check ~/.claudia/active_profile
     if profile_name is None:
         try:
-            active_path = Path.home() / ".hermes" / "active_profile"
+            active_path = Path.home() / ".claudia" / "active_profile"
             if active_path.exists():
                 name = active_path.read_text().strip()
                 if name and name != "default":
@@ -109,11 +109,11 @@ def _apply_profile_override() -> None:
         except (UnicodeDecodeError, OSError):
             pass  # corrupted file, skip
 
-    # 3. If we found a profile, resolve and set HERMES_HOME
+    # 3. If we found a profile, resolve and set CLAUDIA_HOME
     if profile_name is not None:
         try:
             from claudia_cli.profiles import resolve_profile_env
-            hermes_home = resolve_profile_env(profile_name)
+            claudia_home = resolve_profile_env(profile_name)
         except (ValueError, FileNotFoundError) as exc:
             print(f"Error: {exc}", file=sys.stderr)
             sys.exit(1)
@@ -121,7 +121,7 @@ def _apply_profile_override() -> None:
             # A bug in profiles.py must NEVER prevent hermes from starting
             print(f"Warning: profile override failed ({exc}), using default", file=sys.stderr)
             return
-        os.environ["HERMES_HOME"] = hermes_home
+        os.environ["CLAUDIA_HOME"] = claudia_home
         # Strip the flag from argv so argparse doesn't choke
         if consume > 0:
             for i, arg in enumerate(argv):
@@ -136,11 +136,11 @@ def _apply_profile_override() -> None:
 
 _apply_profile_override()
 
-# Load .env from ~/.hermes/.env first, then project root as dev fallback.
+# Load .env from ~/.claudia/.env first, then project root as dev fallback.
 # User-managed env files should override stale shell exports on restart.
-from claudia_cli.config import get_hermes_home
-from claudia_cli.env_loader import load_hermes_dotenv
-load_hermes_dotenv(project_env=PROJECT_ROOT / '.env')
+from claudia_cli.config import get_claudia_home
+from claudia_cli.env_loader import load_claudia_dotenv
+load_claudia_dotenv(project_env=PROJECT_ROOT / '.env')
 
 
 import logging
@@ -173,7 +173,7 @@ def _relative_time(ts) -> str:
 
 def _has_any_provider_configured() -> bool:
     """Check if at least one inference provider is usable."""
-    from claudia_cli.config import get_env_path, get_hermes_home, load_config
+    from claudia_cli.config import get_env_path, get_claudia_home, load_config
     from claudia_cli.auth import get_auth_status
 
     # Determine whether Hermes itself has been explicitly configured (model
@@ -190,7 +190,7 @@ def _has_any_provider_configured() -> bool:
         _model_name = model_cfg.strip()
     else:
         _model_name = ""
-    _has_hermes_config = _model_name and _model_name != _DEFAULT_MODEL
+    _has_claudia_config = _model_name and _model_name != _DEFAULT_MODEL
 
     # Check env vars (may be set by .env or shell).
     # OPENAI_BASE_URL alone counts — local models (vLLM, llama.cpp, etc.)
@@ -232,7 +232,7 @@ def _has_any_provider_configured() -> bool:
         pass
 
     # Check for Nous Portal OAuth credentials
-    auth_file = get_hermes_home() / "auth.json"
+    auth_file = get_claudia_home() / "auth.json"
     if auth_file.exists():
         try:
             import json
@@ -260,7 +260,7 @@ def _has_any_provider_configured() -> bool:
     # Check for Claude Code OAuth credentials (~/.claude/.credentials.json)
     # Only count these if Hermes has been explicitly configured — Claude Code
     # being installed doesn't mean the user wants Hermes to use their tokens.
-    if _has_hermes_config:
+    if _has_claudia_config:
         try:
             from agent.anthropic_adapter import read_claude_code_credentials, is_claude_code_token_valid
             creds = read_claude_code_credentials()
@@ -621,11 +621,11 @@ def cmd_chat(args):
 
     # --yolo: bypass all dangerous command approvals
     if getattr(args, "yolo", False):
-        os.environ["HERMES_YOLO_MODE"] = "1"
+        os.environ["CLAUDIA_YOLO_MODE"] = "1"
 
     # --source: tag session source for filtering (e.g. 'tool' for third-party integrations)
     if getattr(args, "source", None):
-        os.environ["HERMES_SESSION_SOURCE"] = args.source
+        os.environ["CLAUDIA_SESSION_SOURCE"] = args.source
 
     # Import and run the CLI
     from cli import main as cli_main
@@ -782,7 +782,7 @@ def cmd_whatsapp(args):
         print("✓ Bridge dependencies already installed")
 
     # ── Step 5: Check for existing session ───────────────────────────────
-    session_dir = get_hermes_home() / "whatsapp" / "session"
+    session_dir = get_claudia_home() / "whatsapp" / "session"
     session_dir.mkdir(parents=True, exist_ok=True)
 
     if (session_dir / "creds.json").exists():
@@ -890,7 +890,7 @@ def select_provider_and_model(args=None):
 
     effective_provider = (
         config_provider
-        or os.getenv("HERMES_INFERENCE_PROVIDER")
+        or os.getenv("CLAUDIA_INFERENCE_PROVIDER")
         or "auto"
     )
     try:
@@ -1950,7 +1950,7 @@ def _model_flow_copilot_acp(config, current_model=""):
         creds = resolve_external_process_provider_credentials(provider_id)
     except Exception as exc:
         print(f"  ⚠ {exc}")
-        print("  Set HERMES_COPILOT_ACP_COMMAND or COPILOT_CLI_PATH if Copilot CLI is installed elsewhere.")
+        print("  Set CLAUDIA_COPILOT_ACP_COMMAND or COPILOT_CLI_PATH if Copilot CLI is installed elsewhere.")
         return
 
     effective_base = creds.get("base_url") or effective_base
@@ -2249,7 +2249,7 @@ def _run_anthropic_oauth_flow(save_env_value):
         ):
             use_anthropic_claude_code_credentials(save_fn=save_env_value)
             print("  ✓ Claude Code credentials linked.")
-            from claudia_constants import display_hermes_home as _dhh_fn
+            from claudia_constants import display_claudia_home as _dhh_fn
             print(f"    Hermes will use Claude's credential store directly instead of copying a setup-token into {_dhh_fn()}/.env.")
             return True
         return False
@@ -2942,15 +2942,15 @@ def _count_commits_between(git_cmd: list[str], cwd: Path, base: str, head: str) 
 
 def _should_skip_upstream_prompt() -> bool:
     """Check if user previously declined to add upstream."""
-    from claudia_constants import get_hermes_home
-    return (get_hermes_home() / SKIP_UPSTREAM_PROMPT_FILE).exists()
+    from claudia_constants import get_claudia_home
+    return (get_claudia_home() / SKIP_UPSTREAM_PROMPT_FILE).exists()
 
 
 def _mark_skip_upstream_prompt():
     """Create marker file to skip future upstream prompts."""
     try:
-        from claudia_constants import get_hermes_home
-        (get_hermes_home() / SKIP_UPSTREAM_PROMPT_FILE).touch()
+        from claudia_constants import get_claudia_home
+        (get_claudia_home() / SKIP_UPSTREAM_PROMPT_FILE).touch()
     except Exception:
         pass
 
@@ -3083,9 +3083,9 @@ def _invalidate_update_cache():
     """
     homes = []
     # Default profile home
-    default_home = Path.home() / ".hermes"
+    default_home = Path.home() / ".claudia"
     homes.append(default_home)
-    # Named profiles under ~/.hermes/profiles/
+    # Named profiles under ~/.claudia/profiles/
     profiles_root = default_home / "profiles"
     if profiles_root.is_dir():
         for entry in profiles_root.iterdir():
@@ -3357,7 +3357,7 @@ def cmd_update(args):
 
         # Clear stale .pyc bytecode cache — prevents ImportError on gateway
         # restart when updated source references names that didn't exist in
-        # the old bytecode (e.g. get_hermes_home added to claudia_constants).
+        # the old bytecode (e.g. get_claudia_home added to claudia_constants).
         removed = _clear_bytecode_cache(PROJECT_ROOT)
         if removed:
             print(f"  ✓ Cleared {removed} stale __pycache__ director{'y' if removed == 1 else 'ies'}")
@@ -3403,7 +3403,7 @@ def cmd_update(args):
         # After git pull, source files on disk are newer than cached Python
         # modules in this process.  Reload claudia_constants so that any lazy
         # import executed below (skills sync, gateway restart) sees new
-        # attributes like display_hermes_home() added since the last release.
+        # attributes like display_claudia_home() added since the last release.
         try:
             import importlib
             import claudia_constants as _hc
@@ -3517,7 +3517,7 @@ def cmd_update(args):
         print("✓ Update complete!")
         
         # Auto-restart gateway if it's running.
-        # Uses the PID file (scoped to HERMES_HOME) to find this
+        # Uses the PID file (scoped to CLAUDIA_HOME) to find this
         # installation's gateway — safe with multiple installations.
         try:
             from gateway.status import get_running_pid, remove_pid_file
@@ -3714,14 +3714,14 @@ def cmd_profile(args):
         check_alias_collision, create_wrapper_script, remove_wrapper_script,
         _is_wrapper_dir_in_path, _get_wrapper_dir,
     )
-    from claudia_constants import display_hermes_home
+    from claudia_constants import display_claudia_home
 
     action = getattr(args, "profile_action", None)
 
     if action is None:
         # Bare `hermes profile` — show current profile status
         profile_name = get_active_profile_name()
-        dhh = display_hermes_home()
+        dhh = display_claudia_home()
         print(f"\nActive profile: {profile_name}")
         print(f"Path:           {dhh}")
 
@@ -3766,7 +3766,7 @@ def cmd_profile(args):
         try:
             set_active_profile(name)
             if name == "default":
-                print(f"Switched to: default (~/.hermes)")
+                print(f"Switched to: default (~/.claudia)")
             else:
                 print(f"Switched to: {name}")
         except (ValueError, FileNotFoundError) as e:
@@ -3838,8 +3838,8 @@ def cmd_profile(args):
             print(f"  {name} chat               Start chatting")
             print(f"  {name} gateway start      Start the messaging gateway")
             if clone or clone_all:
-                from claudia_constants import get_hermes_home
-                profile_dir_display = f"~/.hermes/profiles/{name}"
+                from claudia_constants import get_claudia_home
+                profile_dir_display = f"~/.claudia/profiles/{name}"
                 print(f"\n  Edit {profile_dir_display}/.env for different API keys")
                 print(f"  Edit {profile_dir_display}/SOUL.md for different personality")
             print()
@@ -5119,9 +5119,9 @@ For more help on a command:
             # Launch hermes --resume <id> by replacing the current process
             print(f"Resuming session: {selected_id}")
             import shutil
-            hermes_bin = shutil.which("hermes")
-            if hermes_bin:
-                os.execvp(hermes_bin, ["hermes", "--resume", selected_id])
+            claudia_bin = shutil.which("hermes")
+            if claudia_bin:
+                os.execvp(claudia_bin, ["hermes", "--resume", selected_id])
             else:
                 # Fallback: re-invoke via python -m
                 os.execvp(

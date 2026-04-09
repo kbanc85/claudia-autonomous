@@ -132,7 +132,7 @@ class TestIsSkillDisabled:
         assert _is_skill_disabled("any-skill") is False
 
     @patch("claudia_cli.config.load_config")
-    @patch.dict("os.environ", {"HERMES_PLATFORM": "discord"})
+    @patch.dict("os.environ", {"CLAUDIA_PLATFORM": "discord"})
     def test_env_var_platform(self, mock_load):
         mock_load.return_value = {"skills": {
             "platform_disabled": {"discord": ["discord-skill"]}
@@ -159,16 +159,16 @@ class TestGetDisabledSkillNames:
             "    telegram:\n"
             "      - tg-only-skill\n"
         )
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-        monkeypatch.delenv("HERMES_PLATFORM", raising=False)
-        monkeypatch.delenv("HERMES_SESSION_PLATFORM", raising=False)
+        monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
+        monkeypatch.delenv("CLAUDIA_PLATFORM", raising=False)
+        monkeypatch.delenv("CLAUDIA_SESSION_PLATFORM", raising=False)
 
         from agent.skill_utils import get_disabled_skill_names
         result = get_disabled_skill_names(platform="telegram")
         assert result == {"tg-only-skill"}
 
     def test_session_platform_env_var(self, tmp_path, monkeypatch):
-        """HERMES_SESSION_PLATFORM should be used when HERMES_PLATFORM is unset."""
+        """CLAUDIA_SESSION_PLATFORM should be used when CLAUDIA_PLATFORM is unset."""
         config = tmp_path / "config.yaml"
         config.write_text(
             "skills:\n"
@@ -178,16 +178,16 @@ class TestGetDisabledSkillNames:
             "    discord:\n"
             "      - discord-skill\n"
         )
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-        monkeypatch.delenv("HERMES_PLATFORM", raising=False)
-        monkeypatch.setenv("HERMES_SESSION_PLATFORM", "discord")
+        monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
+        monkeypatch.delenv("CLAUDIA_PLATFORM", raising=False)
+        monkeypatch.setenv("CLAUDIA_SESSION_PLATFORM", "discord")
 
         from agent.skill_utils import get_disabled_skill_names
         result = get_disabled_skill_names()
         assert result == {"discord-skill"}
 
-    def test_hermes_platform_takes_precedence(self, tmp_path, monkeypatch):
-        """HERMES_PLATFORM should win over HERMES_SESSION_PLATFORM."""
+    def test_claudia_platform_takes_precedence(self, tmp_path, monkeypatch):
+        """CLAUDIA_PLATFORM should win over CLAUDIA_SESSION_PLATFORM."""
         config = tmp_path / "config.yaml"
         config.write_text(
             "skills:\n"
@@ -197,9 +197,9 @@ class TestGetDisabledSkillNames:
             "    discord:\n"
             "      - discord-skill\n"
         )
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-        monkeypatch.setenv("HERMES_PLATFORM", "telegram")
-        monkeypatch.setenv("HERMES_SESSION_PLATFORM", "discord")
+        monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
+        monkeypatch.setenv("CLAUDIA_PLATFORM", "telegram")
+        monkeypatch.setenv("CLAUDIA_SESSION_PLATFORM", "discord")
 
         from agent.skill_utils import get_disabled_skill_names
         result = get_disabled_skill_names()
@@ -216,9 +216,9 @@ class TestGetDisabledSkillNames:
             "    slack:\n"
             "      - slack-skill\n"
         )
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-        monkeypatch.setenv("HERMES_PLATFORM", "telegram")
-        monkeypatch.setenv("HERMES_SESSION_PLATFORM", "telegram")
+        monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
+        monkeypatch.setenv("CLAUDIA_PLATFORM", "telegram")
+        monkeypatch.setenv("CLAUDIA_SESSION_PLATFORM", "telegram")
 
         from agent.skill_utils import get_disabled_skill_names
         result = get_disabled_skill_names(platform="slack")
@@ -235,9 +235,9 @@ class TestGetDisabledSkillNames:
             "    telegram:\n"
             "      - tg-skill\n"
         )
-        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-        monkeypatch.delenv("HERMES_PLATFORM", raising=False)
-        monkeypatch.delenv("HERMES_SESSION_PLATFORM", raising=False)
+        monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
+        monkeypatch.delenv("CLAUDIA_PLATFORM", raising=False)
+        monkeypatch.delenv("CLAUDIA_SESSION_PLATFORM", raising=False)
 
         from agent.skill_utils import get_disabled_skill_names
         result = get_disabled_skill_names()

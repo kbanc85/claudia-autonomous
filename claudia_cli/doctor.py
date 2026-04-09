@@ -9,14 +9,14 @@ import sys
 import subprocess
 import shutil
 
-from claudia_cli.config import get_project_root, get_hermes_home, get_env_path
-from claudia_constants import display_hermes_home
+from claudia_cli.config import get_project_root, get_claudia_home, get_env_path
+from claudia_constants import display_claudia_home
 
 PROJECT_ROOT = get_project_root()
-HERMES_HOME = get_hermes_home()
-_DHH = display_hermes_home()  # user-facing display path (e.g. ~/.hermes or ~/.hermes/profiles/coder)
+CLAUDIA_HOME = get_claudia_home()
+_DHH = display_claudia_home()  # user-facing display path (e.g. ~/.claudia or ~/.claudia/profiles/coder)
 
-# Load environment variables from ~/.hermes/.env so API key checks work
+# Load environment variables from ~/.claudia/.env so API key checks work
 from dotenv import load_dotenv
 _env_path = get_env_path()
 if _env_path.exists():
@@ -48,7 +48,7 @@ _PROVIDER_ENV_HINTS = (
 
 
 def _has_provider_env_config(content: str) -> bool:
-    """Return True when ~/.hermes/.env contains provider auth/base URL settings."""
+    """Return True when ~/.claudia/.env contains provider auth/base URL settings."""
     return any(key in content for key in _PROVIDER_ENV_HINTS)
 
 
@@ -131,7 +131,7 @@ def run_doctor(args):
 
     # Doctor runs from the interactive CLI, so CLI-gated tool availability
     # checks (like cronjob management) should see the same context as `hermes`.
-    os.environ.setdefault("HERMES_INTERACTIVE", "1")
+    os.environ.setdefault("CLAUDIA_INTERACTIVE", "1")
     
     issues = []
     manual_issues = []  # issues that can't be auto-fixed
@@ -208,8 +208,8 @@ def run_doctor(args):
     print()
     print(color("◆ Configuration Files", Colors.CYAN, Colors.BOLD))
     
-    # Check ~/.hermes/.env (primary location for user config)
-    env_path = HERMES_HOME / '.env'
+    # Check ~/.claudia/.env (primary location for user config)
+    env_path = CLAUDIA_HOME / '.env'
     if env_path.exists():
         check_ok(f"{_DHH}/.env file exists")
         
@@ -237,8 +237,8 @@ def run_doctor(args):
                 check_info("Run 'hermes setup' to create one")
                 issues.append("Run 'hermes setup' to create .env")
     
-    # Check ~/.hermes/config.yaml (primary) or project cli-config.yaml (fallback)
-    config_path = HERMES_HOME / 'config.yaml'
+    # Check ~/.claudia/config.yaml (primary) or project cli-config.yaml (fallback)
+    config_path = CLAUDIA_HOME / 'config.yaml'
     if config_path.exists():
         check_ok(f"{_DHH}/config.yaml exists")
     else:
@@ -294,12 +294,12 @@ def run_doctor(args):
     print()
     print(color("◆ Directory Structure", Colors.CYAN, Colors.BOLD))
     
-    hermes_home = HERMES_HOME
-    if hermes_home.exists():
+    claudia_home = CLAUDIA_HOME
+    if claudia_home.exists():
         check_ok(f"{_DHH} directory exists")
     else:
         if should_fix:
-            hermes_home.mkdir(parents=True, exist_ok=True)
+            claudia_home.mkdir(parents=True, exist_ok=True)
             check_ok(f"Created {_DHH} directory")
             fixed_count += 1
         else:
@@ -308,7 +308,7 @@ def run_doctor(args):
     # Check expected subdirectories
     expected_subdirs = ["cron", "sessions", "logs", "skills", "memories"]
     for subdir_name in expected_subdirs:
-        subdir_path = hermes_home / subdir_name
+        subdir_path = claudia_home / subdir_name
         if subdir_path.exists():
             check_ok(f"{_DHH}/{subdir_name}/ exists")
         else:
@@ -320,7 +320,7 @@ def run_doctor(args):
                 check_warn(f"{_DHH}/{subdir_name}/ not found", "(will be created on first use)")
     
     # Check for SOUL.md persona file
-    soul_path = hermes_home / "SOUL.md"
+    soul_path = claudia_home / "SOUL.md"
     if soul_path.exists():
         content = soul_path.read_text(encoding="utf-8").strip()
         # Check if it's just the template comments (no real content)
@@ -343,7 +343,7 @@ def run_doctor(args):
             fixed_count += 1
     
     # Check memory directory
-    memories_dir = hermes_home / "memories"
+    memories_dir = claudia_home / "memories"
     if memories_dir.exists():
         check_ok(f"{_DHH}/memories/ directory exists")
         memory_file = memories_dir / "MEMORY.md"
@@ -366,7 +366,7 @@ def run_doctor(args):
             fixed_count += 1
     
     # Check SQLite session store
-    state_db_path = hermes_home / "state.db"
+    state_db_path = claudia_home / "state.db"
     if state_db_path.exists():
         try:
             import sqlite3
@@ -676,7 +676,7 @@ def run_doctor(args):
     print()
     print(color("◆ Skills Hub", Colors.CYAN, Colors.BOLD))
 
-    hub_dir = HERMES_HOME / "skills" / ".hub"
+    hub_dir = CLAUDIA_HOME / "skills" / ".hub"
     if hub_dir.exists():
         check_ok("Skills Hub directory exists")
         lock_file = hub_dir / "lock.json"

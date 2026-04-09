@@ -29,7 +29,7 @@ class TestRegisterServerTools:
             "custom-toolset": {"tools": [], "description": "Other", "includes": []},
         }
 
-    def test_injects_hermes_toolsets(self, mock_registry, mock_toolsets):
+    def test_injects_claudia_toolsets(self, mock_registry, mock_toolsets):
         """Tools are injected into hermes-* toolsets but not custom ones."""
         server = MCPServerTask("my_srv")
         server._tools = [_make_mcp_tool("my_tool", "desc")]

@@ -9,10 +9,10 @@ import pytest
 
 @pytest.fixture
 def _isolate(tmp_path, monkeypatch):
-    """Isolate HERMES_HOME so tests don't touch real config."""
-    home = tmp_path / ".hermes"
+    """Isolate CLAUDIA_HOME so tests don't touch real config."""
+    home = tmp_path / ".claudia"
     home.mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(home))
+    monkeypatch.setenv("CLAUDIA_HOME", str(home))
 
 
 @pytest.fixture

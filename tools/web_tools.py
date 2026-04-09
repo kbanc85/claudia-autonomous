@@ -73,7 +73,7 @@ def _has_env(name: str) -> bool:
     return bool(val and val.strip())
 
 def _load_web_config() -> dict:
-    """Load the ``web:`` section from ~/.hermes/config.yaml."""
+    """Load the ``web:`` section from ~/.claudia/config.yaml."""
     try:
         from claudia_cli.config import load_config
         return load_config().get("web", {})

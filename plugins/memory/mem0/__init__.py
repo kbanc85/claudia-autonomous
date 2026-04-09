@@ -10,7 +10,7 @@ Config via environment variables:
   MEM0_USER_ID       — User identifier (default: hermes-user)
   MEM0_AGENT_ID      — Agent identifier (default: hermes)
 
-Or via $HERMES_HOME/mem0.json.
+Or via $CLAUDIA_HOME/mem0.json.
 """
 
 from __future__ import annotations
@@ -38,9 +38,9 @@ _BREAKER_COOLDOWN_SECS = 120
 # ---------------------------------------------------------------------------
 
 def _load_config() -> dict:
-    """Load config from $HERMES_HOME/mem0.json or env vars."""
-    from claudia_constants import get_hermes_home
-    config_path = get_hermes_home() / "mem0.json"
+    """Load config from $CLAUDIA_HOME/mem0.json or env vars."""
+    from claudia_constants import get_claudia_home
+    config_path = get_claudia_home() / "mem0.json"
 
     if config_path.exists():
         try:
@@ -134,11 +134,11 @@ class Mem0MemoryProvider(MemoryProvider):
         cfg = _load_config()
         return bool(cfg.get("api_key"))
 
-    def save_config(self, values, hermes_home):
-        """Write config to $HERMES_HOME/mem0.json."""
+    def save_config(self, values, claudia_home):
+        """Write config to $CLAUDIA_HOME/mem0.json."""
         import json
         from pathlib import Path
-        config_path = Path(hermes_home) / "mem0.json"
+        config_path = Path(claudia_home) / "mem0.json"
         existing = {}
         if config_path.exists():
             try:

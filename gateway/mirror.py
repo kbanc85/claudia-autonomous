@@ -14,11 +14,11 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-from claudia_cli.config import get_hermes_home
+from claudia_cli.config import get_claudia_home
 
 logger = logging.getLogger(__name__)
 
-_SESSIONS_DIR = get_hermes_home() / "sessions"
+_SESSIONS_DIR = get_claudia_home() / "sessions"
 _SESSIONS_INDEX = _SESSIONS_DIR / "sessions.json"
 
 

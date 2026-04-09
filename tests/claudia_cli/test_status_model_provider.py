@@ -9,7 +9,7 @@ def _patch_common_status_deps(monkeypatch, status_mod, tmp_path, *, openai_base_
     import claudia_cli.auth as auth_mod
 
     monkeypatch.setattr(status_mod, "get_env_path", lambda: tmp_path / ".env", raising=False)
-    monkeypatch.setattr(status_mod, "get_hermes_home", lambda: tmp_path, raising=False)
+    monkeypatch.setattr(status_mod, "get_claudia_home", lambda: tmp_path, raising=False)
 
     def _get_env_value(name: str):
         if name == "OPENAI_BASE_URL":
@@ -64,7 +64,7 @@ def test_show_status_displays_legacy_string_model_and_custom_endpoint(monkeypatc
 
 
 def test_show_status_reports_managed_nous_features(monkeypatch, capsys, tmp_path):
-    monkeypatch.setenv("HERMES_ENABLE_NOUS_MANAGED_TOOLS", "1")
+    monkeypatch.setenv("CLAUDIA_ENABLE_NOUS_MANAGED_TOOLS", "1")
     from claudia_cli import status as status_mod
 
     _patch_common_status_deps(monkeypatch, status_mod, tmp_path)
@@ -104,7 +104,7 @@ def test_show_status_reports_managed_nous_features(monkeypatch, capsys, tmp_path
 
 
 def test_show_status_hides_nous_subscription_section_when_feature_flag_is_off(monkeypatch, capsys, tmp_path):
-    monkeypatch.delenv("HERMES_ENABLE_NOUS_MANAGED_TOOLS", raising=False)
+    monkeypatch.delenv("CLAUDIA_ENABLE_NOUS_MANAGED_TOOLS", raising=False)
     from claudia_cli import status as status_mod
 
     _patch_common_status_deps(monkeypatch, status_mod, tmp_path)

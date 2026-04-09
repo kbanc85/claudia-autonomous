@@ -94,16 +94,16 @@ json.dump(sorted(leaf_paths(DEFAULT_CONFIG)), sys.stdout, indent=2)
           test "$SKILL_COUNT" -gt 0 || (echo "FAIL: no SKILL.md files found in skills directory"; exit 1)
           echo "PASS: $SKILL_COUNT bundled skills found"
 
-          grep -q "HERMES_BUNDLED_SKILLS" ${hermes-agent}/bin/hermes || \
-            (echo "FAIL: HERMES_BUNDLED_SKILLS not in wrapper"; exit 1)
-          echo "PASS: HERMES_BUNDLED_SKILLS set in wrapper"
+          grep -q "CLAUDIA_BUNDLED_SKILLS" ${hermes-agent}/bin/hermes || \
+            (echo "FAIL: CLAUDIA_BUNDLED_SKILLS not in wrapper"; exit 1)
+          echo "PASS: CLAUDIA_BUNDLED_SKILLS set in wrapper"
 
           echo "=== All bundled skills checks passed ==="
           mkdir -p $out
           echo "ok" > $out/result
         '';
 
-        # Verify HERMES_MANAGED guard works on all mutation commands
+        # Verify CLAUDIA_MANAGED guard works on all mutation commands
         managed-guard = pkgs.runCommand "hermes-managed-guard" { } ''
           set -e
           export HOME=$(mktemp -d)
@@ -111,12 +111,12 @@ json.dump(sorted(leaf_paths(DEFAULT_CONFIG)), sys.stdout, indent=2)
           check_blocked() {
             local label="$1"
             shift
-            OUTPUT=$(HERMES_MANAGED=true "$@" 2>&1 || true)
+            OUTPUT=$(CLAUDIA_MANAGED=true "$@" 2>&1 || true)
             echo "$OUTPUT" | grep -q "managed by NixOS" || (echo "FAIL: $label not guarded"; echo "$OUTPUT"; exit 1)
             echo "PASS: $label blocked in managed mode"
           }
 
-          echo "=== Checking HERMES_MANAGED guards ==="
+          echo "=== Checking CLAUDIA_MANAGED guards ==="
           check_blocked "config set" ${hermes-agent}/bin/hermes config set model foo
           check_blocked "config edit" ${hermes-agent}/bin/hermes config edit
 
@@ -196,9 +196,9 @@ json.dump(sorted(leaf_paths(DEFAULT_CONFIG)), sys.stdout, indent=2)
 
           # Helper: run merge then load with Python, output merged JSON
           merge_and_load() {
-            local hermes_home="$1"
-            export HERMES_HOME="$hermes_home"
-            ${configMergeScript} ${nixSettings} "$hermes_home/config.yaml"
+            local claudia_home="$1"
+            export CLAUDIA_HOME="$claudia_home"
+            ${configMergeScript} ${nixSettings} "$claudia_home/config.yaml"
             ${hermesVenv}/bin/python3 -c '
 import json, sys
 from claudia_cli.config import load_config

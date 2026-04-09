@@ -42,9 +42,9 @@ logger = logging.getLogger(__name__)
 MAX_MESSAGE_LENGTH = 4000
 
 # Store directory for E2EE keys and sync state.
-# Uses get_hermes_home() so each profile gets its own Matrix store.
-from claudia_constants import get_hermes_dir as _get_hermes_dir
-_STORE_DIR = _get_hermes_dir("platforms/matrix/store", "matrix/store")
+# Uses get_claudia_home() so each profile gets its own Matrix store.
+from claudia_constants import get_claudia_dir as _get_claudia_dir
+_STORE_DIR = _get_claudia_dir("platforms/matrix/store", "matrix/store")
 
 # Grace period: ignore messages older than this many seconds before startup.
 _STARTUP_GRACE_SECONDS = 5

@@ -4,10 +4,10 @@ Hermes Plugin System
 
 Discovers, loads, and manages plugins from three sources:
 
-1. **User plugins**   – ``~/.hermes/plugins/<name>/``
-2. **Project plugins** – ``./.hermes/plugins/<name>/`` (opt-in via
-   ``HERMES_ENABLE_PROJECT_PLUGINS``)
-3. **Pip plugins**     – packages that expose the ``hermes_agent.plugins``
+1. **User plugins**   – ``~/.claudia/plugins/<name>/``
+2. **Project plugins** – ``./.claudia/plugins/<name>/`` (opt-in via
+   ``CLAUDIA_ENABLE_PROJECT_PLUGINS``)
+3. **Pip plugins**     – packages that expose the ``claudia_autonomous.plugins``
    entry-point group.
 
 Each directory plugin must contain a ``plugin.yaml`` manifest **and** an
@@ -60,9 +60,9 @@ VALID_HOOKS: Set[str] = {
     "on_session_end",
 }
 
-ENTRY_POINTS_GROUP = "hermes_agent.plugins"
+ENTRY_POINTS_GROUP = "claudia_autonomous.plugins"
 
-_NS_PARENT = "hermes_plugins"
+_NS_PARENT = "claudia_plugins"
 
 
 def _env_enabled(name: str) -> bool:
@@ -228,14 +228,14 @@ class PluginManager:
 
         manifests: List[PluginManifest] = []
 
-        # 1. User plugins (~/.hermes/plugins/)
-        hermes_home = os.environ.get("HERMES_HOME", os.path.expanduser("~/.hermes"))
-        user_dir = Path(hermes_home) / "plugins"
+        # 1. User plugins (~/.claudia/plugins/)
+        claudia_home = os.environ.get("CLAUDIA_HOME", os.path.expanduser("~/.claudia"))
+        user_dir = Path(claudia_home) / "plugins"
         manifests.extend(self._scan_directory(user_dir, source="user"))
 
-        # 2. Project plugins (./.hermes/plugins/)
-        if _env_enabled("HERMES_ENABLE_PROJECT_PLUGINS"):
-            project_dir = Path.cwd() / ".hermes" / "plugins"
+        # 2. Project plugins (./.claudia/plugins/)
+        if _env_enabled("CLAUDIA_ENABLE_PROJECT_PLUGINS"):
+            project_dir = Path.cwd() / ".claudia" / "plugins"
             manifests.extend(self._scan_directory(project_dir, source="project"))
 
         # 3. Pip / entry-point plugins
@@ -383,7 +383,7 @@ class PluginManager:
         self._plugins[manifest.name] = loaded
 
     def _load_directory_module(self, manifest: PluginManifest) -> types.ModuleType:
-        """Import a directory-based plugin as ``hermes_plugins.<name>``."""
+        """Import a directory-based plugin as ``claudia_plugins.<name>``."""
         plugin_dir = Path(manifest.path)  # type: ignore[arg-type]
         init_file = plugin_dir / "__init__.py"
         if not init_file.exists():

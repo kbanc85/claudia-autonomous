@@ -7,7 +7,7 @@
 # Container mode: hermes runs from /nix/store bind-mounted read-only into a
 # plain Ubuntu container. The writable layer (apt/pip/npm installs) persists
 # across restarts and agent updates. Only image/volume/options changes trigger
-# container recreation. Environment variables are written to $HERMES_HOME/.env
+# container recreation. Environment variables are written to $CLAUDIA_HOME/.env
 # and read by hermes at startup — no container recreation needed for env changes.
 #
 # Tool resolution: the hermes wrapper uses --suffix PATH for nix store tools,
@@ -17,7 +17,7 @@
 # writable tool prefixes for npm i -g, pip install, uv tool install, etc.
 #
 # Usage:
-#   services.hermes-agent = {
+#   services.claudia-agent = {
 #     enable = true;
 #     settings.model = "anthropic/claude-sonnet-4";
 #     environmentFiles = [ config.sops.secrets."hermes/env".path ];
@@ -27,7 +27,7 @@
   flake.nixosModules.default = { config, lib, pkgs, ... }:
 
   let
-    cfg = config.services.hermes-agent;
+    cfg = config.services.claudia-agent;
     hermes-agent = inputs.self.packages.${pkgs.system}.default;
 
     # Deep-merge config type (from 0xrsydn/nix-hermes-agent)
@@ -57,7 +57,7 @@
         lib.mapAttrsToList (name: value:
           if builtins.isPath value || lib.isStorePath value
           then "cp ${value} $out/${name}"
-          else "cat > $out/${name} <<'HERMES_DOC_EOF'\n${value}\nHERMES_DOC_EOF"
+          else "cat > $out/${name} <<'CLAUDIA_DOC_EOF'\n${value}\nCLAUDIA_DOC_EOF"
         ) cfg.documents
       )
     );
@@ -77,26 +77,26 @@
     containerEntrypoint = pkgs.writeShellScript "hermes-container-entrypoint" ''
       set -eu
 
-      HERMES_UID="''${HERMES_UID:?HERMES_UID must be set}"
-      HERMES_GID="''${HERMES_GID:?HERMES_GID must be set}"
+      CLAUDIA_UID="''${CLAUDIA_UID:?CLAUDIA_UID must be set}"
+      CLAUDIA_GID="''${CLAUDIA_GID:?CLAUDIA_GID must be set}"
 
-      # ── Group: ensure a group with GID=$HERMES_GID exists ──
+      # ── Group: ensure a group with GID=$CLAUDIA_GID exists ──
       # Check by GID (not name) to avoid collisions with pre-existing groups
       # (e.g. GID 100 = "users" on Ubuntu)
-      EXISTING_GROUP=$(getent group "$HERMES_GID" 2>/dev/null | cut -d: -f1 || true)
+      EXISTING_GROUP=$(getent group "$CLAUDIA_GID" 2>/dev/null | cut -d: -f1 || true)
       if [ -n "$EXISTING_GROUP" ]; then
         GROUP_NAME="$EXISTING_GROUP"
       else
         GROUP_NAME="hermes"
         if command -v groupadd >/dev/null 2>&1; then
-          groupadd -g "$HERMES_GID" "$GROUP_NAME"
+          groupadd -g "$CLAUDIA_GID" "$GROUP_NAME"
         elif command -v addgroup >/dev/null 2>&1; then
-          addgroup -g "$HERMES_GID" "$GROUP_NAME" 2>/dev/null || true
+          addgroup -g "$CLAUDIA_GID" "$GROUP_NAME" 2>/dev/null || true
         fi
       fi
 
-      # ── User: ensure a user with UID=$HERMES_UID exists ──
-      PASSWD_ENTRY=$(getent passwd "$HERMES_UID" 2>/dev/null || true)
+      # ── User: ensure a user with UID=$CLAUDIA_UID exists ──
+      PASSWD_ENTRY=$(getent passwd "$CLAUDIA_UID" 2>/dev/null || true)
       if [ -n "$PASSWD_ENTRY" ]; then
         TARGET_USER=$(echo "$PASSWD_ENTRY" | cut -d: -f1)
         TARGET_HOME=$(echo "$PASSWD_ENTRY" | cut -d: -f6)
@@ -104,18 +104,18 @@
         TARGET_USER="hermes"
         TARGET_HOME="/home/hermes"
         if command -v useradd >/dev/null 2>&1; then
-          useradd -u "$HERMES_UID" -g "$HERMES_GID" -m -d "$TARGET_HOME" -s /bin/bash "$TARGET_USER"
+          useradd -u "$CLAUDIA_UID" -g "$CLAUDIA_GID" -m -d "$TARGET_HOME" -s /bin/bash "$TARGET_USER"
         elif command -v adduser >/dev/null 2>&1; then
-          adduser -u "$HERMES_UID" -D -h "$TARGET_HOME" -s /bin/sh -G "$GROUP_NAME" "$TARGET_USER" 2>/dev/null || true
+          adduser -u "$CLAUDIA_UID" -D -h "$TARGET_HOME" -s /bin/sh -G "$GROUP_NAME" "$TARGET_USER" 2>/dev/null || true
         fi
       fi
       mkdir -p "$TARGET_HOME"
-      chown "$HERMES_UID:$HERMES_GID" "$TARGET_HOME"
+      chown "$CLAUDIA_UID:$CLAUDIA_GID" "$TARGET_HOME"
       chmod 0750 "$TARGET_HOME"
 
-      # Ensure HERMES_HOME is owned by the target user
-      if [ -n "''${HERMES_HOME:-}" ] && [ -d "$HERMES_HOME" ]; then
-        chown -R "$HERMES_UID:$HERMES_GID" "$HERMES_HOME"
+      # Ensure CLAUDIA_HOME is owned by the target user
+      if [ -n "''${CLAUDIA_HOME:-}" ] && [ -d "$CLAUDIA_HOME" ]; then
+        chown -R "$CLAUDIA_UID:$CLAUDIA_GID" "$CLAUDIA_HOME"
       fi
 
       # ── Provision apt packages (first boot only, cached in writable layer) ──
@@ -158,7 +158,7 @@
       fi
 
       if command -v setpriv >/dev/null 2>&1; then
-        exec setpriv --reuid="$HERMES_UID" --regid="$HERMES_GID" --init-groups "$@"
+        exec setpriv --reuid="$CLAUDIA_UID" --regid="$CLAUDIA_GID" --init-groups "$@"
       elif command -v su >/dev/null 2>&1; then
         exec su -s /bin/sh "$TARGET_USER" -c 'exec "$0" "$@"' -- "$@"
       else
@@ -169,7 +169,7 @@
 
     # Identity hash — only recreate container when structural config changes.
     # Package and entrypoint use stable symlinks (current-package, current-entrypoint)
-    # so they can update without recreation. Env vars go through $HERMES_HOME/.env.
+    # so they can update without recreation. Env vars go through $CLAUDIA_HOME/.env.
     containerIdentity = builtins.hashString "sha256" (builtins.toJSON {
       schema = 3; # bump when identity inputs change
       image = cfg.container.image;
@@ -187,7 +187,7 @@
       else cfg.workingDirectory;
 
   in {
-    options.services.hermes-agent = with lib; {
+    options.services.claudia-agent = with lib; {
       enable = mkEnableOption "Hermes Agent gateway service";
 
       # ── Package ──────────────────────────────────────────────────────────
@@ -220,7 +220,7 @@
       stateDir = mkOption {
         type = types.str;
         default = "/var/lib/hermes";
-        description = "State directory. Contains .hermes/ subdir (HERMES_HOME).";
+        description = "State directory. Contains .claudia/ subdir (CLAUDIA_HOME).";
       };
 
       workingDirectory = mkOption {
@@ -263,8 +263,8 @@
         default = [ ];
         description = ''
           Paths to environment files containing secrets (API keys, tokens).
-          Contents are merged into $HERMES_HOME/.env at activation time.
-          Hermes reads this file on every startup via load_hermes_dotenv().
+          Contents are merged into $CLAUDIA_HOME/.env at activation time.
+          Hermes reads this file on every startup via load_claudia_dotenv().
         '';
       };
 
@@ -272,7 +272,7 @@
         type = types.attrsOf types.str;
         default = { };
         description = ''
-          Non-secret environment variables. Merged into $HERMES_HOME/.env
+          Non-secret environment variables. Merged into $CLAUDIA_HOME/.env
           at activation time. Do NOT put secrets here — use environmentFiles.
         '';
       };
@@ -347,7 +347,7 @@
               default = null;
               description = ''
                 Authentication method. Set to "oauth" for OAuth 2.1 PKCE flow
-                (remote MCP servers). Tokens are stored in $HERMES_HOME/mcp-tokens/.
+                (remote MCP servers). Tokens are stored in $CLAUDIA_HOME/mcp-tokens/.
               '';
             };
 
@@ -502,7 +502,7 @@
 
       # ── Merge MCP servers into settings ────────────────────────────────
       (lib.mkIf (cfg.mcpServers != { }) {
-        services.hermes-agent.settings.mcp_servers = lib.mapAttrs (_name: srv:
+        services.claudia-agent.settings.mcp_servers = lib.mapAttrs (_name: srv:
           # Stdio transport
           lib.optionalAttrs (srv.command != null) { inherit (srv) command args; }
           // lib.optionalAttrs (srv.env != { }) { inherit (srv) env; }
@@ -553,7 +553,7 @@
       {
         systemd.tmpfiles.rules = [
           "d ${cfg.stateDir}                0750 ${cfg.user} ${cfg.group} - -"
-          "d ${cfg.stateDir}/.hermes        0750 ${cfg.user} ${cfg.group} - -"
+          "d ${cfg.stateDir}/.claudia        0750 ${cfg.user} ${cfg.group} - -"
           "d ${cfg.stateDir}/home           0750 ${cfg.user} ${cfg.group} - -"
           "d ${cfg.workingDirectory}         0750 ${cfg.user} ${cfg.group} - -"
         ];
@@ -563,48 +563,48 @@
       {
         system.activationScripts."hermes-agent-setup" = lib.stringAfter [ "users" ] ''
           # Ensure directories exist (activation runs before tmpfiles)
-          mkdir -p ${cfg.stateDir}/.hermes
+          mkdir -p ${cfg.stateDir}/.claudia
           mkdir -p ${cfg.stateDir}/home
           mkdir -p ${cfg.workingDirectory}
-          chown ${cfg.user}:${cfg.group} ${cfg.stateDir} ${cfg.stateDir}/.hermes ${cfg.stateDir}/home ${cfg.workingDirectory}
-          chmod 0750 ${cfg.stateDir} ${cfg.stateDir}/.hermes ${cfg.stateDir}/home ${cfg.workingDirectory}
+          chown ${cfg.user}:${cfg.group} ${cfg.stateDir} ${cfg.stateDir}/.claudia ${cfg.stateDir}/home ${cfg.workingDirectory}
+          chmod 0750 ${cfg.stateDir} ${cfg.stateDir}/.claudia ${cfg.stateDir}/home ${cfg.workingDirectory}
 
           # Merge Nix settings into existing config.yaml.
           # Preserves user-added keys (skills, streaming, etc.); Nix keys win.
           # If configFile is user-provided (not generated), overwrite instead of merge.
           ${if cfg.configFile != null then ''
-            install -o ${cfg.user} -g ${cfg.group} -m 0640 -D ${configFile} ${cfg.stateDir}/.hermes/config.yaml
+            install -o ${cfg.user} -g ${cfg.group} -m 0640 -D ${configFile} ${cfg.stateDir}/.claudia/config.yaml
           '' else ''
-            ${configMergeScript} ${generatedConfigFile} ${cfg.stateDir}/.hermes/config.yaml
-            chown ${cfg.user}:${cfg.group} ${cfg.stateDir}/.hermes/config.yaml
-            chmod 0640 ${cfg.stateDir}/.hermes/config.yaml
+            ${configMergeScript} ${generatedConfigFile} ${cfg.stateDir}/.claudia/config.yaml
+            chown ${cfg.user}:${cfg.group} ${cfg.stateDir}/.claudia/config.yaml
+            chmod 0640 ${cfg.stateDir}/.claudia/config.yaml
           ''}
 
           # Managed mode marker (so interactive shells also detect NixOS management)
-          touch ${cfg.stateDir}/.hermes/.managed
-          chown ${cfg.user}:${cfg.group} ${cfg.stateDir}/.hermes/.managed
-          chmod 0644 ${cfg.stateDir}/.hermes/.managed
+          touch ${cfg.stateDir}/.claudia/.managed
+          chown ${cfg.user}:${cfg.group} ${cfg.stateDir}/.claudia/.managed
+          chmod 0644 ${cfg.stateDir}/.claudia/.managed
 
           # Seed auth file if provided
           ${lib.optionalString (cfg.authFile != null) ''
             ${if cfg.authFileForceOverwrite then ''
-              install -o ${cfg.user} -g ${cfg.group} -m 0600 ${cfg.authFile} ${cfg.stateDir}/.hermes/auth.json
+              install -o ${cfg.user} -g ${cfg.group} -m 0600 ${cfg.authFile} ${cfg.stateDir}/.claudia/auth.json
             '' else ''
-              if [ ! -f ${cfg.stateDir}/.hermes/auth.json ]; then
-                install -o ${cfg.user} -g ${cfg.group} -m 0600 ${cfg.authFile} ${cfg.stateDir}/.hermes/auth.json
+              if [ ! -f ${cfg.stateDir}/.claudia/auth.json ]; then
+                install -o ${cfg.user} -g ${cfg.group} -m 0600 ${cfg.authFile} ${cfg.stateDir}/.claudia/auth.json
               fi
             ''}
           ''}
 
           # Seed .env from Nix-declared environment + environmentFiles.
-          # Hermes reads $HERMES_HOME/.env at startup via load_hermes_dotenv(),
+          # Hermes reads $CLAUDIA_HOME/.env at startup via load_claudia_dotenv(),
           # so this is the single source of truth for both native and container mode.
           ${lib.optionalString (cfg.environment != {} || cfg.environmentFiles != []) ''
-            ENV_FILE="${cfg.stateDir}/.hermes/.env"
+            ENV_FILE="${cfg.stateDir}/.claudia/.env"
             install -o ${cfg.user} -g ${cfg.group} -m 0600 /dev/null "$ENV_FILE"
-            cat > "$ENV_FILE" <<'HERMES_NIX_ENV_EOF'
+            cat > "$ENV_FILE" <<'CLAUDIA_NIX_ENV_EOF'
 ${envFileContent}
-HERMES_NIX_ENV_EOF
+CLAUDIA_NIX_ENV_EOF
             ${lib.concatStringsSep "\n" (map (f: ''
               if [ -f "${f}" ]; then
                 echo "" >> "$ENV_FILE"
@@ -624,7 +624,7 @@ HERMES_NIX_ENV_EOF
       # MODE A: Native systemd service (default)
       # ══════════════════════════════════════════════════════════════════
       (lib.mkIf (!cfg.container.enable) {
-        systemd.services.hermes-agent = {
+        systemd.services.claudia-agent = {
           description = "Hermes Agent Gateway";
           wantedBy = [ "multi-user.target" ];
           after = [ "network-online.target" ];
@@ -632,8 +632,8 @@ HERMES_NIX_ENV_EOF
 
           environment = {
             HOME = cfg.stateDir;
-            HERMES_HOME = "${cfg.stateDir}/.hermes";
-            HERMES_MANAGED = "true";
+            CLAUDIA_HOME = "${cfg.stateDir}/.claudia";
+            CLAUDIA_MANAGED = "true";
             MESSAGING_CWD = cfg.workingDirectory;
           };
 
@@ -643,7 +643,7 @@ HERMES_NIX_ENV_EOF
             WorkingDirectory = cfg.workingDirectory;
 
             # cfg.environment and cfg.environmentFiles are written to
-            # $HERMES_HOME/.env by the activation script. load_hermes_dotenv()
+            # $CLAUDIA_HOME/.env by the activation script. load_claudia_dotenv()
             # reads them at Python startup — no systemd EnvironmentFile needed.
 
             ExecStart = lib.concatStringsSep " " ([
@@ -678,7 +678,7 @@ HERMES_NIX_ENV_EOF
         # Ensure the container runtime is available
         virtualisation.docker.enable = lib.mkDefault (cfg.container.backend == "docker");
 
-        systemd.services.hermes-agent = {
+        systemd.services.claudia-agent = {
           description = "Hermes Agent Gateway (container)";
           wantedBy = [ "multi-user.target" ];
           after = [ "network-online.target" ]
@@ -707,8 +707,8 @@ HERMES_NIX_ENV_EOF
 
             if [ "$NEED_CREATE" = "true" ]; then
               # Resolve numeric UID/GID — passed to entrypoint for in-container user setup
-              HERMES_UID=$(${pkgs.coreutils}/bin/id -u ${cfg.user})
-              HERMES_GID=$(${pkgs.coreutils}/bin/id -g ${cfg.user})
+              CLAUDIA_UID=$(${pkgs.coreutils}/bin/id -u ${cfg.user})
+              CLAUDIA_GID=$(${pkgs.coreutils}/bin/id -g ${cfg.user})
 
               echo "Creating container..."
               ${containerBin} create \
@@ -719,10 +719,10 @@ HERMES_NIX_ENV_EOF
                 --volume ${cfg.stateDir}:${containerDataDir} \
                 --volume ${cfg.stateDir}/home:${containerHomeDir} \
                 ${lib.concatStringsSep " " (map (v: "--volume ${v}") cfg.container.extraVolumes)} \
-                --env HERMES_UID="$HERMES_UID" \
-                --env HERMES_GID="$HERMES_GID" \
-                --env HERMES_HOME=${containerDataDir}/.hermes \
-                --env HERMES_MANAGED=true \
+                --env CLAUDIA_UID="$CLAUDIA_UID" \
+                --env CLAUDIA_GID="$CLAUDIA_GID" \
+                --env CLAUDIA_HOME=${containerDataDir}/.claudia \
+                --env CLAUDIA_MANAGED=true \
                 --env HOME=${containerHomeDir} \
                 --env MESSAGING_CWD=${containerWorkDir} \
                 ${lib.concatStringsSep " " cfg.container.extraOptions} \

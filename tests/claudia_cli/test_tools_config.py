@@ -73,7 +73,7 @@ def test_get_platform_tools_keeps_enabled_mcp_servers_with_explicit_builtin_sele
 
 
 def test_toolset_has_keys_for_vision_accepts_codex_auth(tmp_path, monkeypatch):
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))
     (tmp_path / "auth.json").write_text(
         '{"active_provider":"openai-codex","providers":{"openai-codex":{"tokens":{"access_token": "codex-...oken","refresh_token": "codex-...oken"}}}}'
     )
@@ -194,7 +194,7 @@ def test_save_platform_tools_does_not_preserve_platform_default_toolsets():
     assert "moa" not in saved
 
 
-def test_save_platform_tools_does_not_preserve_hermes_telegram():
+def test_save_platform_tools_does_not_preserve_claudia_telegram():
     """Same bug for Telegram — hermes-telegram must not be preserved."""
     config = {
         "platform_toolsets": {
@@ -248,7 +248,7 @@ def test_save_platform_tools_still_preserves_mcp_with_platform_default_present()
 
 
 def test_visible_providers_include_nous_subscription_when_logged_in(monkeypatch):
-    monkeypatch.setenv("HERMES_ENABLE_NOUS_MANAGED_TOOLS", "1")
+    monkeypatch.setenv("CLAUDIA_ENABLE_NOUS_MANAGED_TOOLS", "1")
     config = {"model": {"provider": "nous"}}
 
     monkeypatch.setattr(
@@ -262,7 +262,7 @@ def test_visible_providers_include_nous_subscription_when_logged_in(monkeypatch)
 
 
 def test_visible_providers_hide_nous_subscription_when_feature_flag_is_off(monkeypatch):
-    monkeypatch.delenv("HERMES_ENABLE_NOUS_MANAGED_TOOLS", raising=False)
+    monkeypatch.delenv("CLAUDIA_ENABLE_NOUS_MANAGED_TOOLS", raising=False)
     config = {"model": {"provider": "nous"}}
 
     monkeypatch.setattr(
@@ -290,7 +290,7 @@ def test_local_browser_provider_is_saved_explicitly(monkeypatch):
 
 
 def test_first_install_nous_auto_configures_managed_defaults(monkeypatch):
-    monkeypatch.setenv("HERMES_ENABLE_NOUS_MANAGED_TOOLS", "1")
+    monkeypatch.setenv("CLAUDIA_ENABLE_NOUS_MANAGED_TOOLS", "1")
     config = {
         "model": {"provider": "nous"},
         "platform_toolsets": {"cli": []},

@@ -37,7 +37,7 @@ from utils import is_truthy_value
 from tools.managed_tool_gateway import resolve_managed_tool_gateway
 from tools.tool_backend_helpers import managed_nous_tools_enabled, resolve_openai_audio_api_key
 
-from claudia_constants import get_hermes_home
+from claudia_constants import get_claudia_home
 
 logger = logging.getLogger(__name__)
 
@@ -67,8 +67,8 @@ DEFAULT_LOCAL_MODEL = "base"
 DEFAULT_LOCAL_STT_LANGUAGE = "en"
 DEFAULT_STT_MODEL = os.getenv("STT_OPENAI_MODEL", "whisper-1")
 DEFAULT_GROQ_STT_MODEL = os.getenv("STT_GROQ_MODEL", "whisper-large-v3-turbo")
-LOCAL_STT_COMMAND_ENV = "HERMES_LOCAL_STT_COMMAND"
-LOCAL_STT_LANGUAGE_ENV = "HERMES_LOCAL_STT_LANGUAGE"
+LOCAL_STT_COMMAND_ENV = "CLAUDIA_LOCAL_STT_COMMAND"
+LOCAL_STT_LANGUAGE_ENV = "CLAUDIA_LOCAL_STT_LANGUAGE"
 COMMON_LOCAL_BIN_DIRS = ("/opt/homebrew/bin", "/usr/local/bin")
 
 GROQ_BASE_URL = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
@@ -92,14 +92,14 @@ _local_model_name: Optional[str] = None
 
 
 def get_stt_model_from_config() -> Optional[str]:
-    """Read the STT model name from ~/.hermes/config.yaml.
+    """Read the STT model name from ~/.claudia/config.yaml.
 
     Returns the value of ``stt.model`` if present, otherwise ``None``.
     Silently returns ``None`` on any error (missing file, bad YAML, etc.).
     """
     try:
         import yaml
-        cfg_path = get_hermes_home() / "config.yaml"
+        cfg_path = get_claudia_home() / "config.yaml"
         if cfg_path.exists():
             with open(cfg_path) as f:
                 data = yaml.safe_load(f) or {}
@@ -200,7 +200,7 @@ def _get_provider(stt_config: dict) -> str:
                 return "local_command"
             logger.warning(
                 "STT provider 'local' configured but unavailable "
-                "(install faster-whisper or set HERMES_LOCAL_STT_COMMAND)"
+                "(install faster-whisper or set CLAUDIA_LOCAL_STT_COMMAND)"
             )
             return "none"
 

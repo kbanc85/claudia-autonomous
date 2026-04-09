@@ -733,7 +733,7 @@ class HonchoSessionManager:
 
         Args:
             session_key: The session key to associate files with.
-            memory_dir: Path to the memories directory (~/.hermes/memories/).
+            memory_dir: Path to the memories directory (~/.claudia/memories/).
 
         Returns:
             True if at least one file was uploaded, False otherwise.

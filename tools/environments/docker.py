@@ -60,8 +60,8 @@ def _normalize_forward_env_names(forward_env: list[str] | None) -> list[str]:
     return normalized
 
 
-def _load_hermes_env_vars() -> dict[str, str]:
-    """Load ~/.hermes/.env values without failing Docker command execution."""
+def _load_claudia_env_vars() -> dict[str, str]:
+    """Load ~/.claudia/.env values without failing Docker command execution."""
     try:
         from claudia_cli.config import load_env
 
@@ -249,7 +249,7 @@ class DockerEnvironment(BaseEnvironment):
             resource_args.append("--network=none")
 
         # Persistent workspace via bind mounts from a configurable host directory
-        # (TERMINAL_SANDBOX_DIR, default ~/.hermes/sandboxes/). Non-persistent
+        # (TERMINAL_SANDBOX_DIR, default ~/.claudia/sandboxes/). Non-persistent
         # mode uses tmpfs (ephemeral, fast, gone on cleanup).
         from tools.environments.base import get_sandbox_dir
 
@@ -447,11 +447,11 @@ class DockerEnvironment(BaseEnvironment):
             forward_keys |= get_all_passthrough()
         except Exception:
             pass
-        hermes_env = _load_hermes_env_vars() if forward_keys else {}
+        claudia_env = _load_claudia_env_vars() if forward_keys else {}
         for key in sorted(forward_keys):
             value = os.getenv(key)
             if value is None:
-                value = hermes_env.get(key)
+                value = claudia_env.get(key)
             if value is not None:
                 cmd.extend(["-e", f"{key}={value}"])
         cmd.extend([self._container_id, "bash", "-lc", exec_command])

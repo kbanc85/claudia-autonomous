@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from claudia_constants import get_hermes_home
+from claudia_constants import get_claudia_home
 from tools.environments.modal_common import (
     BaseModalExecutionEnvironment,
     ModalExecStart,
@@ -22,7 +22,7 @@ from tools.environments.modal_common import (
 
 logger = logging.getLogger(__name__)
 
-_SNAPSHOT_STORE = get_hermes_home() / "modal_snapshots.json"
+_SNAPSHOT_STORE = get_claudia_home() / "modal_snapshots.json"
 _DIRECT_SNAPSHOT_NAMESPACE = "direct"
 
 

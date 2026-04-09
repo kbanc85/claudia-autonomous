@@ -10,7 +10,7 @@ natively in the editor UI.
 ## Prerequisites
 
 - Hermes Agent installed and configured (`hermes setup` completed)
-- An API key / provider set up in `~/.hermes/.env` or via `hermes login`
+- An API key / provider set up in `~/.claudia/.env` or via `hermes login`
 - Python 3.11+
 
 Install the ACP extra:
@@ -53,7 +53,7 @@ Open your VS Code settings (`Ctrl+,` → click the `{}` icon for JSON) and add:
 ```
 
 Replace `/path/to/hermes-agent` with the actual path to your Hermes Agent
-installation (e.g. `~/.hermes/hermes-agent`).
+installation (e.g. `~/.claudia/hermes-agent`).
 
 Alternatively, if `hermes` is on your PATH, the ACP Client can discover it
 automatically via the registry directory.
@@ -147,23 +147,23 @@ approval before Hermes proceeds. This includes:
 
 Hermes Agent under ACP uses the **same configuration** as the CLI:
 
-- **API keys / providers**: `~/.hermes/.env`
-- **Agent config**: `~/.hermes/config.yaml`
-- **Skills**: `~/.hermes/skills/`
-- **Sessions**: `~/.hermes/state.db`
+- **API keys / providers**: `~/.claudia/.env`
+- **Agent config**: `~/.claudia/config.yaml`
+- **Skills**: `~/.claudia/skills/`
+- **Sessions**: `~/.claudia/state.db`
 
-You can run `hermes setup` to configure providers, or edit `~/.hermes/.env`
+You can run `hermes setup` to configure providers, or edit `~/.claudia/.env`
 directly.
 
 ### Changing the model
 
-Edit `~/.hermes/config.yaml`:
+Edit `~/.claudia/config.yaml`:
 
 ```yaml
 model: openrouter/nous/hermes-3-llama-3.1-70b
 ```
 
-Or set the `HERMES_MODEL` environment variable.
+Or set the `CLAUDIA_MODEL` environment variable.
 
 ### Toolsets
 
@@ -216,7 +216,7 @@ Hermes logs are written to stderr when running in ACP mode. Check:
 You can also enable verbose logging:
 
 ```bash
-HERMES_LOG_LEVEL=DEBUG hermes acp
+CLAUDIA_LOG_LEVEL=DEBUG hermes acp
 ```
 
 ---

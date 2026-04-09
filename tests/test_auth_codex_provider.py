@@ -1,4 +1,4 @@
-"""Tests for Codex auth — tokens stored in Hermes auth store (~/.hermes/auth.json)."""
+"""Tests for Codex auth — tokens stored in Hermes auth store (~/.claudia/auth.json)."""
 
 import json
 import time
@@ -22,9 +22,9 @@ from claudia_cli.auth import (
 )
 
 
-def _setup_hermes_auth(hermes_home: Path, *, access_token: str = "access", refresh_token: str = "refresh"):
+def _setup_claudia_auth(claudia_home: Path, *, access_token: str = "access", refresh_token: str = "refresh"):
     """Write Codex tokens into the Hermes auth store."""
-    hermes_home.mkdir(parents=True, exist_ok=True)
+    claudia_home.mkdir(parents=True, exist_ok=True)
     auth_store = {
         "version": 1,
         "active_provider": "openai-codex",
@@ -39,7 +39,7 @@ def _setup_hermes_auth(hermes_home: Path, *, access_token: str = "access", refre
             },
         },
     }
-    auth_file = hermes_home / "auth.json"
+    auth_file = claudia_home / "auth.json"
     auth_file.write_text(json.dumps(auth_store, indent=2))
     return auth_file
 
@@ -51,9 +51,9 @@ def _jwt_with_exp(exp_epoch: int) -> str:
 
 
 def test_read_codex_tokens_success(tmp_path, monkeypatch):
-    hermes_home = tmp_path / "hermes"
-    _setup_hermes_auth(hermes_home)
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    claudia_home = tmp_path / "hermes"
+    _setup_claudia_auth(claudia_home)
+    monkeypatch.setenv("CLAUDIA_HOME", str(claudia_home))
 
     data = _read_codex_tokens()
     assert data["tokens"]["access_token"] == "access"
@@ -61,11 +61,11 @@ def test_read_codex_tokens_success(tmp_path, monkeypatch):
 
 
 def test_read_codex_tokens_missing(tmp_path, monkeypatch):
-    hermes_home = tmp_path / "hermes"
-    hermes_home.mkdir(parents=True, exist_ok=True)
+    claudia_home = tmp_path / "hermes"
+    claudia_home.mkdir(parents=True, exist_ok=True)
     # Empty auth store
-    (hermes_home / "auth.json").write_text(json.dumps({"version": 1, "providers": {}}))
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    (claudia_home / "auth.json").write_text(json.dumps({"version": 1, "providers": {}}))
+    monkeypatch.setenv("CLAUDIA_HOME", str(claudia_home))
 
     with pytest.raises(AuthError) as exc:
         _read_codex_tokens()
@@ -73,9 +73,9 @@ def test_read_codex_tokens_missing(tmp_path, monkeypatch):
 
 
 def test_resolve_codex_runtime_credentials_missing_access_token(tmp_path, monkeypatch):
-    hermes_home = tmp_path / "hermes"
-    _setup_hermes_auth(hermes_home, access_token="")
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    claudia_home = tmp_path / "hermes"
+    _setup_claudia_auth(claudia_home, access_token="")
+    monkeypatch.setenv("CLAUDIA_HOME", str(claudia_home))
 
     with pytest.raises(AuthError) as exc:
         resolve_codex_runtime_credentials()
@@ -84,10 +84,10 @@ def test_resolve_codex_runtime_credentials_missing_access_token(tmp_path, monkey
 
 
 def test_resolve_codex_runtime_credentials_refreshes_expiring_token(tmp_path, monkeypatch):
-    hermes_home = tmp_path / "hermes"
+    claudia_home = tmp_path / "hermes"
     expiring_token = _jwt_with_exp(int(time.time()) - 10)
-    _setup_hermes_auth(hermes_home, access_token=expiring_token, refresh_token="refresh-old")
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    _setup_claudia_auth(claudia_home, access_token=expiring_token, refresh_token="refresh-old")
+    monkeypatch.setenv("CLAUDIA_HOME", str(claudia_home))
 
     called = {"count": 0}
 
@@ -104,9 +104,9 @@ def test_resolve_codex_runtime_credentials_refreshes_expiring_token(tmp_path, mo
 
 
 def test_resolve_codex_runtime_credentials_force_refresh(tmp_path, monkeypatch):
-    hermes_home = tmp_path / "hermes"
-    _setup_hermes_auth(hermes_home, access_token="access-current", refresh_token="refresh-old")
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    claudia_home = tmp_path / "hermes"
+    _setup_claudia_auth(claudia_home, access_token="access-current", refresh_token="refresh-old")
+    monkeypatch.setenv("CLAUDIA_HOME", str(claudia_home))
 
     called = {"count": 0}
 
@@ -129,10 +129,10 @@ def test_resolve_provider_explicit_codex_does_not_fallback(monkeypatch):
 
 
 def test_save_codex_tokens_roundtrip(tmp_path, monkeypatch):
-    hermes_home = tmp_path / "hermes"
-    hermes_home.mkdir(parents=True, exist_ok=True)
-    (hermes_home / "auth.json").write_text(json.dumps({"version": 1, "providers": {}}))
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    claudia_home = tmp_path / "hermes"
+    claudia_home.mkdir(parents=True, exist_ok=True)
+    (claudia_home / "auth.json").write_text(json.dumps({"version": 1, "providers": {}}))
+    monkeypatch.setenv("CLAUDIA_HOME", str(claudia_home))
 
     _save_codex_tokens({"access_token": "at123", "refresh_token": "rt456"})
     data = _read_codex_tokens()
@@ -162,13 +162,13 @@ def test_import_codex_cli_tokens_missing(tmp_path, monkeypatch):
 
 def test_codex_tokens_not_written_to_shared_file(tmp_path, monkeypatch):
     """Verify Hermes never writes to ~/.codex/auth.json."""
-    hermes_home = tmp_path / "hermes"
+    claudia_home = tmp_path / "hermes"
     codex_home = tmp_path / "codex-cli"
-    hermes_home.mkdir(parents=True, exist_ok=True)
+    claudia_home.mkdir(parents=True, exist_ok=True)
     codex_home.mkdir(parents=True, exist_ok=True)
 
-    (hermes_home / "auth.json").write_text(json.dumps({"version": 1, "providers": {}}))
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    (claudia_home / "auth.json").write_text(json.dumps({"version": 1, "providers": {}}))
+    monkeypatch.setenv("CLAUDIA_HOME", str(claudia_home))
     monkeypatch.setenv("CODEX_HOME", str(codex_home))
 
     _save_codex_tokens({"access_token": "hermes-at", "refresh_token": "hermes-rt"})
@@ -181,10 +181,10 @@ def test_codex_tokens_not_written_to_shared_file(tmp_path, monkeypatch):
     assert data["tokens"]["access_token"] == "hermes-at"
 
 
-def test_resolve_returns_hermes_auth_store_source(tmp_path, monkeypatch):
-    hermes_home = tmp_path / "hermes"
-    _setup_hermes_auth(hermes_home)
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+def test_resolve_returns_claudia_auth_store_source(tmp_path, monkeypatch):
+    claudia_home = tmp_path / "hermes"
+    _setup_claudia_auth(claudia_home)
+    monkeypatch.setenv("CLAUDIA_HOME", str(claudia_home))
 
     creds = resolve_codex_runtime_credentials()
     assert creds["source"] == "hermes-auth-store"

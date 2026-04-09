@@ -2,7 +2,7 @@
 Channel directory -- cached map of reachable channels/contacts per platform.
 
 Built on gateway startup, refreshed periodically (every 5 min), and saved to
-~/.hermes/channel_directory.json.  The send_message tool reads this file for
+~/.claudia/channel_directory.json.  The send_message tool reads this file for
 action="list" and for resolving human-friendly channel names to numeric IDs.
 """
 
@@ -11,11 +11,11 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from claudia_cli.config import get_hermes_home
+from claudia_cli.config import get_claudia_home
 
 logger = logging.getLogger(__name__)
 
-DIRECTORY_PATH = get_hermes_home() / "channel_directory.json"
+DIRECTORY_PATH = get_claudia_home() / "channel_directory.json"
 
 
 def _session_entry_id(origin: Dict[str, Any]) -> Optional[str]:
@@ -129,7 +129,7 @@ def _build_slack(adapter) -> List[Dict[str, str]]:
 
 def _build_from_sessions(platform_name: str) -> List[Dict[str, str]]:
     """Pull known channels/contacts from sessions.json origin data."""
-    sessions_path = get_hermes_home() / "sessions" / "sessions.json"
+    sessions_path = get_claudia_home() / "sessions" / "sessions.json"
     if not sessions_path.exists():
         return []
 

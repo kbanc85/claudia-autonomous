@@ -73,11 +73,11 @@ MIGRATION_OPTION_METADATA: Dict[str, Dict[str, str]] = {
     },
     "skills": {
         "label": "User skills",
-        "description": "Copy OpenClaw skills into ~/.hermes/skills/openclaw-imports/.",
+        "description": "Copy OpenClaw skills into ~/.claudia/skills/openclaw-imports/.",
     },
     "tts-assets": {
         "label": "TTS assets",
-        "description": "Copy compatible workspace TTS assets into ~/.hermes/tts/.",
+        "description": "Copy compatible workspace TTS assets into ~/.claudia/tts/.",
     },
     "discord-settings": {
         "label": "Discord settings",
@@ -1219,10 +1219,10 @@ class Migrator:
             "ZAI_API_KEY": "ZAI_API_KEY",
             "MINIMAX_API_KEY": "MINIMAX_API_KEY",
         }
-        for oc_key, hermes_key in env_key_mapping.items():
+        for oc_key, claudia_key in env_key_mapping.items():
             val = openclaw_env.get(oc_key, "").strip()
-            if val and hermes_key not in secret_additions:
-                secret_additions[hermes_key] = val
+            if val and claudia_key not in secret_additions:
+                secret_additions[claudia_key] = val
 
         # Check per-agent auth-profiles.json for additional credentials
         auth_profiles_path = self.source_root / "agents" / "main" / "agent" / "auth-profiles.json"
@@ -1286,8 +1286,8 @@ class Migrator:
             self.record("model-config", source_path, destination, "error", "PyYAML is not available")
             return
 
-        hermes_config = load_yaml_file(destination)
-        current_model = hermes_config.get("model")
+        claudia_config = load_yaml_file(destination)
+        current_model = claudia_config.get("model")
         if current_model == model_str:
             self.record("model-config", source_path, destination, "skipped", "Model already set to the same value")
             return
@@ -1297,12 +1297,12 @@ class Migrator:
 
         if self.execute:
             backup_path = self.maybe_backup(destination)
-            existing_model = hermes_config.get("model")
+            existing_model = claudia_config.get("model")
             if isinstance(existing_model, dict):
                 existing_model["default"] = model_str
             else:
-                hermes_config["model"] = {"default": model_str}
-            dump_yaml_file(destination, hermes_config)
+                claudia_config["model"] = {"default": model_str}
+            dump_yaml_file(destination, claudia_config)
             self.record("model-config", source_path, destination, "migrated", backup=str(backup_path) if backup_path else "", model=model_str)
         else:
             self.record("model-config", source_path, destination, "migrated", "Would set model", model=model_str)
@@ -1387,8 +1387,8 @@ class Migrator:
             self.record("tts-config", source_path, destination, "skipped", "No compatible TTS settings found")
             return
 
-        hermes_config = load_yaml_file(destination)
-        existing_tts = hermes_config.get("tts", {})
+        claudia_config = load_yaml_file(destination)
+        existing_tts = claudia_config.get("tts", {})
         if not isinstance(existing_tts, dict):
             existing_tts = {}
 
@@ -1400,8 +1400,8 @@ class Migrator:
                     merged_tts[key] = {**merged_tts[key], **value}
                 else:
                     merged_tts[key] = value
-            hermes_config["tts"] = merged_tts
-            dump_yaml_file(destination, hermes_config)
+            claudia_config["tts"] = merged_tts
+            dump_yaml_file(destination, claudia_config)
             self.record("tts-config", source_path, destination, "migrated", backup=str(backup_path) if backup_path else "", settings=list(tts_data.keys()))
         else:
             self.record("tts-config", source_path, destination, "migrated", "Would set TTS config", settings=list(tts_data.keys()))
@@ -1693,9 +1693,9 @@ class Migrator:
             self.record("mcp-servers", None, None, "skipped", "No MCP servers found in OpenClaw config")
             return
 
-        hermes_cfg_path = self.target_root / "config.yaml"
-        hermes_cfg = load_yaml_file(hermes_cfg_path)
-        existing_mcp = hermes_cfg.get("mcp_servers") or {}
+        claudia_cfg_path = self.target_root / "config.yaml"
+        claudia_cfg = load_yaml_file(claudia_cfg_path)
+        existing_mcp = claudia_cfg.get("mcp_servers") or {}
         added = 0
 
         for name, srv in mcp_raw.items():
@@ -1706,42 +1706,42 @@ class Migrator:
                             "MCP server already exists in Hermes config")
                 continue
 
-            hermes_srv: Dict[str, Any] = {}
+            claudia_srv: Dict[str, Any] = {}
             # STDIO transport
             if srv.get("command"):
-                hermes_srv["command"] = srv["command"]
+                claudia_srv["command"] = srv["command"]
                 if srv.get("args"):
-                    hermes_srv["args"] = srv["args"]
+                    claudia_srv["args"] = srv["args"]
                 if srv.get("env"):
-                    hermes_srv["env"] = srv["env"]
+                    claudia_srv["env"] = srv["env"]
                 if srv.get("cwd"):
-                    hermes_srv["cwd"] = srv["cwd"]
+                    claudia_srv["cwd"] = srv["cwd"]
             # HTTP/SSE transport
             if srv.get("url"):
-                hermes_srv["url"] = srv["url"]
+                claudia_srv["url"] = srv["url"]
                 if srv.get("headers"):
-                    hermes_srv["headers"] = srv["headers"]
+                    claudia_srv["headers"] = srv["headers"]
                 if srv.get("auth"):
-                    hermes_srv["auth"] = srv["auth"]
+                    claudia_srv["auth"] = srv["auth"]
             # Common fields
             if srv.get("enabled") is False:
-                hermes_srv["enabled"] = False
+                claudia_srv["enabled"] = False
             if srv.get("timeout"):
-                hermes_srv["timeout"] = srv["timeout"]
+                claudia_srv["timeout"] = srv["timeout"]
             if srv.get("connectTimeout"):
-                hermes_srv["connect_timeout"] = srv["connectTimeout"]
+                claudia_srv["connect_timeout"] = srv["connectTimeout"]
             # Tool filtering
             tools_cfg = srv.get("tools") or {}
             if tools_cfg.get("include") or tools_cfg.get("exclude"):
-                hermes_srv["tools"] = {}
+                claudia_srv["tools"] = {}
                 if tools_cfg.get("include"):
-                    hermes_srv["tools"]["include"] = tools_cfg["include"]
+                    claudia_srv["tools"]["include"] = tools_cfg["include"]
                 if tools_cfg.get("exclude"):
-                    hermes_srv["tools"]["exclude"] = tools_cfg["exclude"]
+                    claudia_srv["tools"]["exclude"] = tools_cfg["exclude"]
             # Sampling
             sampling = srv.get("sampling")
             if sampling and isinstance(sampling, dict):
-                hermes_srv["sampling"] = {
+                claudia_srv["sampling"] = {
                     k: v for k, v in {
                         "enabled": sampling.get("enabled"),
                         "model": sampling.get("model"),
@@ -1751,15 +1751,15 @@ class Migrator:
                     }.items() if v is not None
                 }
 
-            existing_mcp[name] = hermes_srv
+            existing_mcp[name] = claudia_srv
             added += 1
             self.record("mcp-servers", f"mcp.servers.{name}", f"config.yaml mcp_servers.{name}",
                         "migrated", servers_added=added)
 
         if added > 0 and self.execute:
-            self.maybe_backup(hermes_cfg_path)
-            hermes_cfg["mcp_servers"] = existing_mcp
-            dump_yaml_file(hermes_cfg_path, hermes_cfg)
+            self.maybe_backup(claudia_cfg_path)
+            claudia_cfg["mcp_servers"] = existing_mcp
+            dump_yaml_file(claudia_cfg_path, claudia_cfg)
 
     # ── Plugins ───────────────────────────────────────────────
     def migrate_plugins_config(self, config: Optional[Dict[str, Any]] = None) -> None:
@@ -1868,12 +1868,12 @@ class Migrator:
             self.record("agent-config", None, None, "skipped", "No agent configuration found")
             return
 
-        hermes_cfg_path = self.target_root / "config.yaml"
-        hermes_cfg = load_yaml_file(hermes_cfg_path)
+        claudia_cfg_path = self.target_root / "config.yaml"
+        claudia_cfg = load_yaml_file(claudia_cfg_path)
         changes = False
 
         # Map agent defaults
-        agent_cfg = hermes_cfg.get("agent") or {}
+        agent_cfg = claudia_cfg.get("agent") or {}
         if defaults.get("contextTokens"):
             # No direct mapping but useful context
             pass
@@ -1897,7 +1897,7 @@ class Migrator:
         # Map compaction -> compression
         compaction = defaults.get("compaction") or {}
         if compaction:
-            compression = hermes_cfg.get("compression") or {}
+            compression = claudia_cfg.get("compression") or {}
             if compaction.get("mode") == "off":
                 compression["enabled"] = False
             else:
@@ -1906,13 +1906,13 @@ class Migrator:
                 pass  # No direct mapping
             if compaction.get("model"):
                 compression["summary_model"] = compaction["model"]
-            hermes_cfg["compression"] = compression
+            claudia_cfg["compression"] = compression
             changes = True
 
         # Map humanDelay
         human_delay = defaults.get("humanDelay") or {}
         if human_delay:
-            hd = hermes_cfg.get("human_delay") or {}
+            hd = claudia_cfg.get("human_delay") or {}
             hd_mode = human_delay.get("mode") or ("natural" if human_delay.get("enabled") else None)
             if hd_mode and hd_mode != "off":
                 hd["mode"] = hd_mode
@@ -1920,38 +1920,38 @@ class Migrator:
                 hd["min_ms"] = human_delay["minMs"]
             if human_delay.get("maxMs"):
                 hd["max_ms"] = human_delay["maxMs"]
-            hermes_cfg["human_delay"] = hd
+            claudia_cfg["human_delay"] = hd
             changes = True
 
         # Map userTimezone
         if defaults.get("userTimezone"):
-            hermes_cfg["timezone"] = defaults["userTimezone"]
+            claudia_cfg["timezone"] = defaults["userTimezone"]
             changes = True
 
         # Map terminal/exec settings
         exec_cfg = (config.get("tools") or {}).get("exec") or {}
         if exec_cfg:
-            terminal_cfg = hermes_cfg.get("terminal") or {}
+            terminal_cfg = claudia_cfg.get("terminal") or {}
             if exec_cfg.get("timeoutSec") or exec_cfg.get("timeout"):
                 terminal_cfg["timeout"] = exec_cfg.get("timeoutSec") or exec_cfg.get("timeout")
                 changes = True
-            hermes_cfg["terminal"] = terminal_cfg
+            claudia_cfg["terminal"] = terminal_cfg
 
         # Map sandbox -> terminal docker settings
         sandbox = defaults.get("sandbox") or {}
         if sandbox and sandbox.get("backend") == "docker":
-            terminal_cfg = hermes_cfg.get("terminal") or {}
+            terminal_cfg = claudia_cfg.get("terminal") or {}
             terminal_cfg["backend"] = "docker"
             if sandbox.get("docker", {}).get("image"):
                 terminal_cfg["docker_image"] = sandbox["docker"]["image"]
-            hermes_cfg["terminal"] = terminal_cfg
+            claudia_cfg["terminal"] = terminal_cfg
             changes = True
 
         if changes:
-            hermes_cfg["agent"] = agent_cfg
+            claudia_cfg["agent"] = agent_cfg
             if self.execute:
-                self.maybe_backup(hermes_cfg_path)
-                dump_yaml_file(hermes_cfg_path, hermes_cfg)
+                self.maybe_backup(claudia_cfg_path)
+                dump_yaml_file(claudia_cfg_path, claudia_cfg)
             self.record("agent-config", "openclaw.json agents.defaults", "config.yaml agent/compression/terminal",
                         "migrated", "Agent defaults mapped to Hermes config")
 
@@ -1993,7 +1993,7 @@ class Migrator:
         # Extract gateway auth token to .env if present
         auth = gateway.get("auth") or {}
         if auth.get("token") and self.migrate_secrets:
-            self._set_env_var("HERMES_GATEWAY_TOKEN", auth["token"], "gateway.auth.token")
+            self._set_env_var("CLAUDIA_GATEWAY_TOKEN", auth["token"], "gateway.auth.token")
 
     # ── Session config ────────────────────────────────────────
     def migrate_session_config(self, config: Optional[Dict[str, Any]] = None) -> None:
@@ -2003,9 +2003,9 @@ class Migrator:
             self.record("session-config", None, None, "skipped", "No session configuration found")
             return
 
-        hermes_cfg_path = self.target_root / "config.yaml"
-        hermes_cfg = load_yaml_file(hermes_cfg_path)
-        sr = hermes_cfg.get("session_reset") or {}
+        claudia_cfg_path = self.target_root / "config.yaml"
+        claudia_cfg = load_yaml_file(claudia_cfg_path)
+        sr = claudia_cfg.get("session_reset") or {}
         changes = False
 
         # OpenClaw uses session.reset (structured) and session.resetTriggers (string array)
@@ -2039,10 +2039,10 @@ class Migrator:
             changes = True
 
         if changes:
-            hermes_cfg["session_reset"] = sr
+            claudia_cfg["session_reset"] = sr
             if self.execute:
-                self.maybe_backup(hermes_cfg_path)
-                dump_yaml_file(hermes_cfg_path, hermes_cfg)
+                self.maybe_backup(claudia_cfg_path)
+                dump_yaml_file(claudia_cfg_path, claudia_cfg)
             self.record("session-config", "openclaw.json session.resetTriggers",
                         "config.yaml session_reset", "migrated")
 
@@ -2067,9 +2067,9 @@ class Migrator:
             self.record("full-providers", None, None, "skipped", "No model providers found")
             return
 
-        hermes_cfg_path = self.target_root / "config.yaml"
-        hermes_cfg = load_yaml_file(hermes_cfg_path)
-        custom_providers = hermes_cfg.get("custom_providers") or []
+        claudia_cfg_path = self.target_root / "config.yaml"
+        claudia_cfg = load_yaml_file(claudia_cfg_path)
+        custom_providers = claudia_cfg.get("custom_providers") or []
         added = 0
 
         # Well-known providers: just extract API keys
@@ -2113,9 +2113,9 @@ class Migrator:
                             f"config.yaml custom_providers[{prov_name}]", "migrated")
 
         if added > 0 and self.execute:
-            self.maybe_backup(hermes_cfg_path)
-            hermes_cfg["custom_providers"] = custom_providers
-            dump_yaml_file(hermes_cfg_path, hermes_cfg)
+            self.maybe_backup(claudia_cfg_path)
+            claudia_cfg["custom_providers"] = custom_providers
+            dump_yaml_file(claudia_cfg_path, claudia_cfg)
 
         # Archive model aliases/catalog
         agent_defaults = (config.get("agents") or {}).get("defaults") or {}
@@ -2180,9 +2180,9 @@ class Migrator:
         # Map Discord-specific settings to Hermes config
         discord_cfg = channels.get("discord") or {}
         if discord_cfg:
-            hermes_cfg_path = self.target_root / "config.yaml"
-            hermes_cfg = load_yaml_file(hermes_cfg_path)
-            discord_hermes = hermes_cfg.get("discord") or {}
+            claudia_cfg_path = self.target_root / "config.yaml"
+            claudia_cfg = load_yaml_file(claudia_cfg_path)
+            discord_hermes = claudia_cfg.get("discord") or {}
             changed = False
             if "requireMention" in discord_cfg:
                 discord_hermes["require_mention"] = discord_cfg["requireMention"]
@@ -2191,8 +2191,8 @@ class Migrator:
                 discord_hermes["auto_thread"] = discord_cfg["autoThread"]
                 changed = True
             if changed and self.execute:
-                hermes_cfg["discord"] = discord_hermes
-                dump_yaml_file(hermes_cfg_path, hermes_cfg)
+                claudia_cfg["discord"] = discord_hermes
+                dump_yaml_file(claudia_cfg_path, claudia_cfg)
 
         # Archive complex channel configs (group settings, thread bindings, etc.)
         complex_archive = {}
@@ -2222,9 +2222,9 @@ class Migrator:
             self.record("browser-config", None, None, "skipped", "No browser configuration found")
             return
 
-        hermes_cfg_path = self.target_root / "config.yaml"
-        hermes_cfg = load_yaml_file(hermes_cfg_path)
-        browser_hermes = hermes_cfg.get("browser") or {}
+        claudia_cfg_path = self.target_root / "config.yaml"
+        claudia_cfg = load_yaml_file(claudia_cfg_path)
+        browser_hermes = claudia_cfg.get("browser") or {}
         changed = False
 
         # Map fields that have Hermes equivalents
@@ -2236,10 +2236,10 @@ class Migrator:
             changed = True
 
         if changed:
-            hermes_cfg["browser"] = browser_hermes
+            claudia_cfg["browser"] = browser_hermes
             if self.execute:
-                self.maybe_backup(hermes_cfg_path)
-                dump_yaml_file(hermes_cfg_path, hermes_cfg)
+                self.maybe_backup(claudia_cfg_path)
+                dump_yaml_file(claudia_cfg_path, claudia_cfg)
             self.record("browser-config", "openclaw.json browser.*", "config.yaml browser",
                         "migrated")
 
@@ -2262,17 +2262,17 @@ class Migrator:
             self.record("tools-config", None, None, "skipped", "No tools configuration found")
             return
 
-        hermes_cfg_path = self.target_root / "config.yaml"
-        hermes_cfg = load_yaml_file(hermes_cfg_path)
+        claudia_cfg_path = self.target_root / "config.yaml"
+        claudia_cfg = load_yaml_file(claudia_cfg_path)
         changed = False
 
         # Map exec timeout -> terminal timeout (field is timeoutSec in OpenClaw)
         exec_cfg = tools.get("exec") or {}
         timeout_val = exec_cfg.get("timeoutSec") or exec_cfg.get("timeout")
         if timeout_val:
-            terminal_cfg = hermes_cfg.get("terminal") or {}
+            terminal_cfg = claudia_cfg.get("terminal") or {}
             terminal_cfg["timeout"] = timeout_val
-            hermes_cfg["terminal"] = terminal_cfg
+            claudia_cfg["terminal"] = terminal_cfg
             changed = True
 
         # Map web search API key (path: tools.web.search.brave.apiKey in OpenClaw)
@@ -2284,8 +2284,8 @@ class Migrator:
             self._set_env_var("BRAVE_API_KEY", brave_key, "tools.web.search.brave.apiKey")
 
         if changed and self.execute:
-            self.maybe_backup(hermes_cfg_path)
-            dump_yaml_file(hermes_cfg_path, hermes_cfg)
+            self.maybe_backup(claudia_cfg_path)
+            dump_yaml_file(claudia_cfg_path, claudia_cfg)
             self.record("tools-config", "openclaw.json tools.*", "config.yaml terminal",
                         "migrated")
 
@@ -2306,21 +2306,21 @@ class Migrator:
             self.record("approvals-config", None, None, "skipped", "No approvals configuration found")
             return
 
-        hermes_cfg_path = self.target_root / "config.yaml"
-        hermes_cfg = load_yaml_file(hermes_cfg_path)
+        claudia_cfg_path = self.target_root / "config.yaml"
+        claudia_cfg = load_yaml_file(claudia_cfg_path)
 
         # Map approval mode (nested under approvals.exec.mode in OpenClaw)
         exec_approvals = approvals.get("exec") or {}
         mode = (exec_approvals.get("mode") if isinstance(exec_approvals, dict) else None) or approvals.get("mode") or approvals.get("defaultMode")
         if mode:
             mode_map = {"auto": "off", "always": "manual", "smart": "smart", "manual": "manual"}
-            hermes_mode = mode_map.get(mode, "manual")
-            hermes_cfg.setdefault("approvals", {})["mode"] = hermes_mode
+            claudia_mode = mode_map.get(mode, "manual")
+            claudia_cfg.setdefault("approvals", {})["mode"] = claudia_mode
             if self.execute:
-                self.maybe_backup(hermes_cfg_path)
-                dump_yaml_file(hermes_cfg_path, hermes_cfg)
+                self.maybe_backup(claudia_cfg_path)
+                dump_yaml_file(claudia_cfg_path, claudia_cfg)
             self.record("approvals-config", "openclaw.json approvals.mode",
-                        "config.yaml approvals.mode", "migrated", f"Mapped '{mode}' -> '{hermes_mode}'")
+                        "config.yaml approvals.mode", "migrated", f"Mapped '{mode}' -> '{claudia_mode}'")
 
         # Archive full approvals config
         if len(approvals) > 1 and self.archive_dir:
@@ -2477,7 +2477,7 @@ class Migrator:
             "- Run `hermes mcp list` to verify MCP servers were imported correctly",
             "- Run `hermes cron` to recreate scheduled tasks (see archive/cron-config.json)",
             "- Run `hermes gateway install` if you need the gateway service",
-            "- Review `~/.hermes/config.yaml` for any adjustments",
+            "- Review `~/.claudia/config.yaml` for any adjustments",
             "",
         ])
 
@@ -2491,7 +2491,7 @@ class Migrator:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Migrate OpenClaw user state into Hermes Agent.")
     parser.add_argument("--source", default=str(Path.home() / ".openclaw"), help="OpenClaw home directory")
-    parser.add_argument("--target", default=str(Path.home() / ".hermes"), help="Hermes home directory")
+    parser.add_argument("--target", default=str(Path.home() / ".claudia"), help="Hermes home directory")
     parser.add_argument(
         "--workspace-target",
         help="Optional workspace root where the workspace instructions file should be copied",
@@ -2584,7 +2584,7 @@ def main() -> int:
             seen_kinds.add(label)
             dest = item.get("destination") or ""
             if dest.startswith(str(report["target_root"])):
-                dest = "~/.hermes/" + dest[len(str(report["target_root"])) + 1:]
+                dest = "~/.claudia/" + dest[len(str(report["target_root"])) + 1:]
             meta = MIGRATION_OPTION_METADATA.get(label, {})
             display = meta.get("label", label)
             print(f"    ✔ {display:<35s} -> {dest}")
@@ -2630,7 +2630,7 @@ def main() -> int:
     if args.execute:
         print()
         print("  Next steps:")
-        print("    1. Review ~/.hermes/config.yaml")
+        print("    1. Review ~/.claudia/config.yaml")
         print("    2. Run: hermes mcp list")
         if any(i["kind"] == "cron-jobs" and i["status"] == "archived" for i in items):
             print("    3. Recreate cron jobs: hermes cron")

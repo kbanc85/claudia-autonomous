@@ -2,7 +2,7 @@
 # Hermes Agent — Example Skin Template
 # ============================================================================
 #
-# Copy this file to ~/.hermes/skins/<name>.yaml to create a custom skin.
+# Copy this file to ~/.claudia/skins/<name>.yaml to create a custom skin.
 # All fields are optional — missing values inherit from the default skin.
 # Activate with: /skin <name>  or  display.skin: <name> in config.yaml
 #

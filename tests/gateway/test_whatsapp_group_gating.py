@@ -77,9 +77,9 @@ def test_invalid_regex_patterns_are_ignored():
 
 
 def test_config_bridges_whatsapp_group_settings(monkeypatch, tmp_path):
-    hermes_home = tmp_path / ".hermes"
-    hermes_home.mkdir()
-    (hermes_home / "config.yaml").write_text(
+    claudia_home = tmp_path / ".claudia"
+    claudia_home.mkdir()
+    (claudia_home / "config.yaml").write_text(
         "whatsapp:\n"
         "  require_mention: true\n"
         "  mention_patterns:\n"
@@ -87,7 +87,7 @@ def test_config_bridges_whatsapp_group_settings(monkeypatch, tmp_path):
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+    monkeypatch.setenv("CLAUDIA_HOME", str(claudia_home))
     monkeypatch.delenv("WHATSAPP_REQUIRE_MENTION", raising=False)
     monkeypatch.delenv("WHATSAPP_MENTION_PATTERNS", raising=False)
 

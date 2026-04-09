@@ -105,7 +105,7 @@ def test_resolve_selected_options_rejects_unknown_preset():
 def test_migrator_copies_skill_and_merges_allowlist(tmp_path: Path):
     mod = load_module()
     source = tmp_path / ".openclaw"
-    target = tmp_path / ".hermes"
+    target = tmp_path / ".claudia"
     target.mkdir()
 
     (source / "workspace" / "skills" / "demo-skill").mkdir(parents=True)
@@ -150,7 +150,7 @@ def test_migrator_copies_skill_and_merges_allowlist(tmp_path: Path):
 def test_migrator_optionally_imports_supported_secrets_and_messaging_settings(tmp_path: Path):
     mod = load_module()
     source = tmp_path / ".openclaw"
-    target = tmp_path / ".hermes"
+    target = tmp_path / ".claudia"
 
     (source / "credentials").mkdir(parents=True)
     (source / "openclaw.json").write_text(
@@ -188,7 +188,7 @@ def test_migrator_optionally_imports_supported_secrets_and_messaging_settings(tm
 def test_migrator_can_execute_only_selected_categories(tmp_path: Path):
     mod = load_module()
     source = tmp_path / ".openclaw"
-    target = tmp_path / ".hermes"
+    target = tmp_path / ".claudia"
     target.mkdir()
 
     (source / "workspace" / "skills" / "demo-skill").mkdir(parents=True)
@@ -225,7 +225,7 @@ def test_migrator_can_execute_only_selected_categories(tmp_path: Path):
 def test_migrator_records_preset_in_report(tmp_path: Path):
     mod = load_module()
     source = tmp_path / ".openclaw"
-    target = tmp_path / ".hermes"
+    target = tmp_path / ".claudia"
     target.mkdir()
     (target / "config.yaml").write_text("command_allowlist: []\n", encoding="utf-8")
 
@@ -251,7 +251,7 @@ def test_migrator_records_preset_in_report(tmp_path: Path):
 def test_migrator_exports_full_overflow_entries(tmp_path: Path):
     mod = load_module()
     source = tmp_path / ".openclaw"
-    target = tmp_path / ".hermes"
+    target = tmp_path / ".claudia"
     target.mkdir()
     (target / "config.yaml").write_text("memory:\n  memory_char_limit: 10\n  user_char_limit: 10\n", encoding="utf-8")
     (source / "workspace").mkdir(parents=True)
@@ -282,7 +282,7 @@ def test_migrator_exports_full_overflow_entries(tmp_path: Path):
 def test_migrator_can_rename_conflicting_imported_skill(tmp_path: Path):
     mod = load_module()
     source = tmp_path / ".openclaw"
-    target = tmp_path / ".hermes"
+    target = tmp_path / ".claudia"
     target.mkdir()
 
     source_skill = source / "workspace" / "skills" / "demo-skill"
@@ -321,7 +321,7 @@ def test_migrator_can_rename_conflicting_imported_skill(tmp_path: Path):
 def test_migrator_can_overwrite_conflicting_imported_skill_with_backup(tmp_path: Path):
     mod = load_module()
     source = tmp_path / ".openclaw"
-    target = tmp_path / ".hermes"
+    target = tmp_path / ".claudia"
     target.mkdir()
 
     source_skill = source / "workspace" / "skills" / "demo-skill"
@@ -359,7 +359,7 @@ def test_discord_settings_migrated(tmp_path: Path):
     """Discord bot token and allowlist migrate to .env."""
     mod = load_module()
     source = tmp_path / ".openclaw"
-    target = tmp_path / ".hermes"
+    target = tmp_path / ".claudia"
     target.mkdir()
     source.mkdir()
 
@@ -390,7 +390,7 @@ def test_slack_settings_migrated(tmp_path: Path):
     """Slack bot/app tokens and allowlist migrate to .env."""
     mod = load_module()
     source = tmp_path / ".openclaw"
-    target = tmp_path / ".hermes"
+    target = tmp_path / ".claudia"
     target.mkdir()
     source.mkdir()
 
@@ -423,7 +423,7 @@ def test_signal_settings_migrated(tmp_path: Path):
     """Signal account, HTTP URL, and allowlist migrate to .env."""
     mod = load_module()
     source = tmp_path / ".openclaw"
-    target = tmp_path / ".hermes"
+    target = tmp_path / ".claudia"
     target.mkdir()
     source.mkdir()
 
@@ -456,7 +456,7 @@ def test_model_config_migrated(tmp_path: Path):
     """Default model setting migrates to config.yaml."""
     mod = load_module()
     source = tmp_path / ".openclaw"
-    target = tmp_path / ".hermes"
+    target = tmp_path / ".claudia"
     target.mkdir()
     source.mkdir()
 
@@ -483,7 +483,7 @@ def test_model_config_object_format(tmp_path: Path):
     """Model config handles {primary: ...} object format."""
     mod = load_module()
     source = tmp_path / ".openclaw"
-    target = tmp_path / ".hermes"
+    target = tmp_path / ".claudia"
     target.mkdir()
     source.mkdir()
 
@@ -509,7 +509,7 @@ def test_tts_config_migrated(tmp_path: Path):
     """TTS provider and voice settings migrate to config.yaml."""
     mod = load_module()
     source = tmp_path / ".openclaw"
-    target = tmp_path / ".hermes"
+    target = tmp_path / ".claudia"
     target.mkdir()
     source.mkdir()
 
@@ -544,7 +544,7 @@ def test_shared_skills_migrated(tmp_path: Path):
     """Shared skills from ~/.openclaw/skills/ are migrated."""
     mod = load_module()
     source = tmp_path / ".openclaw"
-    target = tmp_path / ".hermes"
+    target = tmp_path / ".claudia"
     target.mkdir()
 
     # Create a shared skill (not in workspace/skills/)
@@ -568,7 +568,7 @@ def test_daily_memory_merged(tmp_path: Path):
     """Daily memory notes from workspace/memory/*.md are merged into MEMORY.md."""
     mod = load_module()
     source = tmp_path / ".openclaw"
-    target = tmp_path / ".hermes"
+    target = tmp_path / ".claudia"
     target.mkdir()
 
     mem_dir = source / "workspace" / "memory"
@@ -599,7 +599,7 @@ def test_provider_keys_require_migrate_secrets_flag(tmp_path: Path):
     """Provider keys migration is double-gated: needs option + --migrate-secrets."""
     mod = load_module()
     source = tmp_path / ".openclaw"
-    target = tmp_path / ".hermes"
+    target = tmp_path / ".claudia"
     target.mkdir()
     source.mkdir()
 
@@ -643,7 +643,7 @@ def test_workspace_agents_records_skip_when_missing(tmp_path: Path):
     """Bug fix: workspace-agents records 'skipped' when source is missing."""
     mod = load_module()
     source = tmp_path / ".openclaw"
-    target = tmp_path / ".hermes"
+    target = tmp_path / ".claudia"
     source.mkdir()
     target.mkdir()
 
@@ -672,12 +672,12 @@ def test_skill_installs_cleanly_under_skills_guard():
     # agent_config_mod   — references AGENTS.md to migrate workspace instructions
     # python_os_environ  — reads MIGRATION_JSON_OUTPUT to enable JSON output mode
     #                      (feature flag, not an env dump)
-    # hermes_config_mod  — print statements in the post-migration summary that
-    #                      tell the user to *review* ~/.hermes/config.yaml;
+    # claudia_config_mod  — print statements in the post-migration summary that
+    #                      tell the user to *review* ~/.claudia/config.yaml;
     #                      the script never writes to that file
     #
     # Accept "caution" or "safe" — just not "dangerous" from a *real* threat.
     assert result.verdict in ("safe", "caution", "dangerous"), f"Unexpected verdict: {result.verdict}"
-    KNOWN_FALSE_POSITIVES = {"agent_config_mod", "python_os_environ", "hermes_config_mod"}
+    KNOWN_FALSE_POSITIVES = {"agent_config_mod", "python_os_environ", "claudia_config_mod"}
     for f in result.findings:
         assert f.pattern_id in KNOWN_FALSE_POSITIVES, f"Unexpected finding: {f}"

@@ -14,8 +14,8 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 
-from claudia_cli.config import get_env_value, get_hermes_home, save_env_value, is_managed, managed_error
-# display_hermes_home is imported lazily at call sites to avoid ImportError
+from claudia_cli.config import get_env_value, get_claudia_home, save_env_value, is_managed, managed_error
+# display_claudia_home is imported lazily at call sites to avoid ImportError
 # when claudia_constants is cached from a pre-update version during `hermes update`.
 from claudia_cli.setup import (
     print_header, print_info, print_success, print_warning, print_error,
@@ -128,20 +128,20 @@ SERVICE_DESCRIPTION = "Hermes Agent Gateway - Messaging Platform Integration"
 
 
 def _profile_suffix() -> str:
-    """Derive a service-name suffix from the current HERMES_HOME.
+    """Derive a service-name suffix from the current CLAUDIA_HOME.
 
-    Returns ``""`` for the default ``~/.hermes``, the profile name for
-    ``~/.hermes/profiles/<name>``, or a short hash for any other custom
-    HERMES_HOME path.
+    Returns ``""`` for the default ``~/.claudia``, the profile name for
+    ``~/.claudia/profiles/<name>``, or a short hash for any other custom
+    CLAUDIA_HOME path.
     """
     import hashlib
     import re
     from pathlib import Path as _Path
-    home = get_hermes_home().resolve()
-    default = (_Path.home() / ".hermes").resolve()
+    home = get_claudia_home().resolve()
+    default = (_Path.home() / ".claudia").resolve()
     if home == default:
         return ""
-    # Detect ~/.hermes/profiles/<name> pattern → use the profile name
+    # Detect ~/.claudia/profiles/<name> pattern → use the profile name
     profiles_root = (default / "profiles").resolve()
     try:
         rel = home.relative_to(profiles_root)
@@ -150,16 +150,16 @@ def _profile_suffix() -> str:
             return parts[0]
     except ValueError:
         pass
-    # Fallback: short hash for arbitrary HERMES_HOME paths
+    # Fallback: short hash for arbitrary CLAUDIA_HOME paths
     return hashlib.sha256(str(home).encode()).hexdigest()[:8]
 
 
 def get_service_name() -> str:
-    """Derive a systemd service name scoped to this HERMES_HOME.
+    """Derive a systemd service name scoped to this CLAUDIA_HOME.
 
-    Default ``~/.hermes`` returns ``hermes-gateway`` (backward compatible).
-    Profile ``~/.hermes/profiles/coder`` returns ``hermes-gateway-coder``.
-    Any other HERMES_HOME appends a short hash for uniqueness.
+    Default ``~/.claudia`` returns ``hermes-gateway`` (backward compatible).
+    Profile ``~/.claudia/profiles/coder`` returns ``hermes-gateway-coder``.
+    Any other CLAUDIA_HOME appends a short hash for uniqueness.
     """
     suffix = _profile_suffix()
     if not suffix:
@@ -399,11 +399,11 @@ def print_systemd_linger_guidance() -> None:
 def get_launchd_plist_path() -> Path:
     """Return the launchd plist path, scoped per profile.
 
-    Default ``~/.hermes`` → ``ai.hermes.gateway.plist`` (backward compatible).
-    Profile ``~/.hermes/profiles/coder`` → ``ai.hermes.gateway-coder.plist``.
+    Default ``~/.claudia`` → ``ai.claudia.gateway.plist`` (backward compatible).
+    Profile ``~/.claudia/profiles/coder`` → ``ai.claudia.gateway-coder.plist``.
     """
     suffix = _profile_suffix()
-    name = f"ai.hermes.gateway-{suffix}" if suffix else "ai.hermes.gateway"
+    name = f"ai.claudia.gateway-{suffix}" if suffix else "ai.claudia.gateway"
     return Path.home() / "Library" / "LaunchAgents" / f"{name}.plist"
 
 def _detect_venv_dir() -> Path | None:
@@ -443,9 +443,9 @@ def get_claudia_cli_path() -> str:
     """Get the path to the hermes CLI."""
     # Check if installed via pip
     import shutil
-    hermes_bin = shutil.which("hermes")
-    if hermes_bin:
-        return hermes_bin
+    claudia_bin = shutil.which("hermes")
+    if claudia_bin:
+        return claudia_bin
     
     # Fallback to direct module execution
     return f"{get_python_path()} -m claudia_cli.main"
@@ -466,29 +466,29 @@ def _build_user_local_paths(home: Path, path_entries: list[str]) -> list[str]:
     return [p for p in candidates if p not in path_entries and Path(p).exists()]
 
 
-def _hermes_home_for_target_user(target_home_dir: str) -> str:
-    """Remap the current HERMES_HOME to the equivalent under a target user's home.
+def _claudia_home_for_target_user(target_home_dir: str) -> str:
+    """Remap the current CLAUDIA_HOME to the equivalent under a target user's home.
 
-    When installing a system service via sudo, get_hermes_home() resolves to
+    When installing a system service via sudo, get_claudia_home() resolves to
     root's home.  This translates it to the target user's equivalent path:
-      /root/.hermes                    → /home/alice/.hermes
-      /root/.hermes/profiles/coder     → /home/alice/.hermes/profiles/coder
+      /root/.claudia                    → /home/alice/.claudia
+      /root/.claudia/profiles/coder     → /home/alice/.claudia/profiles/coder
       /opt/custom-hermes               → /opt/custom-hermes  (kept as-is)
     """
-    current_hermes = get_hermes_home().resolve()
-    current_default = (Path.home() / ".hermes").resolve()
-    target_default = Path(target_home_dir) / ".hermes"
+    current_hermes = get_claudia_home().resolve()
+    current_default = (Path.home() / ".claudia").resolve()
+    target_default = Path(target_home_dir) / ".claudia"
 
-    # Default ~/.hermes → remap to target user's default
+    # Default ~/.claudia → remap to target user's default
     if current_hermes == current_default:
         return str(target_default)
 
-    # Profile or subdir of ~/.hermes → preserve the relative structure
+    # Profile or subdir of ~/.claudia → preserve the relative structure
     try:
         relative = current_hermes.relative_to(current_default)
         return str(target_default / relative)
     except ValueError:
-        # Completely custom path (not under ~/.hermes) — keep as-is
+        # Completely custom path (not under ~/.claudia) — keep as-is
         return str(current_hermes)
 
 
@@ -511,7 +511,7 @@ def generate_systemd_unit(system: bool = False, run_as_user: str | None = None) 
 
     if system:
         username, group_name, home_dir = _system_service_identity(run_as_user)
-        hermes_home = _hermes_home_for_target_user(home_dir)
+        claudia_home = _claudia_home_for_target_user(home_dir)
         path_entries.extend(_build_user_local_paths(Path(home_dir), path_entries))
         path_entries.extend(common_bin_paths)
         sane_path = ":".join(path_entries)
@@ -533,7 +533,7 @@ Environment="USER={username}"
 Environment="LOGNAME={username}"
 Environment="PATH={sane_path}"
 Environment="VIRTUAL_ENV={venv_dir}"
-Environment="HERMES_HOME={hermes_home}"
+Environment="CLAUDIA_HOME={claudia_home}"
 Restart=on-failure
 RestartSec=30
 KillMode=mixed
@@ -546,7 +546,7 @@ StandardError=journal
 WantedBy=multi-user.target
 """
 
-    hermes_home = str(get_hermes_home().resolve())
+    claudia_home = str(get_claudia_home().resolve())
     path_entries.extend(_build_user_local_paths(Path.home(), path_entries))
     path_entries.extend(common_bin_paths)
     sane_path = ":".join(path_entries)
@@ -562,7 +562,7 @@ ExecStart={python_path} -m claudia_cli.main gateway run --replace
 WorkingDirectory={working_dir}
 Environment="PATH={sane_path}"
 Environment="VIRTUAL_ENV={venv_dir}"
-Environment="HERMES_HOME={hermes_home}"
+Environment="CLAUDIA_HOME={claudia_home}"
 Restart=on-failure
 RestartSec=30
 KillMode=mixed
@@ -833,14 +833,14 @@ def systemd_status(deep: bool = False, system: bool = False):
 def get_launchd_label() -> str:
     """Return the launchd service label, scoped per profile."""
     suffix = _profile_suffix()
-    return f"ai.hermes.gateway-{suffix}" if suffix else "ai.hermes.gateway"
+    return f"ai.claudia.gateway-{suffix}" if suffix else "ai.claudia.gateway"
 
 
 def generate_launchd_plist() -> str:
     python_path = get_python_path()
     working_dir = str(PROJECT_ROOT)
-    hermes_home = str(get_hermes_home().resolve())
-    log_dir = get_hermes_home() / "logs"
+    claudia_home = str(get_claudia_home().resolve())
+    log_dir = get_claudia_home() / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     label = get_launchd_label()
     # Build a sane PATH for the launchd plist.  launchd provides only a
@@ -890,8 +890,8 @@ def generate_launchd_plist() -> str:
         <string>{sane_path}</string>
         <key>VIRTUAL_ENV</key>
         <string>{venv_dir}</string>
-        <key>HERMES_HOME</key>
-        <string>{hermes_home}</string>
+        <key>CLAUDIA_HOME</key>
+        <string>{claudia_home}</string>
     </dict>
     
     <key>RunAtLoad</key>
@@ -966,7 +966,7 @@ def launchd_install(force: bool = False):
     print()
     print("Next steps:")
     print("  hermes gateway status             # Check status")
-    from claudia_constants import display_hermes_home as _dhh
+    from claudia_constants import display_claudia_home as _dhh
     print(f"  tail -f {_dhh()}/logs/gateway.log  # View logs")
 
 def launchd_uninstall():
@@ -1014,7 +1014,7 @@ def _wait_for_gateway_exit(timeout: float = 10.0, force_after: float = 5.0):
 
     Uses the PID from the gateway.pid file — not launchd labels — so this
     works correctly when multiple gateway instances run under separate
-    HERMES_HOME directories.
+    CLAUDIA_HOME directories.
 
     Args:
         timeout: Total seconds to wait before giving up.
@@ -1084,7 +1084,7 @@ def launchd_status(deep: bool = False):
         print("  Run: hermes gateway start")
     
     if deep:
-        log_file = get_hermes_home() / "logs" / "gateway.log"
+        log_file = get_claudia_home() / "logs" / "gateway.log"
         if log_file.exists():
             print()
             print("Recent logs:")
@@ -1419,7 +1419,7 @@ def _platform_status(platform: dict) -> str:
     val = get_env_value(token_var)
     if token_var == "WHATSAPP_ENABLED":
         if val and val.lower() == "true":
-            session_file = get_hermes_home() / "whatsapp" / "session" / "creds.json"
+            session_file = get_claudia_home() / "whatsapp" / "session" / "creds.json"
             if session_file.exists():
                 return "configured + paired"
             return "enabled, not paired"

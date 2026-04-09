@@ -16,7 +16,7 @@ import logging
 import os
 from pathlib import Path
 
-from claudia_constants import get_hermes_home
+from claudia_constants import get_claudia_home
 from types import SimpleNamespace
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -588,13 +588,13 @@ def run_oauth_setup_token() -> Optional[str]:
 
 # ── Hermes-native PKCE OAuth flow ────────────────────────────────────────
 # Mirrors the flow used by Claude Code, pi-ai, and OpenCode.
-# Stores credentials in ~/.hermes/.anthropic_oauth.json (our own file).
+# Stores credentials in ~/.claudia/.anthropic_oauth.json (our own file).
 
 _OAUTH_CLIENT_ID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
 _OAUTH_TOKEN_URL = "https://console.anthropic.com/v1/oauth/token"
 _OAUTH_REDIRECT_URI = "https://console.anthropic.com/oauth/code/callback"
 _OAUTH_SCOPES = "org:create_api_key user:profile user:inference"
-_HERMES_OAUTH_FILE = get_hermes_home() / ".anthropic_oauth.json"
+_CLAUDIA_OAUTH_FILE = get_claudia_home() / ".anthropic_oauth.json"
 
 
 def _generate_pkce() -> tuple:
@@ -610,7 +610,7 @@ def _generate_pkce() -> tuple:
     return verifier, challenge
 
 
-def run_hermes_oauth_login_pure() -> Optional[Dict[str, Any]]:
+def run_claudia_oauth_login_pure() -> Optional[Dict[str, Any]]:
     """Run Hermes-native OAuth PKCE flow and return credential state."""
     import time
     import webbrowser
@@ -708,15 +708,15 @@ def run_hermes_oauth_login_pure() -> Optional[Dict[str, Any]]:
     }
 
 
-def run_hermes_oauth_login() -> Optional[str]:
+def run_claudia_oauth_login() -> Optional[str]:
     """Run Hermes-native OAuth PKCE flow for Claude Pro/Max subscription.
 
     Opens a browser to claude.ai for authorization, prompts for the code,
-    exchanges it for tokens, and stores them in ~/.hermes/.anthropic_oauth.json.
+    exchanges it for tokens, and stores them in ~/.claudia/.anthropic_oauth.json.
 
     Returns the access token on success, None on failure.
     """
-    result = run_hermes_oauth_login_pure()
+    result = run_claudia_oauth_login_pure()
     if not result:
         return None
 
@@ -724,33 +724,33 @@ def run_hermes_oauth_login() -> Optional[str]:
     refresh_token = result["refresh_token"]
     expires_at_ms = result["expires_at_ms"]
 
-    _save_hermes_oauth_credentials(access_token, refresh_token, expires_at_ms)
+    _save_claudia_oauth_credentials(access_token, refresh_token, expires_at_ms)
     _write_claude_code_credentials(access_token, refresh_token, expires_at_ms)
 
     print("Authentication successful!")
     return access_token
 
 
-def _save_hermes_oauth_credentials(access_token: str, refresh_token: str, expires_at_ms: int) -> None:
-    """Save OAuth credentials to ~/.hermes/.anthropic_oauth.json."""
+def _save_claudia_oauth_credentials(access_token: str, refresh_token: str, expires_at_ms: int) -> None:
+    """Save OAuth credentials to ~/.claudia/.anthropic_oauth.json."""
     data = {
         "accessToken": access_token,
         "refreshToken": refresh_token,
         "expiresAt": expires_at_ms,
     }
     try:
-        _HERMES_OAUTH_FILE.parent.mkdir(parents=True, exist_ok=True)
-        _HERMES_OAUTH_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
-        _HERMES_OAUTH_FILE.chmod(0o600)
+        _CLAUDIA_OAUTH_FILE.parent.mkdir(parents=True, exist_ok=True)
+        _CLAUDIA_OAUTH_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        _CLAUDIA_OAUTH_FILE.chmod(0o600)
     except (OSError, IOError) as e:
         logger.debug("Failed to save Hermes OAuth credentials: %s", e)
 
 
-def read_hermes_oauth_credentials() -> Optional[Dict[str, Any]]:
-    """Read Hermes-managed OAuth credentials from ~/.hermes/.anthropic_oauth.json."""
-    if _HERMES_OAUTH_FILE.exists():
+def read_claudia_oauth_credentials() -> Optional[Dict[str, Any]]:
+    """Read Hermes-managed OAuth credentials from ~/.claudia/.anthropic_oauth.json."""
+    if _CLAUDIA_OAUTH_FILE.exists():
         try:
-            data = json.loads(_HERMES_OAUTH_FILE.read_text(encoding="utf-8"))
+            data = json.loads(_CLAUDIA_OAUTH_FILE.read_text(encoding="utf-8"))
             if data.get("accessToken"):
                 return data
         except (json.JSONDecodeError, OSError, IOError) as e:
@@ -758,12 +758,12 @@ def read_hermes_oauth_credentials() -> Optional[Dict[str, Any]]:
     return None
 
 
-def refresh_hermes_oauth_token() -> Optional[str]:
+def refresh_claudia_oauth_token() -> Optional[str]:
     """Refresh the Hermes-managed OAuth token using the stored refresh token.
 
     Returns the new access token, or None if refresh fails.
     """
-    creds = read_hermes_oauth_credentials()
+    creds = read_claudia_oauth_credentials()
     if not creds or not creds.get("refreshToken"):
         return None
 
@@ -772,7 +772,7 @@ def refresh_hermes_oauth_token() -> Optional[str]:
             creds["refreshToken"],
             use_json=True,
         )
-        _save_hermes_oauth_credentials(
+        _save_claudia_oauth_credentials(
             refreshed["access_token"],
             refreshed["refresh_token"],
             refreshed["expires_at_ms"],

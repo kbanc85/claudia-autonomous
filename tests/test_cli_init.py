@@ -24,7 +24,7 @@ def _make_cli(env_overrides=None, config_overrides=None, **kwargs):
     }
     if config_overrides:
         _clean_config.update(config_overrides)
-    clean_env = {"LLM_MODEL": "", "HERMES_MAX_ITERATIONS": ""}
+    clean_env = {"LLM_MODEL": "", "CLAUDIA_MAX_ITERATIONS": ""}
     if env_overrides:
         clean_env.update(env_overrides)
     prompt_toolkit_stubs = {
@@ -72,7 +72,7 @@ class TestMaxTurnsResolution:
 
     def test_env_var_max_turns(self):
         """Env var is used when config file doesn't set max_turns."""
-        cli_obj = _make_cli(env_overrides={"HERMES_MAX_ITERATIONS": "42"})
+        cli_obj = _make_cli(env_overrides={"CLAUDIA_MAX_ITERATIONS": "42"})
         assert cli_obj.max_turns == 42
 
     def test_legacy_root_max_turns_is_used_when_agent_key_exists_without_value(self):
@@ -253,11 +253,11 @@ class TestRootLevelProviderOverride:
         """model.provider takes priority — root-level provider is only a fallback."""
         import yaml
 
-        hermes_home = tmp_path / ".hermes"
-        hermes_home.mkdir()
-        monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+        claudia_home = tmp_path / ".claudia"
+        claudia_home.mkdir()
+        monkeypatch.setenv("CLAUDIA_HOME", str(claudia_home))
 
-        config_path = hermes_home / "config.yaml"
+        config_path = claudia_home / "config.yaml"
         config_path.write_text(yaml.safe_dump({
             "provider": "opencode-go",  # stale root-level key
             "model": {
@@ -267,7 +267,7 @@ class TestRootLevelProviderOverride:
         }))
 
         import cli
-        monkeypatch.setattr(cli, "_hermes_home", hermes_home)
+        monkeypatch.setattr(cli, "_claudia_home", claudia_home)
         cfg = cli.load_cli_config()
 
         assert cfg["model"]["provider"] == "openrouter"
@@ -276,11 +276,11 @@ class TestRootLevelProviderOverride:
         """Even when model.provider is the default 'auto', root-level provider is ignored."""
         import yaml
 
-        hermes_home = tmp_path / ".hermes"
-        hermes_home.mkdir()
-        monkeypatch.setenv("HERMES_HOME", str(hermes_home))
+        claudia_home = tmp_path / ".claudia"
+        claudia_home.mkdir()
+        monkeypatch.setenv("CLAUDIA_HOME", str(claudia_home))
 
-        config_path = hermes_home / "config.yaml"
+        config_path = claudia_home / "config.yaml"
         config_path.write_text(yaml.safe_dump({
             "provider": "opencode-go",  # stale root key
             "model": {
@@ -290,7 +290,7 @@ class TestRootLevelProviderOverride:
         }))
 
         import cli
-        monkeypatch.setattr(cli, "_hermes_home", hermes_home)
+        monkeypatch.setattr(cli, "_claudia_home", claudia_home)
         cfg = cli.load_cli_config()
 
         # Root-level "opencode-go" must NOT leak through

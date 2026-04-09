@@ -481,15 +481,15 @@ def test_discord_auto_thread_config_bridge(monkeypatch, tmp_path):
     from pathlib import Path
 
     # Write a config.yaml the loader will find
-    hermes_dir = tmp_path / ".hermes"
-    hermes_dir.mkdir()
-    config_path = hermes_dir / "config.yaml"
+    claudia_dir = tmp_path / ".claudia"
+    claudia_dir.mkdir()
+    config_path = claudia_dir / "config.yaml"
     config_path.write_text(yaml.dump({
         "discord": {"auto_thread": True},
     }))
 
     monkeypatch.delenv("DISCORD_AUTO_THREAD", raising=False)
-    monkeypatch.setenv("HERMES_HOME", str(hermes_dir))
+    monkeypatch.setenv("CLAUDIA_HOME", str(claudia_dir))
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
     from gateway.config import load_gateway_config

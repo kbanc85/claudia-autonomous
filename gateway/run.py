@@ -76,21 +76,21 @@ _ensure_ssl_certs()
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# Resolve Hermes home directory (respects HERMES_HOME override)
-from claudia_constants import get_hermes_home
+# Resolve Hermes home directory (respects CLAUDIA_HOME override)
+from claudia_constants import get_claudia_home
 from utils import atomic_yaml_write
-_hermes_home = get_hermes_home()
+_claudia_home = get_claudia_home()
 
-# Load environment variables from ~/.hermes/.env first.
+# Load environment variables from ~/.claudia/.env first.
 # User-managed env files should override stale shell exports on restart.
 from dotenv import load_dotenv  # backward-compat for tests that monkeypatch this symbol
-from claudia_cli.env_loader import load_hermes_dotenv
-_env_path = _hermes_home / '.env'
-load_hermes_dotenv(hermes_home=_hermes_home, project_env=Path(__file__).resolve().parents[1] / '.env')
+from claudia_cli.env_loader import load_claudia_dotenv
+_env_path = _claudia_home / '.env'
+load_claudia_dotenv(claudia_home=_claudia_home, project_env=Path(__file__).resolve().parents[1] / '.env')
 
 # Bridge config.yaml values into the environment so os.getenv() picks them up.
 # config.yaml is authoritative for terminal settings — overrides .env.
-_config_path = _hermes_home / 'config.yaml'
+_config_path = _claudia_home / 'config.yaml'
 if _config_path.exists():
     try:
         import yaml as _yaml
@@ -181,26 +181,26 @@ if _config_path.exists():
         _agent_cfg = _cfg.get("agent", {})
         if _agent_cfg and isinstance(_agent_cfg, dict):
             if "max_turns" in _agent_cfg:
-                os.environ["HERMES_MAX_ITERATIONS"] = str(_agent_cfg["max_turns"])
-        # Timezone: bridge config.yaml → HERMES_TIMEZONE env var.
-        # HERMES_TIMEZONE from .env takes precedence (already in os.environ).
+                os.environ["CLAUDIA_MAX_ITERATIONS"] = str(_agent_cfg["max_turns"])
+        # Timezone: bridge config.yaml → CLAUDIA_TIMEZONE env var.
+        # CLAUDIA_TIMEZONE from .env takes precedence (already in os.environ).
         _tz_cfg = _cfg.get("timezone", "")
-        if _tz_cfg and isinstance(_tz_cfg, str) and "HERMES_TIMEZONE" not in os.environ:
-            os.environ["HERMES_TIMEZONE"] = _tz_cfg.strip()
+        if _tz_cfg and isinstance(_tz_cfg, str) and "CLAUDIA_TIMEZONE" not in os.environ:
+            os.environ["CLAUDIA_TIMEZONE"] = _tz_cfg.strip()
         # Security settings
         _security_cfg = _cfg.get("security", {})
         if isinstance(_security_cfg, dict):
             _redact = _security_cfg.get("redact_secrets")
             if _redact is not None:
-                os.environ["HERMES_REDACT_SECRETS"] = str(_redact).lower()
+                os.environ["CLAUDIA_REDACT_SECRETS"] = str(_redact).lower()
     except Exception:
         pass  # Non-fatal; gateway can still run with .env values
 
 # Gateway runs in quiet mode - suppress debug output and use cwd directly (no temp dirs)
-os.environ["HERMES_QUIET"] = "1"
+os.environ["CLAUDIA_QUIET"] = "1"
 
 # Enable interactive exec approval for dangerous commands on messaging platforms
-os.environ["HERMES_EXEC_ASK"] = "1"
+os.environ["CLAUDIA_EXEC_ASK"] = "1"
 
 # Set terminal working directory for messaging platforms.
 # If the user set an explicit path in config.yaml (not "." or "auto"),
@@ -244,7 +244,7 @@ def _expand_whatsapp_auth_aliases(identifier: str) -> set:
     if not normalized:
         return set()
 
-    session_dir = _hermes_home / "whatsapp" / "session"
+    session_dir = _claudia_home / "whatsapp" / "session"
     resolved = set()
     queue = [normalized]
 
@@ -287,7 +287,7 @@ def _resolve_runtime_agent_kwargs() -> dict:
 
     try:
         runtime = resolve_runtime_provider(
-            requested=os.getenv("HERMES_INFERENCE_PROVIDER"),
+            requested=os.getenv("CLAUDIA_INFERENCE_PROVIDER"),
         )
     except Exception as exc:
         raise RuntimeError(format_runtime_provider_error(exc)) from exc
@@ -364,7 +364,7 @@ def _check_unavailable_skill(command_name: str) -> str | None:
                 )
 
         # Check optional skills (shipped with repo but not installed)
-        from claudia_constants import get_hermes_home, get_optional_skills_dir
+        from claudia_constants import get_claudia_home, get_optional_skills_dir
         repo_root = Path(__file__).resolve().parent.parent
         optional_dir = get_optional_skills_dir(repo_root / "optional-skills")
         if optional_dir.exists():
@@ -390,15 +390,15 @@ def _platform_config_key(platform: "Platform") -> str:
 
 
 def _load_gateway_config() -> dict:
-    """Load and parse ~/.hermes/config.yaml, returning {} on any error."""
+    """Load and parse ~/.claudia/config.yaml, returning {} on any error."""
     try:
-        config_path = _hermes_home / 'config.yaml'
+        config_path = _claudia_home / 'config.yaml'
         if config_path.exists():
             import yaml
             with open(config_path, 'r', encoding='utf-8') as f:
                 return yaml.safe_load(f) or {}
     except Exception:
-        logger.debug("Could not load gateway config from %s", _hermes_home / 'config.yaml')
+        logger.debug("Could not load gateway config from %s", _claudia_home / 'config.yaml')
     return {}
 
 
@@ -418,7 +418,7 @@ def _resolve_gateway_model(config: dict | None = None) -> str:
     return ""
 
 
-def _resolve_hermes_bin() -> Optional[list[str]]:
+def _resolve_claudia_bin() -> Optional[list[str]]:
     """Resolve the Hermes update command as argv parts.
 
     Tries in order:
@@ -430,9 +430,9 @@ def _resolve_hermes_bin() -> Optional[list[str]]:
     """
     import shutil
 
-    hermes_bin = shutil.which("hermes")
-    if hermes_bin:
-        return [hermes_bin]
+    claudia_bin = shutil.which("hermes")
+    if claudia_bin:
+        return [claudia_bin]
 
     try:
         import importlib.util
@@ -563,7 +563,7 @@ class GatewayRunner:
 
     # -- Voice mode persistence ------------------------------------------
 
-    _VOICE_MODE_PATH = _hermes_home / "gateway_voice_mode.json"
+    _VOICE_MODE_PATH = _claudia_home / "gateway_voice_mode.json"
 
     def _load_voice_modes(self) -> Dict[str, str]:
         try:
@@ -841,16 +841,16 @@ class GatewayRunner:
     def _load_prefill_messages() -> List[Dict[str, Any]]:
         """Load ephemeral prefill messages from config or env var.
         
-        Checks HERMES_PREFILL_MESSAGES_FILE env var first, then falls back to
-        the prefill_messages_file key in ~/.hermes/config.yaml.
-        Relative paths are resolved from ~/.hermes/.
+        Checks CLAUDIA_PREFILL_MESSAGES_FILE env var first, then falls back to
+        the prefill_messages_file key in ~/.claudia/config.yaml.
+        Relative paths are resolved from ~/.claudia/.
         """
         import json as _json
-        file_path = os.getenv("HERMES_PREFILL_MESSAGES_FILE", "")
+        file_path = os.getenv("CLAUDIA_PREFILL_MESSAGES_FILE", "")
         if not file_path:
             try:
                 import yaml as _y
-                cfg_path = _hermes_home / "config.yaml"
+                cfg_path = _claudia_home / "config.yaml"
                 if cfg_path.exists():
                     with open(cfg_path, encoding="utf-8") as _f:
                         cfg = _y.safe_load(_f) or {}
@@ -861,7 +861,7 @@ class GatewayRunner:
             return []
         path = Path(file_path).expanduser()
         if not path.is_absolute():
-            path = _hermes_home / path
+            path = _claudia_home / path
         if not path.exists():
             logger.warning("Prefill messages file not found: %s", path)
             return []
@@ -880,15 +880,15 @@ class GatewayRunner:
     def _load_ephemeral_system_prompt() -> str:
         """Load ephemeral system prompt from config or env var.
         
-        Checks HERMES_EPHEMERAL_SYSTEM_PROMPT env var first, then falls back to
-        agent.system_prompt in ~/.hermes/config.yaml.
+        Checks CLAUDIA_EPHEMERAL_SYSTEM_PROMPT env var first, then falls back to
+        agent.system_prompt in ~/.claudia/config.yaml.
         """
-        prompt = os.getenv("HERMES_EPHEMERAL_SYSTEM_PROMPT", "")
+        prompt = os.getenv("CLAUDIA_EPHEMERAL_SYSTEM_PROMPT", "")
         if prompt:
             return prompt
         try:
             import yaml as _y
-            cfg_path = _hermes_home / "config.yaml"
+            cfg_path = _claudia_home / "config.yaml"
             if cfg_path.exists():
                 with open(cfg_path, encoding="utf-8") as _f:
                     cfg = _y.safe_load(_f) or {}
@@ -902,7 +902,7 @@ class GatewayRunner:
         """Load reasoning effort from config with env fallback.
 
         Checks agent.reasoning_effort in config.yaml first, then
-        HERMES_REASONING_EFFORT as a fallback. Valid: "xhigh", "high",
+        CLAUDIA_REASONING_EFFORT as a fallback. Valid: "xhigh", "high",
         "medium", "low", "minimal", "none". Returns None to use default
         (medium).
         """
@@ -910,7 +910,7 @@ class GatewayRunner:
         effort = ""
         try:
             import yaml as _y
-            cfg_path = _hermes_home / "config.yaml"
+            cfg_path = _claudia_home / "config.yaml"
             if cfg_path.exists():
                 with open(cfg_path, encoding="utf-8") as _f:
                     cfg = _y.safe_load(_f) or {}
@@ -918,7 +918,7 @@ class GatewayRunner:
         except Exception:
             pass
         if not effort:
-            effort = os.getenv("HERMES_REASONING_EFFORT", "")
+            effort = os.getenv("CLAUDIA_REASONING_EFFORT", "")
         result = parse_reasoning_effort(effort)
         if effort and effort.strip() and result is None:
             logger.warning("Unknown reasoning_effort '%s', using default (medium)", effort)
@@ -929,7 +929,7 @@ class GatewayRunner:
         """Load show_reasoning toggle from config.yaml display section."""
         try:
             import yaml as _y
-            cfg_path = _hermes_home / "config.yaml"
+            cfg_path = _claudia_home / "config.yaml"
             if cfg_path.exists():
                 with open(cfg_path, encoding="utf-8") as _f:
                     cfg = _y.safe_load(_f) or {}
@@ -948,11 +948,11 @@ class GatewayRunner:
           - ``error``  — only the final message when exit code is non-zero
           - ``off``    — no watcher messages at all
         """
-        mode = os.getenv("HERMES_BACKGROUND_NOTIFICATIONS", "")
+        mode = os.getenv("CLAUDIA_BACKGROUND_NOTIFICATIONS", "")
         if not mode:
             try:
                 import yaml as _y
-                cfg_path = _hermes_home / "config.yaml"
+                cfg_path = _claudia_home / "config.yaml"
                 if cfg_path.exists():
                     with open(cfg_path, encoding="utf-8") as _f:
                         cfg = _y.safe_load(_f) or {}
@@ -978,7 +978,7 @@ class GatewayRunner:
         """Load OpenRouter provider routing preferences from config.yaml."""
         try:
             import yaml as _y
-            cfg_path = _hermes_home / "config.yaml"
+            cfg_path = _claudia_home / "config.yaml"
             if cfg_path.exists():
                 with open(cfg_path, encoding="utf-8") as _f:
                     cfg = _y.safe_load(_f) or {}
@@ -997,7 +997,7 @@ class GatewayRunner:
         """
         try:
             import yaml as _y
-            cfg_path = _hermes_home / "config.yaml"
+            cfg_path = _claudia_home / "config.yaml"
             if cfg_path.exists():
                 with open(cfg_path, encoding="utf-8") as _f:
                     cfg = _y.safe_load(_f) or {}
@@ -1013,7 +1013,7 @@ class GatewayRunner:
         """Load optional smart cheap-vs-strong model routing config."""
         try:
             import yaml as _y
-            cfg_path = _hermes_home / "config.yaml"
+            cfg_path = _claudia_home / "config.yaml"
             if cfg_path.exists():
                 with open(cfg_path, encoding="utf-8") as _f:
                     cfg = _y.safe_load(_f) or {}
@@ -1069,7 +1069,7 @@ class GatewayRunner:
         if not _any_allowlist and not _allow_all:
             logger.warning(
                 "No user allowlists configured. All unauthorized users will be denied. "
-                "Set GATEWAY_ALLOW_ALL_USERS=true in ~/.hermes/.env to allow open access, "
+                "Set GATEWAY_ALLOW_ALL_USERS=true in ~/.claudia/.env to allow open access, "
                 "or configure platform allowlists (e.g., TELEGRAM_ALLOWED_USERS=your_id)."
             )
         
@@ -1211,8 +1211,8 @@ class GatewayRunner:
         if not notified and any(
             path.exists()
             for path in (
-                _hermes_home / ".update_pending.json",
-                _hermes_home / ".update_pending.claimed.json",
+                _claudia_home / ".update_pending.json",
+                _claudia_home / ".update_pending.claimed.json",
             )
         ):
             self._schedule_update_notification_watch()
@@ -1744,7 +1744,7 @@ class GatewayRunner:
         # Staleness eviction: if an entry has been in _running_agents for
         # longer than the agent timeout, it's a leaked lock from a hung or
         # crashed handler.  Evict it so the session isn't permanently stuck.
-        _STALE_TTL = float(os.getenv("HERMES_AGENT_TIMEOUT", 600)) + 60  # timeout + 1 min grace
+        _STALE_TTL = float(os.getenv("CLAUDIA_AGENT_TIMEOUT", 600)) + 60  # timeout + 1 min grace
         _stale_ts = self._running_agents_ts.get(_quick_key, 0)
         if _quick_key in self._running_agents and _stale_ts and (time.time() - _stale_ts) > _STALE_TTL:
             logger.warning(
@@ -2283,7 +2283,7 @@ class GatewayRunner:
             _hyg_base_url = None
             _hyg_api_key = None
             try:
-                _hyg_cfg_path = _hermes_home / "config.yaml"
+                _hyg_cfg_path = _claudia_home / "config.yaml"
                 if _hyg_cfg_path.exists():
                     import yaml as _hyg_yaml
                     with open(_hyg_cfg_path, encoding="utf-8") as _hyg_f:
@@ -2949,7 +2949,7 @@ class GatewayRunner:
         api_key = None
 
         try:
-            cfg_path = _hermes_home / "config.yaml"
+            cfg_path = _claudia_home / "config.yaml"
             if cfg_path.exists():
                 import yaml as _info_yaml
                 with open(cfg_path, encoding="utf-8") as f:
@@ -3069,15 +3069,15 @@ class GatewayRunner:
     
     async def _handle_profile_command(self, event: MessageEvent) -> str:
         """Handle /profile — show active profile name and home directory."""
-        from claudia_constants import get_hermes_home, display_hermes_home
+        from claudia_constants import get_claudia_home, display_claudia_home
         from pathlib import Path
 
-        home = get_hermes_home()
-        display = display_hermes_home()
+        home = get_claudia_home()
+        display = display_claudia_home()
 
-        # Detect profile name from HERMES_HOME path
-        # Profile paths look like: ~/.hermes/profiles/<name>
-        profiles_parent = Path.home() / ".hermes" / "profiles"
+        # Detect profile name from CLAUDIA_HOME path
+        # Profile paths look like: ~/.claudia/profiles/<name>
+        profiles_parent = Path.home() / ".claudia" / "profiles"
         try:
             rel = home.relative_to(profiles_parent)
             profile_name = str(rel).split("/")[0]
@@ -3238,7 +3238,7 @@ class GatewayRunner:
 
         # Resolve current provider from config
         current_provider = "openrouter"
-        config_path = _hermes_home / 'config.yaml'
+        config_path = _claudia_home / 'config.yaml'
         try:
             if config_path.exists():
                 with open(config_path, encoding="utf-8") as f:
@@ -3288,7 +3288,7 @@ class GatewayRunner:
         import yaml
 
         args = event.get_command_args().strip().lower()
-        config_path = _hermes_home / 'config.yaml'
+        config_path = _claudia_home / 'config.yaml'
 
         try:
             if config_path.exists():
@@ -3303,7 +3303,7 @@ class GatewayRunner:
             personalities = {}
 
         if not personalities:
-            return "No personalities configured in `~/.hermes/config.yaml`"
+            return "No personalities configured in `~/.claudia/config.yaml`"
 
         if not args:
             lines = ["🎭 **Available Personalities**\n"]
@@ -3429,7 +3429,7 @@ class GatewayRunner:
         # Save to config.yaml
         try:
             import yaml
-            config_path = _hermes_home / 'config.yaml'
+            config_path = _claudia_home / 'config.yaml'
             user_config = {}
             if config_path.exists():
                 with open(config_path, encoding="utf-8") as f:
@@ -3737,7 +3737,7 @@ class GatewayRunner:
             # Use .mp3 extension so edge-tts conversion to opus works correctly.
             # The TTS tool may convert to .ogg — use file_path from result.
             audio_path = os.path.join(
-                tempfile.gettempdir(), "hermes_voice",
+                tempfile.gettempdir(), "claudia_voice",
                 f"tts_reply_{_uuid.uuid4().hex[:12]}.mp3",
             )
             os.makedirs(os.path.dirname(audio_path), exist_ok=True)
@@ -3864,7 +3864,7 @@ class GatewayRunner:
         cp_cfg = {}
         try:
             import yaml as _y
-            _cfg_path = _hermes_home / "config.yaml"
+            _cfg_path = _claudia_home / "config.yaml"
             if _cfg_path.exists():
                 with open(_cfg_path, encoding="utf-8") as _f:
                     _data = _y.safe_load(_f) or {}
@@ -3975,7 +3975,7 @@ class GatewayRunner:
             enabled_toolsets = sorted(_get_platform_tools(user_config, platform_key))
 
             pr = self._provider_routing
-            max_iterations = int(os.getenv("HERMES_MAX_ITERATIONS", "90"))
+            max_iterations = int(os.getenv("CLAUDIA_MAX_ITERATIONS", "90"))
             reasoning_config = self._load_reasoning_config()
             self._reasoning_config = reasoning_config
             turn_route = self._resolve_turn_agent_config(prompt, model, runtime_kwargs)
@@ -4245,7 +4245,7 @@ class GatewayRunner:
         import yaml
 
         args = event.get_command_args().strip().lower()
-        config_path = _hermes_home / "config.yaml"
+        config_path = _claudia_home / "config.yaml"
         self._reasoning_config = self._load_reasoning_config()
         self._show_reasoning = self._load_show_reasoning()
 
@@ -4318,12 +4318,12 @@ class GatewayRunner:
 
     async def _handle_yolo_command(self, event: MessageEvent) -> str:
         """Handle /yolo — toggle dangerous command approval bypass."""
-        current = bool(os.environ.get("HERMES_YOLO_MODE"))
+        current = bool(os.environ.get("CLAUDIA_YOLO_MODE"))
         if current:
-            os.environ.pop("HERMES_YOLO_MODE", None)
+            os.environ.pop("CLAUDIA_YOLO_MODE", None)
             return "⚠️ YOLO mode **OFF** — dangerous commands will require approval."
         else:
-            os.environ["HERMES_YOLO_MODE"] = "1"
+            os.environ["CLAUDIA_YOLO_MODE"] = "1"
             return "⚡ YOLO mode **ON** — all commands auto-approved. Use with caution."
 
     async def _handle_verbose_command(self, event: MessageEvent) -> str:
@@ -4335,7 +4335,7 @@ class GatewayRunner:
         """
         import yaml
 
-        config_path = _hermes_home / "config.yaml"
+        config_path = _claudia_home / "config.yaml"
 
         # --- check config gate ------------------------------------------------
         try:
@@ -4853,8 +4853,8 @@ class GatewayRunner:
         if not git_dir.exists():
             return "✗ Not a git repository — cannot update."
 
-        hermes_cmd = _resolve_hermes_bin()
-        if not hermes_cmd:
+        claudia_cmd = _resolve_claudia_bin()
+        if not claudia_cmd:
             return (
                 "✗ Could not locate the `hermes` command. "
                 "Hermes is running, but the update command could not find the "
@@ -4862,9 +4862,9 @@ class GatewayRunner:
                 "Try running `hermes update` manually in your terminal."
             )
 
-        pending_path = _hermes_home / ".update_pending.json"
-        output_path = _hermes_home / ".update_output.txt"
-        exit_code_path = _hermes_home / ".update_exit_code"
+        pending_path = _claudia_home / ".update_pending.json"
+        output_path = _claudia_home / ".update_output.txt"
+        exit_code_path = _claudia_home / ".update_exit_code"
         pending = {
             "platform": event.source.platform.value,
             "chat_id": event.source.chat_id,
@@ -4877,9 +4877,9 @@ class GatewayRunner:
         # Spawn `hermes update` detached so it survives gateway restart.
         # Use setsid for portable session detach (works under system services
         # where systemd-run --user fails due to missing D-Bus session).
-        hermes_cmd_str = " ".join(shlex.quote(part) for part in hermes_cmd)
+        claudia_cmd_str = " ".join(shlex.quote(part) for part in claudia_cmd)
         update_cmd = (
-            f"{hermes_cmd_str} update > {shlex.quote(str(output_path))} 2>&1; "
+            f"{claudia_cmd_str} update > {shlex.quote(str(output_path))} 2>&1; "
             f"status=$?; printf '%s' \"$status\" > {shlex.quote(str(exit_code_path))}"
         )
         try:
@@ -4927,9 +4927,9 @@ class GatewayRunner:
         timeout: float = 1800.0,
     ) -> None:
         """Wait for ``hermes update`` to finish, then send its notification."""
-        pending_path = _hermes_home / ".update_pending.json"
-        claimed_path = _hermes_home / ".update_pending.claimed.json"
-        exit_code_path = _hermes_home / ".update_exit_code"
+        pending_path = _claudia_home / ".update_pending.json"
+        claimed_path = _claudia_home / ".update_pending.claimed.json"
+        exit_code_path = _claudia_home / ".update_exit_code"
         loop = asyncio.get_running_loop()
         deadline = loop.time() + timeout
 
@@ -4953,10 +4953,10 @@ class GatewayRunner:
         import json
         import re as _re
 
-        pending_path = _hermes_home / ".update_pending.json"
-        claimed_path = _hermes_home / ".update_pending.claimed.json"
-        output_path = _hermes_home / ".update_output.txt"
-        exit_code_path = _hermes_home / ".update_exit_code"
+        pending_path = _claudia_home / ".update_pending.json"
+        claimed_path = _claudia_home / ".update_pending.claimed.json"
+        output_path = _claudia_home / ".update_output.txt"
+        exit_code_path = _claudia_home / ".update_exit_code"
 
         if not pending_path.exists() and not claimed_path.exists():
             return False
@@ -5031,16 +5031,16 @@ class GatewayRunner:
 
     def _set_session_env(self, context: SessionContext) -> None:
         """Set environment variables for the current session."""
-        os.environ["HERMES_SESSION_PLATFORM"] = context.source.platform.value
-        os.environ["HERMES_SESSION_CHAT_ID"] = context.source.chat_id
+        os.environ["CLAUDIA_SESSION_PLATFORM"] = context.source.platform.value
+        os.environ["CLAUDIA_SESSION_CHAT_ID"] = context.source.chat_id
         if context.source.chat_name:
-            os.environ["HERMES_SESSION_CHAT_NAME"] = context.source.chat_name
+            os.environ["CLAUDIA_SESSION_CHAT_NAME"] = context.source.chat_name
         if context.source.thread_id:
-            os.environ["HERMES_SESSION_THREAD_ID"] = str(context.source.thread_id)
+            os.environ["CLAUDIA_SESSION_THREAD_ID"] = str(context.source.thread_id)
     
     def _clear_session_env(self) -> None:
         """Clear session environment variables."""
-        for var in ["HERMES_SESSION_PLATFORM", "HERMES_SESSION_CHAT_ID", "HERMES_SESSION_CHAT_NAME", "HERMES_SESSION_THREAD_ID"]:
+        for var in ["CLAUDIA_SESSION_PLATFORM", "CLAUDIA_SESSION_CHAT_ID", "CLAUDIA_SESSION_CHAT_NAME", "CLAUDIA_SESSION_THREAD_ID"]:
             if var in os.environ:
                 del os.environ[var]
     
@@ -5388,7 +5388,7 @@ class GatewayRunner:
             _raw_tp = "off"
         progress_mode = (
             _raw_tp
-            or os.getenv("HERMES_TOOL_PROGRESS_MODE")
+            or os.getenv("CLAUDIA_TOOL_PROGRESS_MODE")
             or "all"
         )
         # Disable tool progress for webhooks - they don't support message editing,
@@ -5631,10 +5631,10 @@ class GatewayRunner:
         def run_sync():
             # Pass session_key to process registry via env var so background
             # processes can be mapped back to this gateway session
-            os.environ["HERMES_SESSION_KEY"] = session_key or ""
+            os.environ["CLAUDIA_SESSION_KEY"] = session_key or ""
 
             # Read from env var or use default (same as CLI)
-            max_iterations = int(os.getenv("HERMES_MAX_ITERATIONS", "90"))
+            max_iterations = int(os.getenv("CLAUDIA_MAX_ITERATIONS", "90"))
             
             # Map platform enum to the platform hint key the agent understands.
             # Platform.LOCAL ("local") maps to "cli"; others pass through as-is.
@@ -6090,7 +6090,7 @@ class GatewayRunner:
             # Run in thread pool to not block.  Cap total execution time
             # so a hung API call or runaway tool doesn't permanently lock
             # the session.  Default 10 minutes; override with env var.
-            _agent_timeout = float(os.getenv("HERMES_AGENT_TIMEOUT", 600))
+            _agent_timeout = float(os.getenv("CLAUDIA_AGENT_TIMEOUT", 600))
             loop = asyncio.get_event_loop()
             try:
                 response = await asyncio.wait_for(
@@ -6313,9 +6313,9 @@ async def start_gateway(config: Optional[GatewayConfig] = None, replace: bool = 
                  when the previous process hasn't fully exited yet.
     """
     # ── Duplicate-instance guard ──────────────────────────────────────
-    # Prevent two gateways from running under the same HERMES_HOME.
-    # The PID file is scoped to HERMES_HOME, so future multi-profile
-    # setups (each profile using a distinct HERMES_HOME) will naturally
+    # Prevent two gateways from running under the same CLAUDIA_HOME.
+    # The PID file is scoped to CLAUDIA_HOME, so future multi-profile
+    # setups (each profile using a distinct CLAUDIA_HOME) will naturally
     # allow concurrent instances without tripping this guard.
     import time as _time
     from gateway.status import get_running_pid, remove_pid_file
@@ -6366,11 +6366,11 @@ async def start_gateway(config: Optional[GatewayConfig] = None, replace: bool = 
             except Exception:
                 pass
         else:
-            hermes_home = str(get_hermes_home())
+            claudia_home = str(get_claudia_home())
             logger.error(
-                "Another gateway instance is already running (PID %d, HERMES_HOME=%s). "
+                "Another gateway instance is already running (PID %d, CLAUDIA_HOME=%s). "
                 "Use 'hermes gateway restart' to replace it, or 'hermes gateway stop' first.",
-                existing_pid, hermes_home,
+                existing_pid, claudia_home,
             )
             print(
                 f"\n❌ Gateway already running (PID {existing_pid}).\n"
@@ -6388,7 +6388,7 @@ async def start_gateway(config: Optional[GatewayConfig] = None, replace: bool = 
         pass
 
     # Configure rotating file log so gateway output is persisted for debugging
-    log_dir = _hermes_home / 'logs'
+    log_dir = _claudia_home / 'logs'
     log_dir.mkdir(parents=True, exist_ok=True)
     file_handler = RotatingFileHandler(
         log_dir / 'gateway.log',

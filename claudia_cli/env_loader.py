@@ -15,22 +15,22 @@ def _load_dotenv_with_fallback(path: Path, *, override: bool) -> None:
         load_dotenv(dotenv_path=path, override=override, encoding="latin-1")
 
 
-def load_hermes_dotenv(
+def load_claudia_dotenv(
     *,
-    hermes_home: str | os.PathLike | None = None,
+    claudia_home: str | os.PathLike | None = None,
     project_env: str | os.PathLike | None = None,
 ) -> list[Path]:
     """Load Hermes environment files with user config taking precedence.
 
     Behavior:
-    - `~/.hermes/.env` overrides stale shell-exported values when present.
+    - `~/.claudia/.env` overrides stale shell-exported values when present.
     - project `.env` acts as a dev fallback and only fills missing values when
       the user env exists.
     - if no user env exists, the project `.env` also overrides stale shell vars.
     """
     loaded: list[Path] = []
 
-    home_path = Path(hermes_home or os.getenv("HERMES_HOME", Path.home() / ".hermes"))
+    home_path = Path(claudia_home or os.getenv("CLAUDIA_HOME", Path.home() / ".claudia"))
     user_env = home_path / ".env"
     project_env_path = Path(project_env) if project_env else None
 

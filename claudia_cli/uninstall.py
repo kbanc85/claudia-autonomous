@@ -3,7 +3,7 @@ Hermes Agent Uninstaller.
 
 Provides options for:
 - Full uninstall: Remove everything including configs and data
-- Keep data: Remove code but keep ~/.hermes/ (configs, sessions, logs)
+- Keep data: Remove code but keep ~/.claudia/ (configs, sessions, logs)
 """
 
 import os
@@ -11,7 +11,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from claudia_constants import get_hermes_home
+from claudia_constants import get_claudia_home
 
 from claudia_cli.colors import Colors, color
 
@@ -176,11 +176,11 @@ def run_uninstall(args):
     Run the uninstall process.
     
     Options:
-    - Full uninstall: removes code + ~/.hermes/ (configs, data, logs)
-    - Keep data: removes code but keeps ~/.hermes/ for future reinstall
+    - Full uninstall: removes code + ~/.claudia/ (configs, data, logs)
+    - Keep data: removes code but keeps ~/.claudia/ for future reinstall
     """
     project_root = get_project_root()
-    hermes_home = get_hermes_home()
+    claudia_home = get_claudia_home()
     
     print()
     print(color("┌─────────────────────────────────────────────────────────┐", Colors.MAGENTA, Colors.BOLD))
@@ -191,9 +191,9 @@ def run_uninstall(args):
     # Show what will be affected
     print(color("Current Installation:", Colors.CYAN, Colors.BOLD))
     print(f"  Code:    {project_root}")
-    print(f"  Config:  {hermes_home / 'config.yaml'}")
-    print(f"  Secrets: {hermes_home / '.env'}")
-    print(f"  Data:    {hermes_home / 'cron/'}, {hermes_home / 'sessions/'}, {hermes_home / 'logs/'}")
+    print(f"  Config:  {claudia_home / 'config.yaml'}")
+    print(f"  Secrets: {claudia_home / '.env'}")
+    print(f"  Data:    {claudia_home / 'cron/'}, {claudia_home / 'sessions/'}, {claudia_home / 'logs/'}")
     print()
     
     # Ask for confirmation
@@ -279,8 +279,8 @@ def run_uninstall(args):
     # We need to be careful here
     try:
         if project_root.exists():
-            # If the install is inside ~/.hermes/, just remove the hermes-agent subdir
-            if hermes_home in project_root.parents or project_root.parent == hermes_home:
+            # If the install is inside ~/.claudia/, just remove the hermes-agent subdir
+            if claudia_home in project_root.parents or project_root.parent == claudia_home:
                 shutil.rmtree(project_root)
                 log_success(f"Removed {project_root}")
             else:
@@ -291,18 +291,18 @@ def run_uninstall(args):
         log_warn(f"Could not fully remove {project_root}: {e}")
         log_info("You may need to manually remove it")
     
-    # 5. Optionally remove ~/.hermes/ data directory
+    # 5. Optionally remove ~/.claudia/ data directory
     if full_uninstall:
         log_info("Removing configuration and data...")
         try:
-            if hermes_home.exists():
-                shutil.rmtree(hermes_home)
-                log_success(f"Removed {hermes_home}")
+            if claudia_home.exists():
+                shutil.rmtree(claudia_home)
+                log_success(f"Removed {claudia_home}")
         except Exception as e:
-            log_warn(f"Could not fully remove {hermes_home}: {e}")
+            log_warn(f"Could not fully remove {claudia_home}: {e}")
             log_info("You may need to manually remove it")
     else:
-        log_info(f"Keeping configuration and data in {hermes_home}")
+        log_info(f"Keeping configuration and data in {claudia_home}")
     
     # Done
     print()
@@ -313,7 +313,7 @@ def run_uninstall(args):
     
     if not full_uninstall:
         print(color("Your configuration and data have been preserved:", Colors.CYAN))
-        print(f"  {hermes_home}/")
+        print(f"  {claudia_home}/")
         print()
         print("To reinstall later with your existing settings:")
         print(color("  curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash", Colors.DIM))

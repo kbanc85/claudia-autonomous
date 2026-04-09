@@ -8,7 +8,7 @@ Modular wizard with independently-runnable sections:
   4. Messaging Platforms — connect Telegram, Discord, etc.
   5. Tools — configure TTS, web search, image generation, etc.
 
-Config files are stored in ~/.hermes/ for easy access.
+Config files are stored in ~/.claudia/ for easy access.
 """
 
 import importlib.util
@@ -331,16 +331,16 @@ def _sync_model_from_disk(config: Dict[str, Any]) -> None:
 
 # Import config helpers
 from claudia_cli.config import (
-    get_hermes_home,
+    get_claudia_home,
     get_config_path,
     get_env_path,
     load_config,
     save_config,
     save_env_value,
     get_env_value,
-    ensure_hermes_home,
+    ensure_claudia_home,
 )
-# display_hermes_home imported lazily at call sites (stale-module safety during hermes update)
+# display_claudia_home imported lazily at call sites (stale-module safety during hermes update)
 
 from claudia_cli.colors import Colors, color
 
@@ -610,7 +610,7 @@ def _prompt_api_key(var: dict):
         print_warning("  Skipped (configure later with 'hermes setup')")
 
 
-def _print_setup_summary(config: dict, hermes_home):
+def _print_setup_summary(config: dict, claudia_home):
     """Print the setup completion summary."""
     # Tool availability summary
     print()
@@ -767,7 +767,7 @@ def _print_setup_summary(config: dict, hermes_home):
         print_warning(
             "Some tools are disabled. Run 'hermes setup tools' to configure them,"
         )
-        from claudia_constants import display_hermes_home as _dhh
+        from claudia_constants import display_claudia_home as _dhh
         print_warning(f"or edit {_dhh()}/.env directly to add the missing API keys.")
         print()
 
@@ -791,13 +791,13 @@ def _print_setup_summary(config: dict, hermes_home):
     print()
 
     # Show file locations prominently
-    from claudia_constants import display_hermes_home as _dhh
+    from claudia_constants import display_claudia_home as _dhh
     print(color(f"📁 All your files are in {_dhh()}/:", Colors.CYAN, Colors.BOLD))
     print()
     print(f"   {color('Settings:', Colors.YELLOW)}  {get_config_path()}")
     print(f"   {color('API Keys:', Colors.YELLOW)}  {get_env_path()}")
     print(
-        f"   {color('Data:', Colors.YELLOW)}      {hermes_home}/cron/, sessions/, logs/"
+        f"   {color('Data:', Colors.YELLOW)}      {claudia_home}/cron/, sessions/, logs/"
     )
     print()
 
@@ -1217,7 +1217,7 @@ def _setup_tts_provider(config: dict):
         print_info("OpenAI TTS will use the managed Nous gateway and bill to your subscription.")
         if get_env_value("VOICE_TOOLS_OPENAI_KEY") or get_env_value("OPENAI_API_KEY"):
             print_warning(
-                "Direct OpenAI credentials are still configured and may take precedence until removed from ~/.hermes/.env."
+                "Direct OpenAI credentials are still configured and may take precedence until removed from ~/.claudia/.env."
             )
 
     if selected == "neutts":
@@ -1636,7 +1636,7 @@ def setup_agent_settings(config: dict):
     # ── Max Iterations ──
     print_header("Agent Settings")
 
-    current_max = get_env_value("HERMES_MAX_ITERATIONS") or str(
+    current_max = get_env_value("CLAUDIA_MAX_ITERATIONS") or str(
         config.get("agent", {}).get("max_turns", 90)
     )
     print_info("Maximum tool-calling iterations per conversation.")
@@ -1647,7 +1647,7 @@ def setup_agent_settings(config: dict):
     try:
         max_iter = int(max_iter_str)
         if max_iter > 0:
-            save_env_value("HERMES_MAX_ITERATIONS", str(max_iter))
+            save_env_value("CLAUDIA_MAX_ITERATIONS", str(max_iter))
             config.setdefault("agent", {})["max_turns"] = max_iter
             config.pop("max_turns", None)
             print_success(f"Max iterations set to {max_iter}")
@@ -2270,7 +2270,7 @@ def setup_gateway(config: dict):
         save_env_value("WEBHOOK_ENABLED", "true")
         print()
         print_success("Webhooks enabled! Next steps:")
-        from claudia_constants import display_hermes_home as _dhh
+        from claudia_constants import display_claudia_home as _dhh
         print_info(f"   1. Define webhook routes in {_dhh()}/config.yaml")
         print_info("   2. Point your service (GitHub, GitLab, etc.) at:")
         print_info("      http://your-server:8644/webhooks/<route-name>")
@@ -2530,7 +2530,7 @@ _OPENCLAW_SCRIPT = (
 )
 
 
-def _offer_openclaw_migration(hermes_home: Path) -> bool:
+def _offer_openclaw_migration(claudia_home: Path) -> bool:
     """Detect ~/.openclaw and offer to migrate during first-time setup.
 
     Returns True if migration ran successfully, False otherwise.
@@ -2583,7 +2583,7 @@ def _offer_openclaw_migration(hermes_home: Path) -> bool:
         selected = mod.resolve_selected_options(None, None, preset="full")
         migrator = mod.Migrator(
             source_root=openclaw_dir.resolve(),
-            target_root=hermes_home.resolve(),
+            target_root=claudia_home.resolve(),
             execute=True,
             workspace_target=None,
             overwrite=True,
@@ -2663,10 +2663,10 @@ def run_setup_wizard(args):
     if is_managed():
         managed_error("run setup wizard")
         return
-    ensure_hermes_home()
+    ensure_claudia_home()
 
     config = load_config()
-    hermes_home = get_hermes_home()
+    claudia_home = get_claudia_home()
 
     # Detect non-interactive environments (headless SSH, Docker, CI/CD)
     non_interactive = getattr(args, 'non_interactive', False)
@@ -2781,7 +2781,7 @@ def run_setup_wizard(args):
 
         if choice == 0:
             # Quick setup
-            _run_quick_setup(config, hermes_home)
+            _run_quick_setup(config, claudia_home)
             return
         elif choice == 1:
             # Full setup — fall through to run all sections
@@ -2803,7 +2803,7 @@ def run_setup_wizard(args):
                 _, label, func = section
                 func(config)
                 save_config(config)
-                _print_setup_summary(config, hermes_home)
+                _print_setup_summary(config, claudia_home)
             return
     else:
         # ── First-Time Setup ──
@@ -2823,7 +2823,7 @@ def run_setup_wizard(args):
             return
 
         # Offer OpenClaw migration before configuration begins
-        migration_ran = _offer_openclaw_migration(hermes_home)
+        migration_ran = _offer_openclaw_migration(claudia_home)
         if migration_ran:
             # Reload config in case migration wrote to it
             config = load_config()
@@ -2832,7 +2832,7 @@ def run_setup_wizard(args):
     print_header("Configuration Location")
     print_info(f"Config file:  {get_config_path()}")
     print_info(f"Secrets file: {get_env_path()}")
-    print_info(f"Data folder:  {hermes_home}")
+    print_info(f"Data folder:  {claudia_home}")
     print_info(f"Install dir:  {PROJECT_ROOT}")
     print()
     print_info("You can edit these files directly or use 'hermes config edit'")
@@ -2865,10 +2865,10 @@ def run_setup_wizard(args):
 
     # Save and show summary
     save_config(config)
-    _print_setup_summary(config, hermes_home)
+    _print_setup_summary(config, claudia_home)
 
 
-def _run_quick_setup(config: dict, hermes_home):
+def _run_quick_setup(config: dict, claudia_home):
     """Quick setup — only configure items that are missing."""
     from claudia_cli.config import (
         get_missing_env_vars,
@@ -3031,4 +3031,4 @@ def _run_quick_setup(config: dict, hermes_home):
         save_config(config)
 
     # Jump to summary
-    _print_setup_summary(config, hermes_home)
+    _print_setup_summary(config, claudia_home)

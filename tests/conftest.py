@@ -17,16 +17,16 @@ if str(PROJECT_ROOT) not in sys.path:
 
 
 @pytest.fixture(autouse=True)
-def _isolate_hermes_home(tmp_path, monkeypatch):
-    """Redirect HERMES_HOME to a temp dir so tests never write to ~/.hermes/."""
-    fake_home = tmp_path / "hermes_test"
+def _isolate_claudia_home(tmp_path, monkeypatch):
+    """Redirect CLAUDIA_HOME to a temp dir so tests never write to ~/.claudia/."""
+    fake_home = tmp_path / "claudia_test"
     fake_home.mkdir()
     (fake_home / "sessions").mkdir()
     (fake_home / "cron").mkdir()
     (fake_home / "memories").mkdir()
     (fake_home / "skills").mkdir()
-    monkeypatch.setenv("HERMES_HOME", str(fake_home))
-    # Reset plugin singleton so tests don't leak plugins from ~/.hermes/plugins/
+    monkeypatch.setenv("CLAUDIA_HOME", str(fake_home))
+    # Reset plugin singleton so tests don't leak plugins from ~/.claudia/plugins/
     try:
         import claudia_cli.plugins as _plugins_mod
         monkeypatch.setattr(_plugins_mod, "_plugin_manager", None)
@@ -34,10 +34,10 @@ def _isolate_hermes_home(tmp_path, monkeypatch):
         pass
     # Tests should not inherit the agent's current gateway/messaging surface.
     # Individual tests that need gateway behavior set these explicitly.
-    monkeypatch.delenv("HERMES_SESSION_PLATFORM", raising=False)
-    monkeypatch.delenv("HERMES_SESSION_CHAT_ID", raising=False)
-    monkeypatch.delenv("HERMES_SESSION_CHAT_NAME", raising=False)
-    monkeypatch.delenv("HERMES_GATEWAY_SESSION", raising=False)
+    monkeypatch.delenv("CLAUDIA_SESSION_PLATFORM", raising=False)
+    monkeypatch.delenv("CLAUDIA_SESSION_CHAT_ID", raising=False)
+    monkeypatch.delenv("CLAUDIA_SESSION_CHAT_NAME", raising=False)
+    monkeypatch.delenv("CLAUDIA_GATEWAY_SESSION", raising=False)
 
 
 @pytest.fixture()

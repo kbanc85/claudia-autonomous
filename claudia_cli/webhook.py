@@ -6,7 +6,7 @@ Usage:
     hermes webhook remove <name>
     hermes webhook test <name> [--payload '{"key": "value"}']
 
-Subscriptions persist to ~/.hermes/webhook_subscriptions.json and are
+Subscriptions persist to ~/.claudia/webhook_subscriptions.json and are
 hot-reloaded by the webhook adapter without a gateway restart.
 """
 
@@ -18,20 +18,20 @@ import time
 from pathlib import Path
 from typing import Dict, Optional
 
-from claudia_constants import display_hermes_home
+from claudia_constants import display_claudia_home
 
 
 _SUBSCRIPTIONS_FILENAME = "webhook_subscriptions.json"
 
 
-def _hermes_home() -> Path:
+def _claudia_home() -> Path:
     return Path(
-        os.getenv("HERMES_HOME", str(Path.home() / ".hermes"))
+        os.getenv("CLAUDIA_HOME", str(Path.home() / ".claudia"))
     ).expanduser()
 
 
 def _subscriptions_path() -> Path:
-    return _hermes_home() / _SUBSCRIPTIONS_FILENAME
+    return _claudia_home() / _SUBSCRIPTIONS_FILENAME
 
 
 def _load_subscriptions() -> Dict[str, dict]:
@@ -79,7 +79,7 @@ def _get_webhook_base_url() -> str:
 
 
 def _setup_hint() -> str:
-    _dhh = display_hermes_home()
+    _dhh = display_claudia_home()
     return f"""
   Webhook platform is not enabled. To set it up:
 

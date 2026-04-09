@@ -5,7 +5,7 @@ class HermesAgent < Formula
   homepage "https://hermes-agent.nousresearch.com"
   # Stable source should point at the semver-named sdist asset attached by
   # scripts/release.py, not the CalVer tag tarball.
-  url "https://github.com/NousResearch/hermes-agent/releases/download/v2026.3.30/hermes_agent-0.6.0.tar.gz"
+  url "https://github.com/NousResearch/hermes-agent/releases/download/v2026.3.30/claudia_autonomous-0.6.0.tar.gz"
   sha256 "<replace-with-release-asset-sha256>"
   license "MIT"
 
@@ -31,9 +31,9 @@ class HermesAgent < Formula
 
       (bin/exe).write_env_script(
         libexec/"bin"/exe,
-        HERMES_BUNDLED_SKILLS: pkgshare/"skills",
-        HERMES_OPTIONAL_SKILLS: pkgshare/"optional-skills",
-        HERMES_MANAGED: "homebrew"
+        CLAUDIA_BUNDLED_SKILLS: pkgshare/"skills",
+        CLAUDIA_OPTIONAL_SKILLS: pkgshare/"optional-skills",
+        CLAUDIA_MANAGED: "homebrew"
       )
     end
   end

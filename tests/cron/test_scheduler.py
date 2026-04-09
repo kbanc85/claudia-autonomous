@@ -293,7 +293,7 @@ class TestRunJobSessionPersistence:
         }
         fake_db = MagicMock()
 
-        with patch("cron.scheduler._hermes_home", tmp_path), \
+        with patch("cron.scheduler._claudia_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
              patch("dotenv.load_dotenv"), \
              patch("claudia_state.SessionDB", return_value=fake_db), \
@@ -341,7 +341,7 @@ class TestRunJobSessionPersistence:
         }
         fake_db = MagicMock()
 
-        with patch("cron.scheduler._hermes_home", tmp_path), \
+        with patch("cron.scheduler._claudia_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
              patch("dotenv.load_dotenv"), \
              patch("claudia_state.SessionDB", return_value=fake_db), \
@@ -381,21 +381,21 @@ class TestRunJobSessionPersistence:
 
         (tmp_path / ".env").write_text("TELEGRAM_HOME_CHANNEL=-2002\n")
         monkeypatch.delenv("TELEGRAM_HOME_CHANNEL", raising=False)
-        monkeypatch.delenv("HERMES_CRON_AUTO_DELIVER_PLATFORM", raising=False)
-        monkeypatch.delenv("HERMES_CRON_AUTO_DELIVER_CHAT_ID", raising=False)
-        monkeypatch.delenv("HERMES_CRON_AUTO_DELIVER_THREAD_ID", raising=False)
+        monkeypatch.delenv("CLAUDIA_CRON_AUTO_DELIVER_PLATFORM", raising=False)
+        monkeypatch.delenv("CLAUDIA_CRON_AUTO_DELIVER_CHAT_ID", raising=False)
+        monkeypatch.delenv("CLAUDIA_CRON_AUTO_DELIVER_THREAD_ID", raising=False)
 
         class FakeAgent:
             def __init__(self, *args, **kwargs):
                 pass
 
             def run_conversation(self, *args, **kwargs):
-                seen["platform"] = os.getenv("HERMES_CRON_AUTO_DELIVER_PLATFORM")
-                seen["chat_id"] = os.getenv("HERMES_CRON_AUTO_DELIVER_CHAT_ID")
-                seen["thread_id"] = os.getenv("HERMES_CRON_AUTO_DELIVER_THREAD_ID")
+                seen["platform"] = os.getenv("CLAUDIA_CRON_AUTO_DELIVER_PLATFORM")
+                seen["chat_id"] = os.getenv("CLAUDIA_CRON_AUTO_DELIVER_CHAT_ID")
+                seen["thread_id"] = os.getenv("CLAUDIA_CRON_AUTO_DELIVER_THREAD_ID")
                 return {"final_response": "ok"}
 
-        with patch("cron.scheduler._hermes_home", tmp_path), \
+        with patch("cron.scheduler._claudia_home", tmp_path), \
              patch("claudia_state.SessionDB", return_value=fake_db), \
              patch(
                  "claudia_cli.runtime_provider.resolve_runtime_provider",
@@ -418,9 +418,9 @@ class TestRunJobSessionPersistence:
             "chat_id": "-2002",
             "thread_id": None,
         }
-        assert os.getenv("HERMES_CRON_AUTO_DELIVER_PLATFORM") is None
-        assert os.getenv("HERMES_CRON_AUTO_DELIVER_CHAT_ID") is None
-        assert os.getenv("HERMES_CRON_AUTO_DELIVER_THREAD_ID") is None
+        assert os.getenv("CLAUDIA_CRON_AUTO_DELIVER_PLATFORM") is None
+        assert os.getenv("CLAUDIA_CRON_AUTO_DELIVER_CHAT_ID") is None
+        assert os.getenv("CLAUDIA_CRON_AUTO_DELIVER_THREAD_ID") is None
         fake_db.close.assert_called_once()
 
 
@@ -438,7 +438,7 @@ class TestRunJobConfigLogging:
             "prompt": "hello",
         }
 
-        with patch("cron.scheduler._hermes_home", tmp_path), \
+        with patch("cron.scheduler._claudia_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
              patch("dotenv.load_dotenv"), \
              patch("run_agent.AIAgent") as mock_agent_cls:
@@ -467,7 +467,7 @@ class TestRunJobConfigLogging:
             "prompt": "hello",
         }
 
-        with patch("cron.scheduler._hermes_home", tmp_path), \
+        with patch("cron.scheduler._claudia_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
              patch("dotenv.load_dotenv"), \
              patch("run_agent.AIAgent") as mock_agent_cls:
@@ -509,7 +509,7 @@ class TestRunJobPerJobOverrides:
             "api_key": "***",
         }
 
-        with patch("cron.scheduler._hermes_home", tmp_path), \
+        with patch("cron.scheduler._claudia_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
              patch("dotenv.load_dotenv"), \
              patch("claudia_state.SessionDB", return_value=fake_db), \
@@ -544,7 +544,7 @@ class TestRunJobSkillBacked:
 
         fake_db = MagicMock()
 
-        with patch("cron.scheduler._hermes_home", tmp_path), \
+        with patch("cron.scheduler._claudia_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
              patch("dotenv.load_dotenv"), \
              patch("claudia_state.SessionDB", return_value=fake_db), \
@@ -590,7 +590,7 @@ class TestRunJobSkillBacked:
         def _skill_view(name):
             return json.dumps({"success": True, "content": f"# {name}\nInstructions for {name}."})
 
-        with patch("cron.scheduler._hermes_home", tmp_path), \
+        with patch("cron.scheduler._claudia_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
              patch("dotenv.load_dotenv"), \
              patch("claudia_state.SessionDB", return_value=fake_db), \

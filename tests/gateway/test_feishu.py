@@ -1307,7 +1307,7 @@ class TestAdapterBehavior(unittest.TestCase):
     @patch.dict(
         os.environ,
         {
-            "HERMES_FEISHU_TEXT_BATCH_MAX_MESSAGES": "2",
+            "CLAUDIA_FEISHU_TEXT_BATCH_MAX_MESSAGES": "2",
         },
         clear=True,
     )
@@ -1456,7 +1456,7 @@ class TestAdapterBehavior(unittest.TestCase):
         from gateway.platforms.feishu import FeishuAdapter
 
         with tempfile.TemporaryDirectory() as temp_home:
-            with patch.dict(os.environ, {"HERMES_HOME": temp_home}, clear=False):
+            with patch.dict(os.environ, {"CLAUDIA_HOME": temp_home}, clear=False):
                 first = FeishuAdapter(PlatformConfig())
                 self.assertFalse(first._is_duplicate("om_same"))
                 second = FeishuAdapter(PlatformConfig())

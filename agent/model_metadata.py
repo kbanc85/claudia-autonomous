@@ -500,8 +500,8 @@ def fetch_endpoint_model_metadata(
 
 def _get_context_cache_path() -> Path:
     """Return path to the persistent context length cache file."""
-    hermes_home = Path(os.environ.get("HERMES_HOME", Path.home() / ".hermes"))
-    return hermes_home / "context_length_cache.yaml"
+    claudia_home = Path(os.environ.get("CLAUDIA_HOME", Path.home() / ".claudia"))
+    return claudia_home / "context_length_cache.yaml"
 
 
 def _load_context_cache() -> Dict[str, int]:

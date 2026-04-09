@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from claudia_constants import get_hermes_home
+from claudia_constants import get_claudia_home
 
 logger = logging.getLogger(__name__)
 
@@ -123,14 +123,14 @@ def get_disabled_skill_names(platform: str | None = None) -> Set[str]:
 
     Args:
         platform: Explicit platform name (e.g. ``"telegram"``).  When
-            *None*, resolves from ``HERMES_PLATFORM`` or
-            ``HERMES_SESSION_PLATFORM`` env vars.  Falls back to the
+            *None*, resolves from ``CLAUDIA_PLATFORM`` or
+            ``CLAUDIA_SESSION_PLATFORM`` env vars.  Falls back to the
             global disabled list when no platform is determined.
 
     Reads the config file directly (no CLI config imports) to stay
     lightweight.
     """
-    config_path = get_hermes_home() / "config.yaml"
+    config_path = get_claudia_home() / "config.yaml"
     if not config_path.exists():
         return set()
     try:
@@ -147,8 +147,8 @@ def get_disabled_skill_names(platform: str | None = None) -> Set[str]:
 
     resolved_platform = (
         platform
-        or os.getenv("HERMES_PLATFORM")
-        or os.getenv("HERMES_SESSION_PLATFORM")
+        or os.getenv("CLAUDIA_PLATFORM")
+        or os.getenv("CLAUDIA_SESSION_PLATFORM")
     )
     if resolved_platform:
         platform_disabled = (skills_cfg.get("platform_disabled") or {}).get(
@@ -175,9 +175,9 @@ def get_external_skills_dirs() -> List[Path]:
 
     Each entry is expanded (``~`` and ``${VAR}``) and resolved to an absolute
     path.  Only directories that actually exist are returned.  Duplicates and
-    paths that resolve to the local ``~/.hermes/skills/`` are silently skipped.
+    paths that resolve to the local ``~/.claudia/skills/`` are silently skipped.
     """
-    config_path = get_hermes_home() / "config.yaml"
+    config_path = get_claudia_home() / "config.yaml"
     if not config_path.exists():
         return []
     try:
@@ -199,7 +199,7 @@ def get_external_skills_dirs() -> List[Path]:
     if not isinstance(raw_dirs, list):
         return []
 
-    local_skills = (get_hermes_home() / "skills").resolve()
+    local_skills = (get_claudia_home() / "skills").resolve()
     seen: Set[Path] = set()
     result: List[Path] = []
 
@@ -224,12 +224,12 @@ def get_external_skills_dirs() -> List[Path]:
 
 
 def get_all_skills_dirs() -> List[Path]:
-    """Return all skill directories: local ``~/.hermes/skills/`` first, then external.
+    """Return all skill directories: local ``~/.claudia/skills/`` first, then external.
 
     The local dir is always first (and always included even if it doesn't exist
     yet — callers handle that).  External dirs follow in config order.
     """
-    dirs = [get_hermes_home() / "skills"]
+    dirs = [get_claudia_home() / "skills"]
     dirs.extend(get_external_skills_dirs())
     return dirs
 

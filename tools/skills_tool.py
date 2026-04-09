@@ -69,7 +69,7 @@ Usage:
 import json
 import logging
 
-from claudia_constants import get_hermes_home
+from claudia_constants import get_claudia_home
 import os
 import re
 import sys
@@ -83,11 +83,11 @@ from tools.registry import registry
 logger = logging.getLogger(__name__)
 
 
-# All skills live in ~/.hermes/skills/ (seeded from bundled skills/ on install).
+# All skills live in ~/.claudia/skills/ (seeded from bundled skills/ on install).
 # This is the single source of truth -- agent edits, hub installs, and bundled
 # skills all coexist here without polluting the git repo.
-HERMES_HOME = get_hermes_home()
-SKILLS_DIR = HERMES_HOME / "skills"
+CLAUDIA_HOME = get_claudia_home()
+SKILLS_DIR = CLAUDIA_HOME / "skills"
 
 # Anthropic-recommended limits for progressive disclosure efficiency
 MAX_NAME_LENGTH = 64
@@ -107,8 +107,8 @@ _secret_capture_callback = None
 
 
 def load_env() -> Dict[str, str]:
-    """Load profile-scoped environment variables from HERMES_HOME/.env."""
-    env_path = get_hermes_home() / ".env"
+    """Load profile-scoped environment variables from CLAUDIA_HOME/.env."""
+    env_path = get_claudia_home() / ".env"
     env_vars: Dict[str, str] = {}
     if not env_path.exists():
         return env_vars
@@ -347,9 +347,9 @@ def _capture_required_environment_variables(
 
 
 def _is_gateway_surface() -> bool:
-    if os.getenv("HERMES_GATEWAY_SESSION"):
+    if os.getenv("CLAUDIA_GATEWAY_SESSION"):
         return True
-    return bool(os.getenv("HERMES_SESSION_PLATFORM"))
+    return bool(os.getenv("CLAUDIA_SESSION_PLATFORM"))
 
 
 def _get_terminal_backend_name() -> str:
@@ -390,7 +390,7 @@ def _gateway_setup_hint() -> str:
 
         return GATEWAY_SECRET_CAPTURE_UNSUPPORTED_MESSAGE
     except Exception:
-        return "Secure secret entry is not available. Load this skill in the local CLI to be prompted, or add the key to ~/.hermes/.env manually."
+        return "Secure secret entry is not available. Load this skill in the local CLI to be prompted, or add the key to ~/.claudia/.env manually."
 
 
 def _build_setup_note(
@@ -426,7 +426,7 @@ def _get_category_from_path(skill_path: Path) -> Optional[str]:
     """
     Extract category from skill path based on directory structure.
 
-    For paths like: ~/.hermes/skills/mlops/axolotl/SKILL.md -> "mlops"
+    For paths like: ~/.claudia/skills/mlops/axolotl/SKILL.md -> "mlops"
     """
     try:
         rel_path = skill_path.relative_to(SKILLS_DIR)
@@ -499,7 +499,7 @@ def _is_skill_disabled(name: str, platform: str = None) -> bool:
         from claudia_cli.config import load_config
         config = load_config()
         skills_cfg = config.get("skills", {})
-        resolved_platform = platform or os.getenv("HERMES_PLATFORM")
+        resolved_platform = platform or os.getenv("CLAUDIA_PLATFORM")
         if resolved_platform:
             platform_disabled = skills_cfg.get("platform_disabled", {}).get(resolved_platform)
             if platform_disabled is not None:
@@ -510,7 +510,7 @@ def _is_skill_disabled(name: str, platform: str = None) -> bool:
 
 
 def _find_all_skills(*, skip_disabled: bool = False) -> List[Dict[str, Any]]:
-    """Recursively find all skills in ~/.hermes/skills/ and external dirs.
+    """Recursively find all skills in ~/.claudia/skills/ and external dirs.
 
     Args:
         skip_disabled: If True, return ALL skills regardless of disabled
@@ -722,7 +722,7 @@ def skills_list(category: str = None, task_id: str = None) -> str:
                     "success": True,
                     "skills": [],
                     "categories": [],
-                    "message": "No skills found. Skills directory created at ~/.hermes/skills/",
+                    "message": "No skills found. Skills directory created at ~/.claudia/skills/",
                 },
                 ensure_ascii=False,
             )
@@ -892,7 +892,7 @@ def skill_view(name: str, file_path: str = None, task_id: str = None) -> str:
         if _outside_skills_dir or _injection_detected:
             _warnings = []
             if _outside_skills_dir:
-                _warnings.append(f"skill file is outside the trusted skills directory (~/.hermes/skills/): {skill_md}")
+                _warnings.append(f"skill file is outside the trusted skills directory (~/.claudia/skills/): {skill_md}")
             if _injection_detected:
                 _warnings.append("skill content contains patterns that may indicate prompt injection")
             import logging as _logging
@@ -1088,15 +1088,15 @@ def skill_view(name: str, file_path: str = None, task_id: str = None) -> str:
                     )
 
         # Read tags/related_skills with backward compat:
-        # Check metadata.hermes.* first (agentskills.io convention), fall back to top-level
-        hermes_meta = {}
+        # Check metadata.claudia.* first (agentskills.io convention), fall back to top-level
+        claudia_meta = {}
         metadata = frontmatter.get("metadata")
         if isinstance(metadata, dict):
-            hermes_meta = metadata.get("hermes", {}) or {}
+            claudia_meta = metadata.get("hermes", {}) or {}
 
-        tags = _parse_tags(hermes_meta.get("tags") or frontmatter.get("tags", ""))
+        tags = _parse_tags(claudia_meta.get("tags") or frontmatter.get("tags", ""))
         related_skills = _parse_tags(
-            hermes_meta.get("related_skills") or frontmatter.get("related_skills", "")
+            claudia_meta.get("related_skills") or frontmatter.get("related_skills", "")
         )
 
         # Build linked files structure for clear discovery

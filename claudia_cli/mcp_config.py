@@ -5,7 +5,7 @@ Implements ``hermes mcp add/remove/list/test/configure`` for interactive
 MCP server lifecycle management (issue #690 Phase 2).
 
 Relies on tools/mcp_tool.py for connection/discovery and keeps
-configuration in ~/.hermes/config.yaml under the ``mcp_servers`` key.
+configuration in ~/.claudia/config.yaml under the ``mcp_servers`` key.
 """
 
 import asyncio
@@ -21,10 +21,10 @@ from claudia_cli.config import (
     save_config,
     get_env_value,
     save_env_value,
-    get_hermes_home,  # noqa: F401 — used by test mocks
+    get_claudia_home,  # noqa: F401 — used by test mocks
 )
 from claudia_cli.colors import Colors, color
-from claudia_constants import display_hermes_home
+from claudia_constants import display_claudia_home
 
 logger = logging.getLogger(__name__)
 
@@ -245,7 +245,7 @@ def cmd_mcp_add(args):
                     api_key = _prompt("API key / Bearer token", password=True)
                     if api_key:
                         save_env_value(env_key, api_key)
-                        _success(f"Saved to {display_hermes_home()}/.env as {env_key}")
+                        _success(f"Saved to {display_claudia_home()}/.env as {env_key}")
 
                 # Set header with env var interpolation
                 if api_key or existing_key:
@@ -333,7 +333,7 @@ def cmd_mcp_add(args):
     _save_mcp_server(name, server_config)
 
     print()
-    _success(f"Saved '{name}' to {display_hermes_home()}/config.yaml ({tool_count}/{total} tools enabled)")
+    _success(f"Saved '{name}' to {display_claudia_home()}/config.yaml ({tool_count}/{total} tools enabled)")
     _info("Start a new session to use these tools.")
 
 

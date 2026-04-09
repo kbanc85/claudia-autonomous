@@ -5,10 +5,10 @@ with entity resolution, trust scoring, and HRR-based compositional retrieval.
 
 Original plugin by dusterbloom (PR #2351), adapted to the MemoryProvider ABC.
 
-Config in $HERMES_HOME/config.yaml (profile-scoped):
+Config in $CLAUDIA_HOME/config.yaml (profile-scoped):
   plugins:
     hermes-memory-store:
-      db_path: $HERMES_HOME/memory_store.db
+      db_path: $CLAUDIA_HOME/memory_store.db
       auto_extract: false
       default_trust: 0.5
       min_trust_threshold: 0.3
@@ -94,8 +94,8 @@ FACT_FEEDBACK_SCHEMA = {
 # ---------------------------------------------------------------------------
 
 def _load_plugin_config() -> dict:
-    from claudia_constants import get_hermes_home
-    config_path = get_hermes_home() / "config.yaml"
+    from claudia_constants import get_claudia_home
+    config_path = get_claudia_home() / "config.yaml"
     if not config_path.exists():
         return {}
     try:
@@ -127,10 +127,10 @@ class HolographicMemoryProvider(MemoryProvider):
     def is_available(self) -> bool:
         return True  # SQLite is always available, numpy is optional
 
-    def save_config(self, values, hermes_home):
-        """Write config to config.yaml under plugins.hermes-memory-store."""
+    def save_config(self, values, claudia_home):
+        """Write config to config.yaml under plugins.claudia-memory-store."""
         from pathlib import Path
-        config_path = Path(hermes_home) / "config.yaml"
+        config_path = Path(claudia_home) / "config.yaml"
         try:
             import yaml
             existing = {}
@@ -145,8 +145,8 @@ class HolographicMemoryProvider(MemoryProvider):
             pass
 
     def get_config_schema(self):
-        from claudia_constants import display_hermes_home
-        _default_db = f"{display_hermes_home()}/memory_store.db"
+        from claudia_constants import display_claudia_home
+        _default_db = f"{display_claudia_home()}/memory_store.db"
         return [
             {"key": "db_path", "description": "SQLite database path", "default": _default_db},
             {"key": "auto_extract", "description": "Auto-extract facts at session end", "default": "false", "choices": ["true", "false"]},
@@ -155,8 +155,8 @@ class HolographicMemoryProvider(MemoryProvider):
         ]
 
     def initialize(self, session_id: str, **kwargs) -> None:
-        from claudia_constants import get_hermes_home
-        _default_db = str(get_hermes_home() / "memory_store.db")
+        from claudia_constants import get_claudia_home
+        _default_db = str(get_claudia_home() / "memory_store.db")
         db_path = self._config.get("db_path", _default_db)
         default_trust = float(self._config.get("default_trust", 0.5))
         hrr_dim = int(self._config.get("hrr_dim", 1024))

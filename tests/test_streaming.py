@@ -590,7 +590,7 @@ class TestStreamingFallback:
         response = agent._interruptible_streaming_api_call({})
 
         assert response.choices[0].message.content == "fallback after SSE retries"
-        # Should retry 3 times (default HERMES_STREAM_RETRIES=2 → 3 attempts)
+        # Should retry 3 times (default CLAUDIA_STREAM_RETRIES=2 → 3 attempts)
         # before falling back to non-streaming
         assert mock_client.chat.completions.create.call_count == 3
         mock_non_stream.assert_called_once()

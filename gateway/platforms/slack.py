@@ -101,8 +101,8 @@ class SlackAdapter(BasePlatformAdapter):
         bot_tokens = [t.strip() for t in raw_token.split(",") if t.strip()]
 
         # Also load tokens from OAuth token file
-        from claudia_constants import get_hermes_home
-        tokens_file = get_hermes_home() / "slack_tokens.json"
+        from claudia_constants import get_claudia_home
+        tokens_file = get_claudia_home() / "slack_tokens.json"
         if tokens_file.exists():
             try:
                 saved = json.loads(tokens_file.read_text(encoding="utf-8"))
@@ -166,7 +166,7 @@ class SlackAdapter(BasePlatformAdapter):
 
             # Register slash command handler
             @self._app.command("/hermes")
-            async def handle_hermes_command(ack, command):
+            async def handle_claudia_command(ack, command):
                 await ack()
                 await self._handle_slash_command(command)
 

@@ -109,7 +109,7 @@ class SSHEnvironment(PersistentShellMixin, BaseEnvironment):
     def _sync_skills_and_credentials(self) -> None:
         """Rsync skills directory and credential files to the remote host."""
         try:
-            container_base = f"{self._remote_home}/.hermes"
+            container_base = f"{self._remote_home}/.claudia"
             from tools.credential_files import get_credential_file_mounts, get_skills_directory_mount
 
             rsync_base = ["rsync", "-az", "--timeout=30", "--safe-links"]
@@ -121,9 +121,9 @@ class SSHEnvironment(PersistentShellMixin, BaseEnvironment):
             rsync_base.extend(["-e", ssh_opts])
             dest_prefix = f"{self.user}@{self.host}"
 
-            # Sync individual credential files (remap /root/.hermes to detected home)
+            # Sync individual credential files (remap /root/.claudia to detected home)
             for mount_entry in get_credential_file_mounts():
-                remote_path = mount_entry["container_path"].replace("/root/.hermes", container_base, 1)
+                remote_path = mount_entry["container_path"].replace("/root/.claudia", container_base, 1)
                 parent_dir = str(Path(remote_path).parent)
                 mkdir_cmd = self._build_ssh_command()
                 mkdir_cmd.append(f"mkdir -p {parent_dir}")
@@ -191,7 +191,7 @@ class SSHEnvironment(PersistentShellMixin, BaseEnvironment):
             except (subprocess.TimeoutExpired, OSError):
                 return [""]
 
-        delim = f"__HERMES_SEP_{self._session_id}__"
+        delim = f"__CLAUDIA_SEP_{self._session_id}__"
         script = "; ".join(
             f"cat {p} 2>/dev/null; echo '{delim}'" for p in paths
         )

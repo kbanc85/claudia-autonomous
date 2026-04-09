@@ -334,18 +334,18 @@ class TestTeePattern:
         assert dangerous is True
         assert key is not None
 
-    def test_tee_hermes_env(self):
-        dangerous, key, desc = detect_dangerous_command("echo x | tee ~/.hermes/.env")
+    def test_tee_claudia_env(self):
+        dangerous, key, desc = detect_dangerous_command("echo x | tee ~/.claudia/.env")
         assert dangerous is True
         assert key is not None
 
-    def test_tee_custom_hermes_home_env(self):
-        dangerous, key, desc = detect_dangerous_command("echo x | tee $HERMES_HOME/.env")
+    def test_tee_custom_claudia_home_env(self):
+        dangerous, key, desc = detect_dangerous_command("echo x | tee $CLAUDIA_HOME/.env")
         assert dangerous is True
         assert key is not None
 
-    def test_tee_quoted_custom_hermes_home_env(self):
-        dangerous, key, desc = detect_dangerous_command('echo x | tee "$HERMES_HOME/.env"')
+    def test_tee_quoted_custom_claudia_home_env(self):
+        dangerous, key, desc = detect_dangerous_command('echo x | tee "$CLAUDIA_HOME/.env"')
         assert dangerous is True
         assert key is not None
 
@@ -387,8 +387,8 @@ class TestFindExecFullPathRm:
 class TestSensitiveRedirectPattern:
     """Detect shell redirection writes to sensitive user-managed paths."""
 
-    def test_redirect_to_custom_hermes_home_env(self):
-        dangerous, key, desc = detect_dangerous_command("echo x > $HERMES_HOME/.env")
+    def test_redirect_to_custom_claudia_home_env(self):
+        dangerous, key, desc = detect_dangerous_command("echo x > $CLAUDIA_HOME/.env")
         assert dangerous is True
         assert key is not None
 
@@ -514,7 +514,7 @@ class TestGatewayProtection:
     """Prevent agents from starting the gateway outside systemd management."""
 
     def test_gateway_run_with_disown_detected(self):
-        cmd = "kill 1605 && cd ~/.hermes/hermes-agent && source venv/bin/activate && python -m claudia_cli.main gateway run --replace &disown; echo done"
+        cmd = "kill 1605 && cd ~/.claudia/hermes-agent && source venv/bin/activate && python -m claudia_cli.main gateway run --replace &disown; echo done"
         dangerous, key, desc = detect_dangerous_command(cmd)
         assert dangerous is True
         assert "systemctl" in desc
@@ -546,14 +546,14 @@ class TestGatewayProtection:
         dangerous, key, desc = detect_dangerous_command(cmd)
         assert dangerous is False
 
-    def test_pkill_hermes_detected(self):
+    def test_pkill_claudia_detected(self):
         """pkill targeting hermes/gateway processes must be caught."""
         cmd = 'pkill -f "cli.py --gateway"'
         dangerous, key, desc = detect_dangerous_command(cmd)
         assert dangerous is True
         assert "self-termination" in desc
 
-    def test_killall_hermes_detected(self):
+    def test_killall_claudia_detected(self):
         cmd = "killall hermes"
         dangerous, key, desc = detect_dangerous_command(cmd)
         assert dangerous is True

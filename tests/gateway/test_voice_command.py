@@ -1879,7 +1879,7 @@ class TestSendVoiceReplyCleanup:
         runner._get_guild_id = MagicMock(return_value=None)
 
         # Create a fake audio file that TTS would produce
-        fake_audio = tmp_path / "hermes_voice"
+        fake_audio = tmp_path / "claudia_voice"
         fake_audio.mkdir()
         audio_file = fake_audio / "test.mp3"
         audio_file.write_bytes(b"fake audio")

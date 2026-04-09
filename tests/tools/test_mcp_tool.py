@@ -86,7 +86,7 @@ class TestLoadMCPConfig:
 # ---------------------------------------------------------------------------
 
 class TestSchemaConversion:
-    def test_converts_mcp_tool_to_hermes_schema(self):
+    def test_converts_mcp_tool_to_claudia_schema(self):
         from tools.mcp_tool import _convert_mcp_schema
 
         mcp_tool = _make_mcp_tool(name="read_file", description="Read a file")
@@ -477,7 +477,7 @@ class TestMCPServerTask:
 # ---------------------------------------------------------------------------
 
 class TestToolsetInjection:
-    def test_mcp_tools_added_to_all_hermes_toolsets(self):
+    def test_mcp_tools_added_to_all_claudia_toolsets(self):
         """Discovered MCP tools are dynamically injected into all hermes-* toolsets."""
         from tools.mcp_tool import MCPServerTask
 

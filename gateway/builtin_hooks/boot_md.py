@@ -1,7 +1,7 @@
-"""Built-in boot-md hook — run ~/.hermes/BOOT.md on gateway startup.
+"""Built-in boot-md hook — run ~/.claudia/BOOT.md on gateway startup.
 
 This hook is always registered. It silently skips if no BOOT.md exists.
-To activate, create ``~/.hermes/BOOT.md`` with instructions for the
+To activate, create ``~/.claudia/BOOT.md`` with instructions for the
 agent to execute on every gateway restart.
 
 Example BOOT.md::
@@ -24,8 +24,8 @@ from pathlib import Path
 
 logger = logging.getLogger("hooks.boot-md")
 
-HERMES_HOME = Path(os.environ.get("HERMES_HOME", Path.home() / ".hermes"))
-BOOT_FILE = HERMES_HOME / "BOOT.md"
+CLAUDIA_HOME = Path(os.environ.get("CLAUDIA_HOME", Path.home() / ".claudia"))
+BOOT_FILE = CLAUDIA_HOME / "BOOT.md"
 
 
 def _build_boot_prompt(content: str) -> str:

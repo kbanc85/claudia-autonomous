@@ -32,7 +32,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
 from pathlib import Path
-from claudia_constants import get_hermes_home
+from claudia_constants import get_claudia_home
 
 
 # ---------------------------------------------------------------------------
@@ -47,7 +47,7 @@ WRITE_DENIED_PATHS = {
         os.path.join(_HOME, ".ssh", "id_rsa"),
         os.path.join(_HOME, ".ssh", "id_ed25519"),
         os.path.join(_HOME, ".ssh", "config"),
-        str(get_hermes_home() / ".env"),
+        str(get_claudia_home() / ".env"),
         os.path.join(_HOME, ".bashrc"),
         os.path.join(_HOME, ".zshrc"),
         os.path.join(_HOME, ".profile"),
@@ -79,14 +79,14 @@ WRITE_DENIED_PREFIXES = [
 
 
 def _get_safe_write_root() -> Optional[str]:
-    """Return the resolved HERMES_WRITE_SAFE_ROOT path, or None if unset.
+    """Return the resolved CLAUDIA_WRITE_SAFE_ROOT path, or None if unset.
 
     When set, all write_file/patch operations are constrained to this
     directory tree.  Writes outside it are denied even if the target is
     not on the static deny list.  Opt-in hardening for gateway/messaging
     deployments that should only touch a workspace checkout.
     """
-    root = os.getenv("HERMES_WRITE_SAFE_ROOT", "")
+    root = os.getenv("CLAUDIA_WRITE_SAFE_ROOT", "")
     if not root:
         return None
     try:

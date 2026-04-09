@@ -16,7 +16,7 @@ hermes memory setup    # select "retaindb"
 Or manually:
 ```bash
 hermes config set memory.provider retaindb
-echo "RETAINDB_API_KEY=your-key" >> ~/.hermes/.env
+echo "RETAINDB_API_KEY=your-key" >> ~/.claudia/.env
 ```
 
 ## Config

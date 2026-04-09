@@ -1,11 +1,11 @@
 """
 Profile management for multiple isolated Hermes instances.
 
-Each profile is a fully independent HERMES_HOME directory with its own
+Each profile is a fully independent CLAUDIA_HOME directory with its own
 config.yaml, .env, memory, sessions, skills, gateway, cron, and logs.
-Profiles live under ``~/.hermes/profiles/<name>/`` by default.
+Profiles live under ``~/.claudia/profiles/<name>/`` by default.
 
-The "default" profile is ``~/.hermes`` itself — backward compatible,
+The "default" profile is ``~/.claudia`` itself — backward compatible,
 zero migration needed.
 
 Usage::
@@ -58,7 +58,7 @@ _CLONE_ALL_STRIP = [
     "processes.json",
 ]
 
-# Directories/files to exclude when exporting the default (~/.hermes) profile.
+# Directories/files to exclude when exporting the default (~/.claudia) profile.
 # The default profile contains infrastructure (repo checkout, worktrees, DBs,
 # caches, binaries) that named profiles don't have.  We exclude those so the
 # export is a portable, reasonable-size archive of actual profile data.
@@ -78,7 +78,7 @@ _DEFAULT_EXPORT_EXCLUDE_ROOT = frozenset({
     ".env",                 # API keys (dotenv)
     "auth.lock", "active_profile", ".update_check",
     "errors.log",
-    ".hermes_history",
+    ".claudia_history",
     # Caches (regenerated on use)
     "image_cache", "audio_cache", "document_cache",
     "browser_screenshots", "checkpoints",
@@ -92,7 +92,7 @@ _RESERVED_NAMES = frozenset({
 })
 
 # Hermes subcommands that cannot be used as profile names/aliases
-_HERMES_SUBCOMMANDS = frozenset({
+_CLAUDIA_SUBCOMMANDS = frozenset({
     "chat", "model", "gateway", "setup", "whatsapp", "login", "logout",
     "status", "cron", "doctor", "config", "pairing", "skills", "tools",
     "mcp", "sessions", "insights", "version", "update", "uninstall",
@@ -107,21 +107,21 @@ _HERMES_SUBCOMMANDS = frozenset({
 def _get_profiles_root() -> Path:
     """Return the directory where named profiles are stored.
 
-    Always ``~/.hermes/profiles/`` — anchored to the user's home,
-    NOT to the current HERMES_HOME (which may itself be a profile).
+    Always ``~/.claudia/profiles/`` — anchored to the user's home,
+    NOT to the current CLAUDIA_HOME (which may itself be a profile).
     This ensures ``coder profile list`` can see all profiles.
     """
-    return Path.home() / ".hermes" / "profiles"
+    return Path.home() / ".claudia" / "profiles"
 
 
-def _get_default_hermes_home() -> Path:
-    """Return the default (pre-profile) HERMES_HOME path."""
-    return Path.home() / ".hermes"
+def _get_default_claudia_home() -> Path:
+    """Return the default (pre-profile) CLAUDIA_HOME path."""
+    return Path.home() / ".claudia"
 
 
 def _get_active_profile_path() -> Path:
     """Return the path to the sticky active_profile file."""
-    return _get_default_hermes_home() / "active_profile"
+    return _get_default_claudia_home() / "active_profile"
 
 
 def _get_wrapper_dir() -> Path:
@@ -136,7 +136,7 @@ def _get_wrapper_dir() -> Path:
 def validate_profile_name(name: str) -> None:
     """Raise ``ValueError`` if *name* is not a valid profile identifier."""
     if name == "default":
-        return  # special alias for ~/.hermes
+        return  # special alias for ~/.claudia
     if not _PROFILE_ID_RE.match(name):
         raise ValueError(
             f"Invalid profile name {name!r}. Must match "
@@ -145,9 +145,9 @@ def validate_profile_name(name: str) -> None:
 
 
 def get_profile_dir(name: str) -> Path:
-    """Resolve a profile name to its HERMES_HOME directory."""
+    """Resolve a profile name to its CLAUDIA_HOME directory."""
     if name == "default":
-        return _get_default_hermes_home()
+        return _get_default_claudia_home()
     return _get_profiles_root() / name
 
 
@@ -169,7 +169,7 @@ def check_alias_collision(name: str) -> Optional[str]:
     """
     if name in _RESERVED_NAMES:
         return f"'{name}' is a reserved name"
-    if name in _HERMES_SUBCOMMANDS:
+    if name in _CLAUDIA_SUBCOMMANDS:
         return f"'{name}' conflicts with a hermes subcommand"
 
     # Check existing commands in PATH
@@ -315,7 +315,7 @@ def list_profiles() -> List[ProfileInfo]:
     wrapper_dir = _get_wrapper_dir()
 
     # Default profile
-    default_home = _get_default_hermes_home()
+    default_home = _get_default_claudia_home()
     if default_home.is_dir():
         model, provider = _read_config_model(default_home)
         profiles.append(ProfileInfo(
@@ -387,7 +387,7 @@ def create_profile(
 
     if name == "default":
         raise ValueError(
-            "Cannot create a profile named 'default' — it is the built-in profile (~/.hermes)."
+            "Cannot create a profile named 'default' — it is the built-in profile (~/.claudia)."
         )
 
     profile_dir = get_profile_dir(name)
@@ -399,8 +399,8 @@ def create_profile(
     if clone_from is not None or clone_all or clone_config:
         if clone_from is None:
             # Default: clone from active profile
-            from claudia_constants import get_hermes_home
-            source_dir = get_hermes_home()
+            from claudia_constants import get_claudia_home
+            source_dir = get_claudia_home()
         else:
             validate_profile_name(clone_from)
             source_dir = get_profile_dir(clone_from)
@@ -434,7 +434,7 @@ def create_profile(
 def seed_profile_skills(profile_dir: Path, quiet: bool = False) -> Optional[dict]:
     """Seed bundled skills into a profile via subprocess.
 
-    Uses subprocess because sync_skills() caches HERMES_HOME at module level.
+    Uses subprocess because sync_skills() caches CLAUDIA_HOME at module level.
     Returns the sync result dict, or None on failure.
     """
     project_root = Path(__file__).parent.parent.resolve()
@@ -443,7 +443,7 @@ def seed_profile_skills(profile_dir: Path, quiet: bool = False) -> Optional[dict
             [sys.executable, "-c",
              "import json; from tools.skills_sync import sync_skills; "
              "r = sync_skills(quiet=True); print(json.dumps(r))"],
-            env={**os.environ, "HERMES_HOME": str(profile_dir)},
+            env={**os.environ, "CLAUDIA_HOME": str(profile_dir)},
             cwd=str(project_root),
             capture_output=True, text=True, timeout=60,
         )
@@ -476,7 +476,7 @@ def delete_profile(name: str, yes: bool = False) -> Path:
 
     if name == "default":
         raise ValueError(
-            "Cannot delete the default profile (~/.hermes).\n"
+            "Cannot delete the default profile (~/.claudia).\n"
             "To remove everything, use: hermes uninstall"
         )
 
@@ -562,10 +562,10 @@ def _cleanup_gateway_service(name: str, profile_dir: Path) -> None:
     import platform as _platform
 
     # Derive service name for this profile
-    # Temporarily set HERMES_HOME so _profile_suffix resolves correctly
-    old_home = os.environ.get("HERMES_HOME")
+    # Temporarily set CLAUDIA_HOME so _profile_suffix resolves correctly
+    old_home = os.environ.get("CLAUDIA_HOME")
     try:
-        os.environ["HERMES_HOME"] = str(profile_dir)
+        os.environ["CLAUDIA_HOME"] = str(profile_dir)
         from claudia_cli.gateway import get_service_name, get_launchd_plist_path
 
         if _platform.system() == "Linux":
@@ -600,9 +600,9 @@ def _cleanup_gateway_service(name: str, profile_dir: Path) -> None:
         print(f"⚠ Service cleanup: {e}")
     finally:
         if old_home is not None:
-            os.environ["HERMES_HOME"] = old_home
-        elif "HERMES_HOME" in os.environ:
-            del os.environ["HERMES_HOME"]
+            os.environ["CLAUDIA_HOME"] = old_home
+        elif "CLAUDIA_HOME" in os.environ:
+            del os.environ["CLAUDIA_HOME"]
 
 
 def _stop_gateway_process(profile_dir: Path) -> None:
@@ -661,7 +661,7 @@ def get_active_profile() -> str:
 def set_active_profile(name: str) -> None:
     """Set the sticky active profile.
 
-    Writes to ``~/.hermes/active_profile``. Use ``"default"`` to clear.
+    Writes to ``~/.claudia/active_profile``. Use ``"default"`` to clear.
     """
     validate_profile_name(name)
     if name != "default" and not profile_exists(name):
@@ -683,17 +683,17 @@ def set_active_profile(name: str) -> None:
 
 
 def get_active_profile_name() -> str:
-    """Infer the current profile name from HERMES_HOME.
+    """Infer the current profile name from CLAUDIA_HOME.
 
-    Returns ``"default"`` if HERMES_HOME is not set or points to ``~/.hermes``.
-    Returns the profile name if HERMES_HOME points into ``~/.hermes/profiles/<name>``.
-    Returns ``"custom"`` if HERMES_HOME is set to an unrecognized path.
+    Returns ``"default"`` if CLAUDIA_HOME is not set or points to ``~/.claudia``.
+    Returns the profile name if CLAUDIA_HOME points into ``~/.claudia/profiles/<name>``.
+    Returns ``"custom"`` if CLAUDIA_HOME is set to an unrecognized path.
     """
-    from claudia_constants import get_hermes_home
-    hermes_home = get_hermes_home()
-    resolved = hermes_home.resolve()
+    from claudia_constants import get_claudia_home
+    claudia_home = get_claudia_home()
+    resolved = claudia_home.resolve()
 
-    default_resolved = _get_default_hermes_home().resolve()
+    default_resolved = _get_default_claudia_home().resolve()
     if resolved == default_resolved:
         return "default"
 
@@ -754,8 +754,8 @@ def export_profile(name: str, output_path: str) -> Path:
     base = str(output).removesuffix(".tar.gz").removesuffix(".tgz")
 
     if name == "default":
-        # The default profile IS ~/.hermes itself — its parent is ~/ and its
-        # directory name is ".hermes", not "default".  We stage a clean copy
+        # The default profile IS ~/.claudia itself — its parent is ~/ and its
+        # directory name is ".claudia", not "default".  We stage a clean copy
         # under a temp dir so the archive contains ``default/...``.
         with tempfile.TemporaryDirectory() as tmpdir:
             staged = Path(tmpdir) / "default"
@@ -867,11 +867,11 @@ def import_profile(archive_path: str, name: Optional[str] = None) -> Path:
         )
 
     # Archives exported from the default profile have "default/" as top-level
-    # dir.  Importing as "default" would target ~/.hermes itself — disallow
+    # dir.  Importing as "default" would target ~/.claudia itself — disallow
     # that and guide the user toward a named profile.
     if inferred_name == "default":
         raise ValueError(
-            "Cannot import as 'default' — that is the built-in root profile (~/.hermes). "
+            "Cannot import as 'default' — that is the built-in root profile (~/.claudia). "
             "Specify a different name: hermes profile import <archive> --name <name>"
         )
 
@@ -956,8 +956,8 @@ def generate_bash_completion() -> str:
     return '''# Hermes Agent profile completion
 # Add to ~/.bashrc: eval "$(hermes completion bash)"
 
-_hermes_profiles() {
-    local profiles_dir="$HOME/.hermes/profiles"
+_claudia_profiles() {
+    local profiles_dir="$HOME/.claudia/profiles"
     local profiles="default"
     if [ -d "$profiles_dir" ]; then
         profiles="$profiles $(ls "$profiles_dir" 2>/dev/null)"
@@ -965,14 +965,14 @@ _hermes_profiles() {
     echo "$profiles"
 }
 
-_hermes_completion() {
+_claudia_completion() {
     local cur prev
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
     # Complete profile names after -p / --profile
     if [[ "$prev" == "-p" || "$prev" == "--profile" ]]; then
-        COMPREPLY=($(compgen -W "$(_hermes_profiles)" -- "$cur"))
+        COMPREPLY=($(compgen -W "$(_claudia_profiles)" -- "$cur"))
         return
     fi
 
@@ -984,7 +984,7 @@ _hermes_completion() {
                 return
                 ;;
             use|delete|show|alias|rename|export)
-                COMPREPLY=($(compgen -W "$(_hermes_profiles)" -- "$cur"))
+                COMPREPLY=($(compgen -W "$(_claudia_profiles)" -- "$cur"))
                 return
                 ;;
         esac
@@ -997,7 +997,7 @@ _hermes_completion() {
     fi
 }
 
-complete -F _hermes_completion hermes
+complete -F _claudia_completion hermes
 '''
 
 
@@ -1010,8 +1010,8 @@ def generate_zsh_completion() -> str:
 _hermes() {
     local -a profiles
     profiles=(default)
-    if [[ -d "$HOME/.hermes/profiles" ]]; then
-        profiles+=("${(@f)$(ls $HOME/.hermes/profiles 2>/dev/null)}")
+    if [[ -d "$HOME/.claudia/profiles" ]]; then
+        profiles+=("${(@f)$(ls $HOME/.claudia/profiles 2>/dev/null)}")
     fi
 
     _arguments \\
@@ -1037,10 +1037,10 @@ _hermes "$@"
 # ---------------------------------------------------------------------------
 
 def resolve_profile_env(profile_name: str) -> str:
-    """Resolve a profile name to a HERMES_HOME path string.
+    """Resolve a profile name to a CLAUDIA_HOME path string.
 
     Called early in the CLI entry point, before any hermes modules
-    are imported, to set the HERMES_HOME environment variable.
+    are imported, to set the CLAUDIA_HOME environment variable.
     """
     validate_profile_name(profile_name)
     profile_dir = get_profile_dir(profile_name)

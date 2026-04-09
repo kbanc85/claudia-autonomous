@@ -21,7 +21,7 @@ from rich.table import Table
 
 # Lazy imports to avoid circular dependencies and slow startup.
 # tools.skills_hub and tools.skills_guard are imported inside functions.
-from claudia_constants import display_hermes_home
+from claudia_constants import display_claudia_home
 
 _console = Console()
 
@@ -396,7 +396,7 @@ def do_install(identifier: str, category: str = "", force: bool = False,
                 "[bold bright_cyan]This is an official optional skill maintained by Nous Research.[/]\n\n"
                 "It ships with hermes-agent but is not activated by default.\n"
                 "Installing will copy it to your skills directory where the agent can use it.\n\n"
-                f"Files will be at: [cyan]{display_hermes_home()}/skills/{category + '/' if category else ''}{bundle.name}/[/]",
+                f"Files will be at: [cyan]{display_claudia_home()}/skills/{category + '/' if category else ''}{bundle.name}/[/]",
                 title="Official Skill",
                 border_style="bright_cyan",
             ))
@@ -406,7 +406,7 @@ def do_install(identifier: str, category: str = "", force: bool = False,
                 "External skills can contain instructions that influence agent behavior,\n"
                 "shell commands, and scripts. Even after automated scanning, you should\n"
                 "review the installed files before use.\n\n"
-                f"Files will be at: [cyan]{display_hermes_home()}/skills/{category + '/' if category else ''}{bundle.name}/[/]",
+                f"Files will be at: [cyan]{display_claudia_home()}/skills/{category + '/' if category else ''}{bundle.name}/[/]",
                 title="Disclaimer",
                 border_style="yellow",
             ))
@@ -760,7 +760,7 @@ def do_publish(skill_path: str, target: str = "github", repo: str = "",
         auth = GitHubAuth()
         if not auth.is_authenticated():
             c.print("[bold red]Error:[/] GitHub authentication required.\n"
-                    f"Set GITHUB_TOKEN in {display_hermes_home()}/.env or run 'gh auth login'.\n")
+                    f"Set GITHUB_TOKEN in {display_claudia_home()}/.env or run 'gh auth login'.\n")
             return
 
         c.print(f"[bold]Publishing '{name}' to {repo}...[/]")
@@ -886,7 +886,7 @@ def do_snapshot_export(output_path: str, console: Optional[Console] = None) -> N
     tap_list = taps.list_taps()
 
     snapshot = {
-        "hermes_version": "0.1.0",
+        "claudia_version": "0.1.0",
         "exported_at": __import__("datetime").datetime.now(
             __import__("datetime").timezone.utc
         ).isoformat(),

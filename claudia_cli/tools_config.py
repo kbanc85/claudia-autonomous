@@ -5,7 +5,7 @@ Unified tool configuration for Hermes Agent.
 Select a platform → toggle toolsets on/off → for newly enabled tools
 that need API keys, run through provider-aware configuration.
 
-Saves per-platform tool configuration to ~/.hermes/config.yaml under
+Saves per-platform tool configuration to ~/.claudia/config.yaml under
 the `platform_toolsets` key.
 """
 
@@ -104,7 +104,7 @@ CONFIGURABLE_TOOLSETS = [
 ]
 
 # Toolsets that are OFF by default for new installs.
-# They're still in _HERMES_CORE_TOOLS (available at runtime if enabled),
+# They're still in _CLAUDIA_CORE_TOOLS (available at runtime if enabled),
 # but the setup checklist won't pre-select them for first-time users.
 _DEFAULT_OFF_TOOLSETS = {"moa", "homeassistant", "rl"}
 
@@ -384,8 +384,8 @@ def _run_post_setup(post_setup_key: str):
             if result.returncode == 0:
                 _print_success("    Node.js dependencies installed")
             else:
-                from claudia_constants import display_hermes_home
-                _print_warning(f"    npm install failed - run manually: cd {display_hermes_home()}/hermes-agent && npm install")
+                from claudia_constants import display_claudia_home
+                _print_warning(f"    npm install failed - run manually: cd {display_claudia_home()}/hermes-agent && npm install")
         elif not node_modules.exists():
             _print_warning("    Node.js not found - browser tools require: npm install (in hermes-agent directory)")
 
@@ -511,7 +511,7 @@ def _get_platform_tools(
     # If the saved list contains any configurable keys directly, the user
     # has explicitly configured this platform — use direct membership.
     # This avoids the subset-inference bug where composite toolsets like
-    # "hermes-cli" (which include all _HERMES_CORE_TOOLS) cause disabled
+    # "hermes-cli" (which include all _CLAUDIA_CORE_TOOLS) cause disabled
     # toolsets to re-appear as enabled.
     has_explicit_config = any(ts in configurable_keys for ts in toolset_names)
 
@@ -1042,7 +1042,7 @@ def _configure_provider(provider: dict, config: dict):
             override_envs = provider.get("override_env_vars", [])
             if any(get_env_value(env_var) for env_var in override_envs):
                 _print_warning(
-                    "  Direct credentials are still configured and may take precedence until you remove them from ~/.hermes/.env."
+                    "  Direct credentials are still configured and may take precedence until you remove them from ~/.claudia/.env."
                 )
         return
 
@@ -1251,7 +1251,7 @@ def _reconfigure_provider(provider: dict, config: dict):
             override_envs = provider.get("override_env_vars", [])
             if any(get_env_value(env_var) for env_var in override_envs):
                 _print_warning(
-                    "  Direct credentials are still configured and may take precedence until you remove them from ~/.hermes/.env."
+                    "  Direct credentials are still configured and may take precedence until you remove them from ~/.claudia/.env."
                 )
         return
 
@@ -1527,8 +1527,8 @@ def tools_command(args=None, first_install: bool = False, config: dict = None):
         platform_choices[idx] = f"Configure {pinfo['label']}  ({new_count}/{total} enabled)"
 
     print()
-    from claudia_constants import display_hermes_home
-    print(color(f"  Tool configuration saved to {display_hermes_home()}/config.yaml", Colors.DIM))
+    from claudia_constants import display_claudia_home
+    print(color(f"  Tool configuration saved to {display_claudia_home()}/config.yaml", Colors.DIM))
     print(color("  Changes take effect on next 'hermes' or gateway restart.", Colors.DIM))
     print()
 

@@ -23,14 +23,14 @@ import sqlite3
 import threading
 import time
 from pathlib import Path
-from claudia_constants import get_hermes_home
+from claudia_constants import get_claudia_home
 from typing import Any, Callable, Dict, List, Optional, TypeVar
 
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
-DEFAULT_DB_PATH = get_hermes_home() / "state.db"
+DEFAULT_DB_PATH = get_claudia_home() / "state.db"
 
 SCHEMA_VERSION = 6
 

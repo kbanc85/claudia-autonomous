@@ -293,12 +293,12 @@ def read_file_tool(path: str, offset: int = 1, limit: int = 500, task_id: str = 
         # ── Hermes internal path guard ────────────────────────────────
         # Prevent prompt injection via catalog or hub metadata files.
         import pathlib as _pathlib
-        from claudia_constants import get_hermes_home as _get_hh
+        from claudia_constants import get_claudia_home as _get_hh
         _resolved = _pathlib.Path(path).expanduser().resolve()
-        _hermes_home = _get_hh().resolve()
+        _claudia_home = _get_hh().resolve()
         _blocked_dirs = [
-            _hermes_home / "skills" / ".hub" / "index-cache",
-            _hermes_home / "skills" / ".hub",
+            _claudia_home / "skills" / ".hub" / "index-cache",
+            _claudia_home / "skills" / ".hub",
         ]
         for _blocked in _blocked_dirs:
             try:

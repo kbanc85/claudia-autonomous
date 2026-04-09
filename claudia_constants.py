@@ -8,30 +8,30 @@ import os
 from pathlib import Path
 
 
-def get_hermes_home() -> Path:
-    """Return the Hermes home directory (default: ~/.hermes).
+def get_claudia_home() -> Path:
+    """Return the Hermes home directory (default: ~/.claudia).
 
-    Reads HERMES_HOME env var, falls back to ~/.hermes.
+    Reads CLAUDIA_HOME env var, falls back to ~/.claudia.
     This is the single source of truth — all other copies should import this.
     """
-    return Path(os.getenv("HERMES_HOME", Path.home() / ".hermes"))
+    return Path(os.getenv("CLAUDIA_HOME", Path.home() / ".claudia"))
 
 
 def get_optional_skills_dir(default: Path | None = None) -> Path:
     """Return the optional-skills directory, honoring package-manager wrappers.
 
     Packaged installs may ship ``optional-skills`` outside the Python package
-    tree and expose it via ``HERMES_OPTIONAL_SKILLS``.
+    tree and expose it via ``CLAUDIA_OPTIONAL_SKILLS``.
     """
-    override = os.getenv("HERMES_OPTIONAL_SKILLS", "").strip()
+    override = os.getenv("CLAUDIA_OPTIONAL_SKILLS", "").strip()
     if override:
         return Path(override)
     if default is not None:
         return default
-    return get_hermes_home() / "optional-skills"
+    return get_claudia_home() / "optional-skills"
 
 
-def get_hermes_dir(new_subpath: str, old_name: str) -> Path:
+def get_claudia_dir(new_subpath: str, old_name: str) -> Path:
     """Resolve a Hermes subdirectory with backward compatibility.
 
     New installs get the consolidated layout (e.g. ``cache/images``).
@@ -39,33 +39,33 @@ def get_hermes_dir(new_subpath: str, old_name: str) -> Path:
     keep using it — no migration required.
 
     Args:
-        new_subpath: Preferred path relative to HERMES_HOME (e.g. ``"cache/images"``).
-        old_name: Legacy path relative to HERMES_HOME (e.g. ``"image_cache"``).
+        new_subpath: Preferred path relative to CLAUDIA_HOME (e.g. ``"cache/images"``).
+        old_name: Legacy path relative to CLAUDIA_HOME (e.g. ``"image_cache"``).
 
     Returns:
         Absolute ``Path`` — old location if it exists on disk, otherwise the new one.
     """
-    home = get_hermes_home()
+    home = get_claudia_home()
     old_path = home / old_name
     if old_path.exists():
         return old_path
     return home / new_subpath
 
 
-def display_hermes_home() -> str:
-    """Return a user-friendly display string for the current HERMES_HOME.
+def display_claudia_home() -> str:
+    """Return a user-friendly display string for the current CLAUDIA_HOME.
 
     Uses ``~/`` shorthand for readability::
 
-        default:  ``~/.hermes``
-        profile:  ``~/.hermes/profiles/coder``
+        default:  ``~/.claudia``
+        profile:  ``~/.claudia/profiles/coder``
         custom:   ``/opt/hermes-custom``
 
     Use this in **user-facing** print/log messages instead of hardcoding
-    ``~/.hermes``.  For code that needs a real ``Path``, use
-    :func:`get_hermes_home` instead.
+    ``~/.claudia``.  For code that needs a real ``Path``, use
+    :func:`get_claudia_home` instead.
     """
-    home = get_hermes_home()
+    home = get_claudia_home()
     try:
         return "~/" + str(home.relative_to(Path.home()))
     except ValueError:

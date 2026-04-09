@@ -12,7 +12,7 @@ Config via environment variables:
   HINDSIGHT_API_URL   — API endpoint
   HINDSIGHT_MODE      — cloud or local (default: cloud)
 
-Or via $HERMES_HOME/hindsight/config.json (profile-scoped), falling back to
+Or via $CLAUDIA_HOME/hindsight/config.json (profile-scoped), falling back to
 ~/.hindsight/config.json (legacy, shared) for backward compatibility.
 """
 
@@ -115,15 +115,15 @@ def _load_config() -> dict:
     """Load config from profile-scoped path, legacy path, or env vars.
 
     Resolution order:
-      1. $HERMES_HOME/hindsight/config.json  (profile-scoped)
+      1. $CLAUDIA_HOME/hindsight/config.json  (profile-scoped)
       2. ~/.hindsight/config.json             (legacy, shared)
       3. Environment variables
     """
     from pathlib import Path
-    from claudia_constants import get_hermes_home
+    from claudia_constants import get_claudia_home
 
     # Profile-scoped path (preferred)
-    profile_path = get_hermes_home() / "hindsight" / "config.json"
+    profile_path = get_claudia_home() / "hindsight" / "config.json"
     if profile_path.exists():
         try:
             return json.loads(profile_path.read_text(encoding="utf-8"))
@@ -185,11 +185,11 @@ class HindsightMemoryProvider(MemoryProvider):
         except Exception:
             return False
 
-    def save_config(self, values, hermes_home):
-        """Write config to $HERMES_HOME/hindsight/config.json."""
+    def save_config(self, values, claudia_home):
+        """Write config to $CLAUDIA_HOME/hindsight/config.json."""
         import json
         from pathlib import Path
-        config_dir = Path(hermes_home) / "hindsight"
+        config_dir = Path(claudia_home) / "hindsight"
         config_dir.mkdir(parents=True, exist_ok=True)
         config_path = config_dir / "config.json"
         existing = {}
