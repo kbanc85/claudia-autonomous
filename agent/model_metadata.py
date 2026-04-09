@@ -15,7 +15,7 @@ from urllib.parse import urlparse
 import requests
 import yaml
 
-from hermes_constants import OPENROUTER_MODELS_URL
+from claudia_constants import OPENROUTER_MODELS_URL
 
 logger = logging.getLogger(__name__)
 

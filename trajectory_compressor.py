@@ -44,7 +44,7 @@ from datetime import datetime
 import fire
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn, TimeRemainingColumn
 from rich.console import Console
-from hermes_constants import OPENROUTER_BASE_URL
+from claudia_constants import OPENROUTER_BASE_URL
 
 # Load environment variables
 from dotenv import load_dotenv

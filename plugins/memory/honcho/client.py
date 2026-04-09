@@ -19,7 +19,7 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from hermes_constants import get_hermes_home
+from claudia_constants import get_hermes_home
 from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -44,7 +44,7 @@ def resolve_active_host() -> str:
         return explicit
 
     try:
-        from hermes_cli.profiles import get_active_profile_name
+        from claudia_cli.profiles import get_active_profile_name
         profile = get_active_profile_name()
         if profile and profile not in ("default", "custom"):
             return f"{HOST}.{profile}"
@@ -463,7 +463,7 @@ def get_honcho_client(config: HonchoClientConfig | None = None) -> Honcho:
     resolved_base_url = config.base_url
     if not resolved_base_url:
         try:
-            from hermes_cli.config import load_config
+            from claudia_cli.config import load_config
             hermes_cfg = load_config()
             honcho_cfg = hermes_cfg.get("honcho", {})
             if isinstance(honcho_cfg, dict):

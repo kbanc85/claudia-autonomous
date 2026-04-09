@@ -32,7 +32,7 @@ import yaml
 _hermes_home = get_hermes_home()
 _project_env = Path(__file__).parent / '.env'
 
-from hermes_cli.env_loader import load_hermes_dotenv
+from claudia_cli.env_loader import load_hermes_dotenv
 
 _loaded_env_paths = load_hermes_dotenv(hermes_home=_hermes_home, project_env=_project_env)
 for _env_path in _loaded_env_paths:
@@ -60,7 +60,7 @@ from tools.rl_training_tool import get_missing_keys
 # Config Loading
 # ============================================================================
 
-from hermes_constants import get_hermes_home, OPENROUTER_BASE_URL
+from claudia_constants import get_hermes_home, OPENROUTER_BASE_URL
 
 DEFAULT_MODEL = "anthropic/claude-opus-4.5"
 DEFAULT_BASE_URL = OPENROUTER_BASE_URL

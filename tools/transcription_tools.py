@@ -37,7 +37,7 @@ from utils import is_truthy_value
 from tools.managed_tool_gateway import resolve_managed_tool_gateway
 from tools.tool_backend_helpers import managed_nous_tools_enabled, resolve_openai_audio_api_key
 
-from hermes_constants import get_hermes_home
+from claudia_constants import get_hermes_home
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +112,7 @@ def get_stt_model_from_config() -> Optional[str]:
 def _load_stt_config() -> dict:
     """Load the ``stt`` section from user config, falling back to defaults."""
     try:
-        from hermes_cli.config import load_config
+        from claudia_cli.config import load_config
         return load_config().get("stt", {})
     except Exception:
         return {}

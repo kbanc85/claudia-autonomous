@@ -99,7 +99,7 @@ class TestHandleUpdateCommand:
 
     @pytest.mark.asyncio
     async def test_no_hermes_binary(self, tmp_path):
-        """Returns error when hermes is not on PATH and hermes_cli is not importable."""
+        """Returns error when hermes is not on PATH and claudia_cli is not importable."""
         runner = _make_runner()
         event = _make_event()
 
@@ -122,7 +122,7 @@ class TestHandleUpdateCommand:
 
     @pytest.mark.asyncio
     async def test_fallback_to_sys_executable(self, tmp_path):
-        """Falls back to sys.executable -m hermes_cli.main when hermes not on PATH."""
+        """Falls back to sys.executable -m claudia_cli.main when hermes not on PATH."""
         runner = _make_runner()
         event = _make_event()
 
@@ -147,9 +147,9 @@ class TestHandleUpdateCommand:
 
         assert "Starting Hermes update" in result
         call_args = mock_popen.call_args[0][0]
-        # The update_cmd uses sys.executable -m hermes_cli.main
+        # The update_cmd uses sys.executable -m claudia_cli.main
         joined = " ".join(call_args) if isinstance(call_args, list) else call_args
-        assert "hermes_cli.main" in joined or "bash" in call_args[0]
+        assert "claudia_cli.main" in joined or "bash" in call_args[0]
 
     @pytest.mark.asyncio
     async def test_resolve_hermes_bin_prefers_which(self, tmp_path):
@@ -172,7 +172,7 @@ class TestHandleUpdateCommand:
              patch("importlib.util.find_spec", return_value=fake_spec):
             result = _resolve_hermes_bin()
 
-        assert result == [sys.executable, "-m", "hermes_cli.main"]
+        assert result == [sys.executable, "-m", "claudia_cli.main"]
 
     @pytest.mark.asyncio
     async def test_resolve_hermes_bin_returns_none_when_both_fail(self):

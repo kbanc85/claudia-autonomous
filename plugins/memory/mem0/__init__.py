@@ -39,7 +39,7 @@ _BREAKER_COOLDOWN_SECS = 120
 
 def _load_config() -> dict:
     """Load config from $HERMES_HOME/mem0.json or env vars."""
-    from hermes_constants import get_hermes_home
+    from claudia_constants import get_hermes_home
     config_path = get_hermes_home() / "mem0.json"
 
     if config_path.exists():

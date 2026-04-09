@@ -387,35 +387,35 @@ class TestResolveActiveHost:
     def test_profile_name_derives_host(self):
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("HERMES_HONCHO_HOST", None)
-            with patch("hermes_cli.profiles.get_active_profile_name", return_value="coder"):
+            with patch("claudia_cli.profiles.get_active_profile_name", return_value="coder"):
                 assert resolve_active_host() == "hermes.coder"
 
     def test_default_profile_returns_hermes(self):
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("HERMES_HONCHO_HOST", None)
-            with patch("hermes_cli.profiles.get_active_profile_name", return_value="default"):
+            with patch("claudia_cli.profiles.get_active_profile_name", return_value="default"):
                 assert resolve_active_host() == "hermes"
 
     def test_custom_profile_returns_hermes(self):
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("HERMES_HONCHO_HOST", None)
-            with patch("hermes_cli.profiles.get_active_profile_name", return_value="custom"):
+            with patch("claudia_cli.profiles.get_active_profile_name", return_value="custom"):
                 assert resolve_active_host() == "hermes"
 
     def test_profiles_import_failure_falls_back(self):
         import sys
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("HERMES_HONCHO_HOST", None)
-            # Temporarily remove hermes_cli.profiles to simulate import failure
-            saved = sys.modules.get("hermes_cli.profiles")
-            sys.modules["hermes_cli.profiles"] = None  # type: ignore
+            # Temporarily remove claudia_cli.profiles to simulate import failure
+            saved = sys.modules.get("claudia_cli.profiles")
+            sys.modules["claudia_cli.profiles"] = None  # type: ignore
             try:
                 assert resolve_active_host() == "hermes"
             finally:
                 if saved is not None:
-                    sys.modules["hermes_cli.profiles"] = saved
+                    sys.modules["claudia_cli.profiles"] = saved
                 else:
-                    sys.modules.pop("hermes_cli.profiles", None)
+                    sys.modules.pop("claudia_cli.profiles", None)
 
 
 class TestProfileScopedConfig:

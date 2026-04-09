@@ -1675,7 +1675,7 @@ def browser_vision(question: str, annotate: bool = False, task_id: Optional[str]
     effective_task_id = task_id or "default"
     
     # Save screenshot to persistent location so it can be shared with users
-    from hermes_constants import get_hermes_dir
+    from claudia_constants import get_hermes_dir
     screenshots_dir = get_hermes_dir("cache/screenshots", "browser_screenshots")
     screenshot_path = screenshots_dir / f"browser_screenshot_{uuid_mod.uuid4().hex}.png"
     
@@ -1748,7 +1748,7 @@ def browser_vision(question: str, annotate: bool = False, task_id: Optional[str]
         # screenshot analysis, so the default must be generous.
         vision_timeout = 120.0
         try:
-            from hermes_cli.config import load_config
+            from claudia_cli.config import load_config
             _cfg = load_config()
             _vt = _cfg.get("auxiliary", {}).get("vision", {}).get("timeout")
             if _vt is not None:

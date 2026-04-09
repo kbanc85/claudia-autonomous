@@ -17,7 +17,7 @@ import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from hermes_constants import get_hermes_home
+from claudia_constants import get_hermes_home
 from typing import Any, Optional
 
 _GATEWAY_KIND = "hermes-gateway"
@@ -87,8 +87,8 @@ def _looks_like_gateway_process(pid: int) -> bool:
         return False
 
     patterns = (
-        "hermes_cli.main gateway",
-        "hermes_cli/main.py gateway",
+        "claudia_cli.main gateway",
+        "claudia_cli/main.py gateway",
         "hermes gateway",
         "gateway/run.py",
     )
@@ -106,8 +106,8 @@ def _record_looks_like_gateway(record: dict[str, Any]) -> bool:
 
     cmdline = " ".join(str(part) for part in argv)
     patterns = (
-        "hermes_cli.main gateway",
-        "hermes_cli/main.py gateway",
+        "claudia_cli.main gateway",
+        "claudia_cli/main.py gateway",
         "hermes gateway",
         "gateway/run.py",
     )

@@ -1,4 +1,4 @@
-from hermes_cli import runtime_provider as rp
+from claudia_cli import runtime_provider as rp
 
 
 def test_resolve_runtime_provider_uses_credential_pool(monkeypatch):
@@ -934,13 +934,13 @@ def test_named_custom_provider_anthropic_api_mode(monkeypatch):
 
 def test_resolve_provider_custom_returns_custom():
     """resolve_provider('custom') must return 'custom', not 'openrouter'."""
-    from hermes_cli.auth import resolve_provider
+    from claudia_cli.auth import resolve_provider
     assert resolve_provider("custom") == "custom"
 
 
 def test_resolve_provider_openrouter_unchanged():
     """resolve_provider('openrouter') must still return 'openrouter'."""
-    from hermes_cli.auth import resolve_provider
+    from claudia_cli.auth import resolve_provider
     assert resolve_provider("openrouter") == "openrouter"
 
 

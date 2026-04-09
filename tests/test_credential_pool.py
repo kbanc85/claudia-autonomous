@@ -295,7 +295,7 @@ def test_try_refresh_current_updates_only_current_entry(tmp_path, monkeypatch):
     from agent.credential_pool import load_pool
 
     monkeypatch.setattr(
-        "hermes_cli.auth.refresh_codex_oauth_pure",
+        "claudia_cli.auth.refresh_codex_oauth_pure",
         lambda access_token, refresh_token, timeout_seconds=20.0: {
             "access_token": "access-new",
             "refresh_token": "refresh-new",

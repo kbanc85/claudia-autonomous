@@ -11,9 +11,9 @@ import os
 from dataclasses import dataclass, fields, replace
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from hermes_constants import OPENROUTER_BASE_URL
-import hermes_cli.auth as auth_mod
-from hermes_cli.auth import (
+from claudia_constants import OPENROUTER_BASE_URL
+import claudia_cli.auth as auth_mod
+from claudia_cli.auth import (
     ACCESS_TOKEN_REFRESH_SKEW_SECONDS,
     CODEX_ACCESS_TOKEN_REFRESH_SKEW_SECONDS,
     DEFAULT_AGENT_KEY_MIN_TTL_SECONDS,
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 def _load_config_safe() -> Optional[dict]:
     """Load config.yaml, returning None on any error."""
     try:
-        from hermes_cli.config import load_config
+        from claudia_cli.config import load_config
 
         return load_config()
     except Exception:

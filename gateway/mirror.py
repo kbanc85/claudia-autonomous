@@ -14,7 +14,7 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-from hermes_cli.config import get_hermes_home
+from claudia_cli.config import get_hermes_home
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +118,7 @@ def _append_to_sqlite(session_id: str, message: dict) -> None:
     """Append a message to the SQLite session database."""
     db = None
     try:
-        from hermes_state import SessionDB
+        from claudia_state import SessionDB
         db = SessionDB()
         db.append_message(
             session_id=session_id,

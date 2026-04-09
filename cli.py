@@ -63,15 +63,15 @@ from agent.usage_pricing import (
     format_duration_compact,
     format_token_count_compact,
 )
-from hermes_cli.banner import _format_context_length
+from claudia_cli.banner import _format_context_length
 
 _COMMAND_SPINNER_FRAMES = ("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏")
 
 
 # Load .env from ~/.hermes/.env first, then project root as dev fallback.
 # User-managed env files should override stale shell exports on restart.
-from hermes_constants import get_hermes_home, display_hermes_home, OPENROUTER_BASE_URL
-from hermes_cli.env_loader import load_hermes_dotenv
+from claudia_constants import get_hermes_home, display_hermes_home, OPENROUTER_BASE_URL
+from claudia_cli.env_loader import load_hermes_dotenv
 
 _hermes_home = get_hermes_home()
 _project_env = Path(__file__).parent / '.env'
@@ -113,7 +113,7 @@ def _load_prefill_messages(file_path: str) -> List[Dict[str, Any]]:
 
 def _parse_reasoning_config(effort: str) -> dict | None:
     """Parse a reasoning effort level into an OpenRouter reasoning config dict."""
-    from hermes_constants import parse_reasoning_effort
+    from claudia_constants import parse_reasoning_effort
     result = parse_reasoning_effort(effort)
     if effort and effort.strip() and result is None:
         logger.warning("Unknown reasoning_effort '%s', using default (medium)", effort)
@@ -315,13 +315,13 @@ def load_cli_config() -> Dict[str, Any]:
             logger.warning("Failed to load cli-config.yaml: %s", e)
 
     # Expand ${ENV_VAR} references in config values before bridging to env vars.
-    from hermes_cli.config import _expand_env_vars
+    from claudia_cli.config import _expand_env_vars
     defaults = _expand_env_vars(defaults)
 
     # Apply terminal config to environment variables (so terminal_tool picks them up)
     terminal_config = defaults.get("terminal", {})
     
-    # Normalize config key: the new config system (hermes_cli/config.py) and all
+    # Normalize config key: the new config system (claudia_cli/config.py) and all
     # documentation use "backend", the legacy cli-config.yaml uses "env_type".
     # Accept both, with "backend" taking precedence (it's the documented key).
     if "backend" in terminal_config:
@@ -455,7 +455,7 @@ CLI_CONFIG = load_cli_config()
 
 # Initialize the skin engine from config
 try:
-    from hermes_cli.skin_engine import init_skin_from_config
+    from claudia_cli.skin_engine import init_skin_from_config
     init_skin_from_config(CLI_CONFIG)
 except Exception:
     pass  # Skin engine is optional — default skin used if unavailable
@@ -492,8 +492,8 @@ from run_agent import AIAgent
 from model_tools import get_tool_definitions, get_toolset_for_tool
 
 # Extracted CLI modules (Phase 3)
-from hermes_cli.banner import build_welcome_banner
-from hermes_cli.commands import SlashCommandCompleter, SlashCommandAutoSuggest
+from claudia_cli.banner import build_welcome_banner
+from claudia_cli.commands import SlashCommandCompleter, SlashCommandAutoSuggest
 from toolsets import get_all_toolsets, get_toolset_info, validate_toolset
 
 # Cron job system for scheduled tasks (execution is handled by the gateway)
@@ -503,7 +503,7 @@ from cron import get_job
 from tools.terminal_tool import cleanup_all_environments as _cleanup_all_terminals
 from tools.terminal_tool import set_sudo_password_callback, set_approval_callback
 from tools.skills_tool import set_secret_capture_callback
-from hermes_cli.callbacks import prompt_for_secret
+from claudia_cli.callbacks import prompt_for_secret
 from tools.browser_tool import _emergency_cleanup_all_sessions as _cleanup_all_browsers
 
 # Guard to prevent cleanup from running multiple times on exit
@@ -816,7 +816,7 @@ _RST = "\033[0m"
 def _accent_hex() -> str:
     """Return the active skin accent color for legacy CLI output lines."""
     try:
-        from hermes_cli.skin_engine import get_active_skin
+        from claudia_cli.skin_engine import get_active_skin
         return get_active_skin().get_color("ui_accent", "#FFBF00")
     except Exception:
         return "#FFBF00"
@@ -1000,7 +1000,7 @@ _skill_commands = scan_skill_commands()
 def _get_plugin_cmd_handler_names() -> set:
     """Return plugin command names (without slash prefix) for dispatch matching."""
     try:
-        from hermes_cli.plugins import get_plugin_manager
+        from claudia_cli.plugins import get_plugin_manager
         return set(get_plugin_manager()._plugin_commands.keys())
     except Exception:
         return set()
@@ -1177,7 +1177,7 @@ class HermesCLI:
         if self.model == _DEFAULT_CONFIG_MODEL:
             _base_url = (_model_config.get("base_url") or "") if isinstance(_model_config, dict) else ""
             if "localhost" in _base_url or "127.0.0.1" in _base_url:
-                from hermes_cli.runtime_provider import _auto_detect_local_model
+                from claudia_cli.runtime_provider import _auto_detect_local_model
                 _detected = _auto_detect_local_model(_base_url)
                 if _detected:
                     self.model = _detected
@@ -1297,7 +1297,7 @@ class HermesCLI:
         # Initialize SQLite session store early so /title works before first message
         self._session_db = None
         try:
-            from hermes_state import SessionDB
+            from claudia_state import SessionDB
             self._session_db = SessionDB()
         except Exception as e:
             logger.warning("Failed to initialize SessionDB — session will NOT be indexed for search: %s", e)
@@ -1593,7 +1593,7 @@ class HermesCLI:
 
         if resolved_provider == "copilot":
             try:
-                from hermes_cli.models import copilot_model_api_mode, normalize_copilot_model_id
+                from claudia_cli.models import copilot_model_api_mode, normalize_copilot_model_id
 
                 canonical = normalize_copilot_model_id(current_model, api_key=self.api_key)
                 if canonical and canonical != current_model:
@@ -1615,7 +1615,7 @@ class HermesCLI:
 
         if resolved_provider in {"opencode-zen", "opencode-go"}:
             try:
-                from hermes_cli.models import normalize_opencode_model_id, opencode_model_api_mode
+                from claudia_cli.models import normalize_opencode_model_id, opencode_model_api_mode
 
                 canonical = normalize_opencode_model_id(resolved_provider, current_model)
                 if canonical and canonical != current_model:
@@ -1654,7 +1654,7 @@ class HermesCLI:
         if self._model_is_default:
             fallback_model = "gpt-5.3-codex"
             try:
-                from hermes_cli.codex_models import get_codex_model_ids
+                from claudia_cli.codex_models import get_codex_model_ids
 
                 available = get_codex_model_ids(
                     access_token=self.api_key if self.api_key else None,
@@ -1936,7 +1936,7 @@ class HermesCLI:
                 return
             self._stream_box_opened = True
             try:
-                from hermes_cli.skin_engine import get_active_skin
+                from claudia_cli.skin_engine import get_active_skin
                 _skin = get_active_skin()
                 label = _skin.get_branding("response_label", "⚕ Hermes")
                 _text_hex = _skin.get_color("banner_text", "#FFF8DC")
@@ -2039,7 +2039,7 @@ class HermesCLI:
         are picked up without restarting the CLI.
         Returns True if credentials are ready, False on auth failure.
         """
-        from hermes_cli.runtime_provider import (
+        from claudia_cli.runtime_provider import (
             resolve_runtime_provider,
             format_runtime_provider_error,
         )
@@ -2149,7 +2149,7 @@ class HermesCLI:
         # Initialize SQLite session store for CLI sessions (if not already done in __init__)
         if self._session_db is None:
             try:
-                from hermes_state import SessionDB
+                from claudia_state import SessionDB
                 self._session_db = SessionDB()
             except Exception as e:
                 logger.warning("SQLite session store not available — session will NOT be indexed: %s", e)
@@ -2498,7 +2498,7 @@ class HermesCLI:
         from rich.text import Text
 
         try:
-            from hermes_cli.skin_engine import get_active_skin
+            from claudia_cli.skin_engine import get_active_skin
             _skin = get_active_skin()
             _history_text_c = _skin.get_color("banner_text", "#FFF8DC")
             _session_label_c = _skin.get_color("session_label", "#DAA520")
@@ -2549,7 +2549,7 @@ class HermesCLI:
         Saves the image to ~/.hermes/images/ and appends the path to
         ``_attached_images``.  Returns True if an image was attached.
         """
-        from hermes_cli.clipboard import save_clipboard_image
+        from claudia_cli.clipboard import save_clipboard_image
 
         img_dir = get_hermes_home() / "images"
         self._image_counter += 1
@@ -2695,7 +2695,7 @@ class HermesCLI:
         doesn't fire for image-only clipboard content (e.g., VSCode terminal,
         Windows Terminal with WSL2).
         """
-        from hermes_cli.clipboard import has_clipboard_image
+        from claudia_cli.clipboard import has_clipboard_image
         if has_clipboard_image():
             if self._try_attach_clipboard_image():
                 n = len(self._attached_images)
@@ -2824,10 +2824,10 @@ class HermesCLI:
     
     def show_help(self):
         """Display help information with categorized commands."""
-        from hermes_cli.commands import COMMANDS_BY_CATEGORY
+        from claudia_cli.commands import COMMANDS_BY_CATEGORY
 
         try:
-            from hermes_cli.skin_engine import get_active_help_header
+            from claudia_cli.skin_engine import get_active_help_header
             header = get_active_help_header("(^_^)? Available Commands")
         except Exception:
             header = "(^_^)? Available Commands"
@@ -2908,7 +2908,7 @@ class HermesCLI:
         """
         import shlex
         from argparse import Namespace
-        from hermes_cli.tools_config import tools_disable_enable_command
+        from claudia_cli.tools_config import tools_disable_enable_command
 
         try:
             parts = shlex.split(cmd)
@@ -2943,8 +2943,8 @@ class HermesCLI:
             Namespace(tools_action=subcommand, names=names, platform="cli"))
 
         # Reset session so the new tool config is picked up from a clean state
-        from hermes_cli.tools_config import _get_platform_tools
-        from hermes_cli.config import load_config
+        from claudia_cli.tools_config import _get_platform_tools
+        from claudia_cli.config import load_config
         self.enabled_toolsets = _get_platform_tools(load_config(), "cli")
         self.new_session()
         _cprint(f"{_DIM}Session reset. New tool configuration is active.{_RST}")
@@ -2982,7 +2982,7 @@ class HermesCLI:
     
     def _handle_profile_command(self):
         """Display active profile name and home directory."""
-        from hermes_constants import get_hermes_home, display_hermes_home
+        from claudia_constants import get_hermes_home, display_hermes_home
 
         home = get_hermes_home()
         display = display_hermes_home()
@@ -3075,7 +3075,7 @@ class HermesCLI:
         if not sessions:
             return False
 
-        from hermes_cli.main import _relative_time
+        from claudia_cli.main import _relative_time
 
         print()
         if reason == "history":
@@ -3234,7 +3234,7 @@ class HermesCLI:
             return
 
         # Resolve title or ID
-        from hermes_cli.main import _resolve_session_by_name_or_id
+        from claudia_cli.main import _resolve_session_by_name_or_id
         resolved = _resolve_session_by_name_or_id(target)
         target_id = resolved or target
 
@@ -3389,11 +3389,11 @@ class HermesCLI:
         Shows current model + provider, then lists all authenticated
         providers with their available models.
         """
-        from hermes_cli.models import (
+        from claudia_cli.models import (
             curated_models_for_provider, list_available_providers,
             normalize_provider, _PROVIDER_LABELS,
         )
-        from hermes_cli.auth import resolve_provider as _resolve_provider
+        from claudia_cli.auth import resolve_provider as _resolve_provider
 
         # Resolve current provider
         raw_provider = normalize_provider(self.provider)
@@ -3430,7 +3430,7 @@ class HermesCLI:
                         current_marker = " ← current" if (is_active and mid == self.model) else ""
                         print(f"      {mid}{current_marker}")
                 elif p["id"] == "custom":
-                    from hermes_cli.models import _get_custom_base_url
+                    from claudia_cli.models import _get_custom_base_url
                     custom_url = _get_custom_base_url()
                     if custom_url:
                         print(f"      endpoint: {custom_url}")
@@ -3807,8 +3807,8 @@ class HermesCLI:
         print("  Available: list, add, edit, pause, resume, run, remove")
     
     def _handle_skills_command(self, cmd: str):
-        """Handle /skills slash command — delegates to hermes_cli.skills_hub."""
-        from hermes_cli.skills_hub import handle_skills_slash
+        """Handle /skills slash command — delegates to claudia_cli.skills_hub."""
+        from claudia_cli.skills_hub import handle_skills_slash
         handle_skills_slash(cmd, ChatConsole())
 
     def _show_gateway_status(self):
@@ -3883,8 +3883,8 @@ class HermesCLI:
         cmd_original = command.strip()
 
         # Resolve aliases via central registry so adding an alias is a one-line
-        # change in hermes_cli/commands.py instead of touching every dispatch site.
-        from hermes_cli.commands import resolve_command as _resolve_cmd
+        # change in claudia_cli/commands.py instead of touching every dispatch site.
+        from claudia_cli.commands import resolve_command as _resolve_cmd
         _base_word = cmd_lower.split()[0].lstrip("/")
         _cmd_def = _resolve_cmd(_base_word)
         canonical = _cmd_def.name if _cmd_def else _base_word
@@ -3952,7 +3952,7 @@ class HermesCLI:
                     if self._session_db:
                         # Sanitize the title early so feedback matches what gets stored
                         try:
-                            from hermes_state import SessionDB
+                            from claudia_state import SessionDB
                             new_title = SessionDB.sanitize_title(raw_title)
                         except ValueError as e:
                             _cprint(f"  {e}")
@@ -4049,7 +4049,7 @@ class HermesCLI:
             self._handle_browser_command(cmd_original)
         elif canonical == "plugins":
             try:
-                from hermes_cli.plugins import get_plugin_manager
+                from claudia_cli.plugins import get_plugin_manager
                 mgr = get_plugin_manager()
                 plugins = mgr.list_plugins()
                 if not plugins:
@@ -4131,7 +4131,7 @@ class HermesCLI:
                     self.console.print(f"[bold red]Quick command '{base_cmd}' has unsupported type (supported: 'exec', 'alias')[/]")
             # Check for plugin-registered slash commands
             elif base_cmd.lstrip("/") in _get_plugin_cmd_handler_names():
-                from hermes_cli.plugins import get_plugin_command_handler
+                from claudia_cli.plugins import get_plugin_command_handler
                 plugin_handler = get_plugin_command_handler(base_cmd.lstrip("/"))
                 if plugin_handler:
                     user_args = cmd_original[len(base_cmd):].strip()
@@ -4158,7 +4158,7 @@ class HermesCLI:
                 # Prefix matching: if input uniquely identifies one command, execute it.
                 # Matches against both built-in COMMANDS and installed skill commands so
                 # that execution-time resolution agrees with tab-completion.
-                from hermes_cli.commands import COMMANDS
+                from claudia_cli.commands import COMMANDS
                 typed_base = cmd_lower.split()[0]
                 all_known = set(COMMANDS) | set(_skill_commands)
                 matches = [c for c in all_known if c.startswith(typed_base)]
@@ -4314,7 +4314,7 @@ class HermesCLI:
                 ChatConsole().print(f"[{_accent_hex()}]{'─' * 40}[/]")
                 if response:
                     try:
-                        from hermes_cli.skin_engine import get_active_skin
+                        from claudia_cli.skin_engine import get_active_skin
                         _skin = get_active_skin()
                         label = _skin.get_branding("response_label", "⚕ Hermes")
                         _resp_color = _skin.get_color("response_border", "#CD7F32")
@@ -4442,7 +4442,7 @@ class HermesCLI:
 
                 if response:
                     try:
-                        from hermes_cli.skin_engine import get_active_skin
+                        from claudia_cli.skin_engine import get_active_skin
                         _skin = get_active_skin()
                         _resp_color = _skin.get_color("response_border", "#4F6D4A")
                     except Exception:
@@ -4682,7 +4682,7 @@ class HermesCLI:
     def _handle_skin_command(self, cmd: str):
         """Handle /skin [name] — show or change the display skin."""
         try:
-            from hermes_cli.skin_engine import list_skins, set_active_skin, get_active_skin_name
+            from claudia_cli.skin_engine import list_skins, set_active_skin, get_active_skin_name
         except ImportError:
             print("Skin engine not available.")
             return
@@ -4737,7 +4737,7 @@ class HermesCLI:
         # prompt_toolkit's renderer.  self.console.print() with Rich markup
         # writes directly to stdout which patch_stdout's StdoutProxy mangles
         # into garbled sequences like '?[33mTool progress: NEW?[0m' (#2262).
-        from hermes_cli.colors import Colors as _Colors
+        from claudia_cli.colors import Colors as _Colors
         labels = {
             "off": f"{_Colors.DIM}Tool progress: OFF{_Colors.RESET} — silent mode, just the final response.",
             "new": f"{_Colors.YELLOW}Tool progress: NEW{_Colors.RESET} — show each new tool (skip repeats).",
@@ -4936,7 +4936,7 @@ class HermesCLI:
                 logging.getLogger(noisy).setLevel(logging.WARNING)
         else:
             logging.getLogger().setLevel(logging.INFO)
-            for quiet_logger in ('tools', 'run_agent', 'trajectory_compressor', 'cron', 'hermes_cli'):
+            for quiet_logger in ('tools', 'run_agent', 'trajectory_compressor', 'cron', 'claudia_cli'):
                 logging.getLogger(quiet_logger).setLevel(logging.ERROR)
 
     def _show_insights(self, command: str = "/insights"):
@@ -4961,7 +4961,7 @@ class HermesCLI:
                 i += 1
 
         try:
-            from hermes_state import SessionDB
+            from claudia_state import SessionDB
             from agent.insights import InsightsEngine
 
             db = SessionDB()
@@ -4990,7 +4990,7 @@ class HermesCLI:
             return
         self._last_config_check = now
 
-        from hermes_cli.config import get_config_path as _get_config_path
+        from claudia_cli.config import get_config_path as _get_config_path
         cfg_path = _get_config_path()
         if not cfg_path.exists():
             return
@@ -5232,7 +5232,7 @@ class HermesCLI:
         # Load silence detection params from config
         voice_cfg = {}
         try:
-            from hermes_cli.config import load_config
+            from claudia_cli.config import load_config
             voice_cfg = load_config().get("voice", {})
         except Exception:
             pass
@@ -5319,7 +5319,7 @@ class HermesCLI:
             # Get STT model from config
             stt_model = None
             try:
-                from hermes_cli.config import load_config
+                from claudia_cli.config import load_config
                 stt_config = load_config().get("stt", {})
                 stt_model = stt_config.get("model")
             except Exception:
@@ -5484,7 +5484,7 @@ class HermesCLI:
 
         # Check config for auto_tts
         try:
-            from hermes_cli.config import load_config
+            from claudia_cli.config import load_config
             voice_config = load_config().get("voice", {})
             if voice_config.get("auto_tts", False):
                 with self._voice_lock:
@@ -5498,7 +5498,7 @@ class HermesCLI:
 
         tts_status = " (TTS enabled)" if self._voice_tts else ""
         try:
-            from hermes_cli.config import load_config
+            from claudia_cli.config import load_config
             _raw_ptt = load_config().get("voice", {}).get("record_key", "ctrl+b")
             _ptt_key = _raw_ptt.lower().replace("ctrl+", "c-").replace("alt+", "a-")
         except Exception:
@@ -5560,7 +5560,7 @@ class HermesCLI:
 
     def _show_voice_status(self):
         """Show current voice mode status."""
-        from hermes_cli.config import load_config
+        from claudia_cli.config import load_config
         from tools.voice_mode import check_voice_requirements
 
         reqs = check_voice_requirements()
@@ -6214,7 +6214,7 @@ class HermesCLI:
             if response and not response_previewed:
                 # Use skin engine for label/color with fallback
                 try:
-                    from hermes_cli.skin_engine import get_active_skin
+                    from claudia_cli.skin_engine import get_active_skin
                     _skin = get_active_skin()
                     label = _skin.get_branding("response_label", "⚕ Hermes")
                     _resp_color = _skin.get_color("response_border", "#CD7F32")
@@ -6335,7 +6335,7 @@ class HermesCLI:
             print(f"Messages:       {msg_count} ({user_msgs} user, {tool_calls} tool calls)")
         else:
             try:
-                from hermes_cli.skin_engine import get_active_goodbye
+                from claudia_cli.skin_engine import get_active_goodbye
                 goodbye = get_active_goodbye("Goodbye! ⚕")
             except Exception:
                 goodbye = "Goodbye! ⚕"
@@ -6352,7 +6352,7 @@ class HermesCLI:
         prepended to the prompt symbol: ``coder ❯`` instead of ``❯``.
         """
         try:
-            from hermes_cli.skin_engine import get_active_prompt_symbol
+            from claudia_cli.skin_engine import get_active_prompt_symbol
             symbol = get_active_prompt_symbol("❯ ")
         except Exception:
             symbol = "❯ "
@@ -6361,7 +6361,7 @@ class HermesCLI:
 
         # Prepend profile name when not default
         try:
-            from hermes_cli.profiles import get_active_profile_name
+            from claudia_cli.profiles import get_active_profile_name
             profile = get_active_profile_name()
             if profile not in ("default", "custom"):
                 symbol = f"{profile} {symbol}"
@@ -6426,7 +6426,7 @@ class HermesCLI:
         """Layer the active skin's prompt_toolkit colors over the base TUI style."""
         style_dict = dict(getattr(self, "_tui_style_base", {}) or {})
         try:
-            from hermes_cli.skin_engine import get_prompt_toolkit_style_overrides
+            from claudia_cli.skin_engine import get_prompt_toolkit_style_overrides
             style_dict.update(get_prompt_toolkit_style_overrides())
         except Exception:
             pass
@@ -6532,7 +6532,7 @@ class HermesCLI:
                 self._display_resumed_history()
 
         try:
-            from hermes_cli.skin_engine import get_active_skin
+            from claudia_cli.skin_engine import get_active_skin
             _welcome_skin = get_active_skin()
             _welcome_text = _welcome_skin.get_branding("welcome", "Welcome to Hermes Agent! Type your message or /help for commands.")
             _welcome_color = _welcome_skin.get_color("banner_text", "#FFF8DC")
@@ -6556,11 +6556,11 @@ class HermesCLI:
         self._last_ctrl_c_time = 0  # Track double Ctrl+C for force exit
 
         # Give plugin manager a CLI reference so plugins can inject messages
-        from hermes_cli.plugins import get_plugin_manager
+        from claudia_cli.plugins import get_plugin_manager
         get_plugin_manager()._cli_ref = self
 
         # Config file watcher — detect mcp_servers changes and auto-reload
-        from hermes_cli.config import get_config_path as _get_config_path
+        from claudia_cli.config import get_config_path as _get_config_path
         _cfg_path = _get_config_path()
         self._config_mtime: float = _cfg_path.stat().st_mtime if _cfg_path.exists() else 0.0
         self._config_mcp_servers: dict = self.config.get("mcp_servers") or {}
@@ -6918,7 +6918,7 @@ class HermesCLI:
                 return
             import os, signal as _sig
             from prompt_toolkit.application import run_in_terminal
-            from hermes_cli.skin_engine import get_active_skin
+            from claudia_cli.skin_engine import get_active_skin
             agent_name = get_active_skin().get_branding("agent_name", "Hermes Agent")
             msg = f"\n{agent_name} has been suspended. Run `fg` to bring {agent_name} back."
             def _suspend():
@@ -6930,7 +6930,7 @@ class HermesCLI:
         # Default: Ctrl+B (avoids conflict with Ctrl+R readline reverse-search)
         # Config uses "ctrl+b" format; prompt_toolkit expects "c-b" format.
         try:
-            from hermes_cli.config import load_config
+            from claudia_cli.config import load_config
             _raw_key = load_config().get("voice", {}).get("record_key", "ctrl+b")
             _voice_key = _raw_key.lower().replace("ctrl+", "c-").replace("alt+", "a-")
         except Exception:
@@ -7855,7 +7855,7 @@ class HermesCLI:
             # the exit occurred, meaning run_conversation's hook didn't fire.
             if self.agent and getattr(self, '_agent_running', False):
                 try:
-                    from hermes_cli.plugins import invoke_hook as _invoke_hook
+                    from claudia_cli.plugins import invoke_hook as _invoke_hook
                     _invoke_hook(
                         "on_session_end",
                         session_id=self.agent.session_id,
@@ -7984,7 +7984,7 @@ def main(
                     toolsets_list.append(str(t))
     else:
         # Use the shared resolver so MCP servers are included at runtime
-        from hermes_cli.tools_config import _get_platform_tools
+        from claudia_cli.tools_config import _get_platform_tools
         toolsets_list = sorted(_get_platform_tools(CLI_CONFIG, "cli"))
     
     parsed_skills = _parse_skills_argument(skills)

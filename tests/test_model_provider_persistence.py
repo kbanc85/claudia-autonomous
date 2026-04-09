@@ -39,7 +39,7 @@ class TestSaveModelChoiceAlwaysDict:
     def test_string_model_becomes_dict(self, config_home):
         """When config.model is a plain string, _save_model_choice must
         convert it to a dict so provider can be set afterwards."""
-        from hermes_cli.auth import _save_model_choice
+        from claudia_cli.auth import _save_model_choice
 
         _save_model_choice("kimi-k2.5")
 
@@ -57,7 +57,7 @@ class TestSaveModelChoiceAlwaysDict:
         (config_home / "config.yaml").write_text(
             "model:\n  default: old-model\n  provider: openrouter\n"
         )
-        from hermes_cli.auth import _save_model_choice
+        from claudia_cli.auth import _save_model_choice
 
         _save_model_choice("new-model")
 
@@ -72,7 +72,7 @@ class TestProviderPersistsAfterModelSave:
     def test_api_key_provider_saved_when_model_was_string(self, config_home, monkeypatch):
         """_model_flow_api_key_provider must persist the provider even when
         config.model started as a plain string."""
-        from hermes_cli.auth import PROVIDER_REGISTRY
+        from claudia_cli.auth import PROVIDER_REGISTRY
 
         pconfig = PROVIDER_REGISTRY.get("kimi-coding")
         if not pconfig:
@@ -81,13 +81,13 @@ class TestProviderPersistsAfterModelSave:
         # Simulate: user has a Kimi API key, model was a string
         monkeypatch.setenv("KIMI_API_KEY", "sk-kimi-test-key")
 
-        from hermes_cli.main import _model_flow_api_key_provider
-        from hermes_cli.config import load_config
+        from claudia_cli.main import _model_flow_api_key_provider
+        from claudia_cli.config import load_config
 
         # Mock the model selection prompt to return "kimi-k2.5"
         # Also mock input() for the base URL prompt and builtins.input
-        with patch("hermes_cli.auth._prompt_model_selection", return_value="kimi-k2.5"), \
-             patch("hermes_cli.auth.deactivate_provider"), \
+        with patch("claudia_cli.auth._prompt_model_selection", return_value="kimi-k2.5"), \
+             patch("claudia_cli.auth.deactivate_provider"), \
              patch("builtins.input", return_value=""):
             _model_flow_api_key_provider(load_config(), "kimi-coding", "old-model")
 
@@ -102,11 +102,11 @@ class TestProviderPersistsAfterModelSave:
 
     def test_copilot_provider_saved_when_selected(self, config_home):
         """_model_flow_copilot should persist provider/base_url/model together."""
-        from hermes_cli.main import _model_flow_copilot
-        from hermes_cli.config import load_config
+        from claudia_cli.main import _model_flow_copilot
+        from claudia_cli.config import load_config
 
         with patch(
-            "hermes_cli.auth.resolve_api_key_provider_credentials",
+            "claudia_cli.auth.resolve_api_key_provider_credentials",
             return_value={
                 "provider": "copilot",
                 "api_key": "gh-cli-token",
@@ -114,7 +114,7 @@ class TestProviderPersistsAfterModelSave:
                 "source": "gh auth token",
             },
         ), patch(
-            "hermes_cli.models.fetch_github_model_catalog",
+            "claudia_cli.models.fetch_github_model_catalog",
             return_value=[
                 {
                     "id": "gpt-4.1",
@@ -128,13 +128,13 @@ class TestProviderPersistsAfterModelSave:
                 },
             ],
         ), patch(
-            "hermes_cli.auth._prompt_model_selection",
+            "claudia_cli.auth._prompt_model_selection",
             return_value="gpt-5.4",
         ), patch(
-            "hermes_cli.main._prompt_reasoning_effort_selection",
+            "claudia_cli.main._prompt_reasoning_effort_selection",
             return_value="high",
         ), patch(
-            "hermes_cli.auth.deactivate_provider",
+            "claudia_cli.auth.deactivate_provider",
         ):
             _model_flow_copilot(load_config(), "old-model")
 
@@ -151,18 +151,18 @@ class TestProviderPersistsAfterModelSave:
 
     def test_copilot_acp_provider_saved_when_selected(self, config_home):
         """_model_flow_copilot_acp should persist provider/base_url/model together."""
-        from hermes_cli.main import _model_flow_copilot_acp
-        from hermes_cli.config import load_config
+        from claudia_cli.main import _model_flow_copilot_acp
+        from claudia_cli.config import load_config
 
         with patch(
-            "hermes_cli.auth.get_external_process_provider_status",
+            "claudia_cli.auth.get_external_process_provider_status",
             return_value={
                 "resolved_command": "/usr/local/bin/copilot",
                 "command": "copilot",
                 "base_url": "acp://copilot",
             },
         ), patch(
-            "hermes_cli.auth.resolve_external_process_provider_credentials",
+            "claudia_cli.auth.resolve_external_process_provider_credentials",
             return_value={
                 "provider": "copilot-acp",
                 "api_key": "copilot-acp",
@@ -172,7 +172,7 @@ class TestProviderPersistsAfterModelSave:
                 "source": "process",
             },
         ), patch(
-            "hermes_cli.auth.resolve_api_key_provider_credentials",
+            "claudia_cli.auth.resolve_api_key_provider_credentials",
             return_value={
                 "provider": "copilot",
                 "api_key": "gh-cli-token",
@@ -180,7 +180,7 @@ class TestProviderPersistsAfterModelSave:
                 "source": "gh auth token",
             },
         ), patch(
-            "hermes_cli.models.fetch_github_model_catalog",
+            "claudia_cli.models.fetch_github_model_catalog",
             return_value=[
                 {
                     "id": "gpt-4.1",
@@ -194,10 +194,10 @@ class TestProviderPersistsAfterModelSave:
                 },
             ],
         ), patch(
-            "hermes_cli.auth._prompt_model_selection",
+            "claudia_cli.auth._prompt_model_selection",
             return_value="gpt-5.4",
         ), patch(
-            "hermes_cli.auth.deactivate_provider",
+            "claudia_cli.auth.deactivate_provider",
         ):
             _model_flow_copilot_acp(load_config(), "old-model")
 
@@ -212,14 +212,14 @@ class TestProviderPersistsAfterModelSave:
         assert model.get("api_mode") == "chat_completions"
 
     def test_opencode_go_models_are_selectable_and_persist_normalized(self, config_home, monkeypatch):
-        from hermes_cli.main import _model_flow_api_key_provider
-        from hermes_cli.config import load_config
+        from claudia_cli.main import _model_flow_api_key_provider
+        from claudia_cli.config import load_config
 
         monkeypatch.setenv("OPENCODE_GO_API_KEY", "test-key")
 
-        with patch("hermes_cli.models.fetch_api_models", return_value=["opencode-go/kimi-k2.5", "opencode-go/minimax-m2.7"]), \
-             patch("hermes_cli.auth._prompt_model_selection", return_value="kimi-k2.5"), \
-             patch("hermes_cli.auth.deactivate_provider"), \
+        with patch("claudia_cli.models.fetch_api_models", return_value=["opencode-go/kimi-k2.5", "opencode-go/minimax-m2.7"]), \
+             patch("claudia_cli.auth._prompt_model_selection", return_value="kimi-k2.5"), \
+             patch("claudia_cli.auth.deactivate_provider"), \
              patch("builtins.input", return_value=""):
             _model_flow_api_key_provider(load_config(), "opencode-go", "opencode-go/kimi-k2.5")
 
@@ -232,8 +232,8 @@ class TestProviderPersistsAfterModelSave:
         assert model.get("api_mode") == "chat_completions"
 
     def test_opencode_go_same_provider_switch_recomputes_api_mode(self, config_home, monkeypatch):
-        from hermes_cli.main import _model_flow_api_key_provider
-        from hermes_cli.config import load_config
+        from claudia_cli.main import _model_flow_api_key_provider
+        from claudia_cli.config import load_config
 
         monkeypatch.setenv("OPENCODE_GO_API_KEY", "test-key")
         (config_home / "config.yaml").write_text(
@@ -244,9 +244,9 @@ class TestProviderPersistsAfterModelSave:
             "  api_mode: chat_completions\n"
         )
 
-        with patch("hermes_cli.models.fetch_api_models", return_value=["opencode-go/kimi-k2.5", "opencode-go/minimax-m2.5"]), \
-             patch("hermes_cli.auth._prompt_model_selection", return_value="minimax-m2.5"), \
-             patch("hermes_cli.auth.deactivate_provider"), \
+        with patch("claudia_cli.models.fetch_api_models", return_value=["opencode-go/kimi-k2.5", "opencode-go/minimax-m2.5"]), \
+             patch("claudia_cli.auth._prompt_model_selection", return_value="minimax-m2.5"), \
+             patch("claudia_cli.auth.deactivate_provider"), \
              patch("builtins.input", return_value=""):
             _model_flow_api_key_provider(load_config(), "opencode-go", "kimi-k2.5")
 

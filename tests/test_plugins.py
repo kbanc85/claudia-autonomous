@@ -1,4 +1,4 @@
-"""Tests for the Hermes plugin system (hermes_cli.plugins)."""
+"""Tests for the Hermes plugin system (claudia_cli.plugins)."""
 
 import logging
 import os
@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import yaml
 
-from hermes_cli.plugins import (
+from claudia_cli.plugins import (
     ENTRY_POINTS_GROUP,
     VALID_HOOKS,
     LoadedPlugin,
@@ -271,7 +271,7 @@ class TestPluginHooks:
         )
         monkeypatch.setenv("HERMES_HOME", str(tmp_path / "hermes_test"))
 
-        with caplog.at_level(logging.WARNING, logger="hermes_cli.plugins"):
+        with caplog.at_level(logging.WARNING, logger="claudia_cli.plugins"):
             mgr = PluginManager()
             mgr.discover_and_load()
 
@@ -318,7 +318,7 @@ class TestPluginToolVisibility:
 
     def test_plugin_tools_in_definitions(self, tmp_path, monkeypatch):
         """Plugin tools are included when their toolset is in enabled_toolsets."""
-        import hermes_cli.plugins as plugins_mod
+        import claudia_cli.plugins as plugins_mod
 
         plugins_dir = tmp_path / "hermes_test" / "plugins"
         plugin_dir = plugins_dir / "vis_plugin"
@@ -404,6 +404,6 @@ class TestPluginManagerList:
 
 
 # NOTE: TestPluginCommands removed – register_command() was never implemented
-# in PluginContext (hermes_cli/plugins.py).  The tests referenced _plugin_commands,
+# in PluginContext (claudia_cli/plugins.py).  The tests referenced _plugin_commands,
 # commands_registered, get_plugin_command_handler, and GATEWAY_KNOWN_COMMANDS
 # integration — all of which are unimplemented features.

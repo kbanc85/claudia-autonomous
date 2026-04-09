@@ -32,7 +32,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
 from pathlib import Path
-from hermes_constants import get_hermes_home
+from claudia_constants import get_hermes_home
 
 
 # ---------------------------------------------------------------------------

@@ -120,7 +120,7 @@ def _load_config() -> dict:
       3. Environment variables
     """
     from pathlib import Path
-    from hermes_constants import get_hermes_home
+    from claudia_constants import get_hermes_home
 
     # Profile-scoped path (preferred)
     profile_path = get_hermes_home() / "hindsight" / "config.json"

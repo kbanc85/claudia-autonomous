@@ -323,7 +323,7 @@ class HonchoMemoryProvider(MemoryProvider):
         # ----- B6: Memory file migration (one-time, for new sessions) -----
         try:
             if not session.messages:
-                from hermes_constants import get_hermes_home
+                from claudia_constants import get_hermes_home
                 mem_dir = str(get_hermes_home() / "memories")
                 self._manager.migrate_memory_files(self._session_key, mem_dir)
                 logger.debug("Honcho memory file migration attempted for new session: %s", self._session_key)

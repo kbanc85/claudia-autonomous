@@ -16,7 +16,7 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from hermes_constants import get_hermes_home
+from claudia_constants import get_hermes_home
 from tools.environments.base import BaseEnvironment
 from tools.interrupt import is_interrupted
 

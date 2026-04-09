@@ -10,7 +10,7 @@ on:
       - 'nix/**'
       - 'pyproject.toml'
       - 'uv.lock'
-      - 'hermes_cli/**'
+      - 'claudia_cli/**'
       - 'run_agent.py'
       - 'acp_adapter/**'
 

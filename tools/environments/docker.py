@@ -63,7 +63,7 @@ def _normalize_forward_env_names(forward_env: list[str] | None) -> list[str]:
 def _load_hermes_env_vars() -> dict[str, str]:
     """Load ~/.hermes/.env values without failing Docker command execution."""
     try:
-        from hermes_cli.config import load_env
+        from claudia_cli.config import load_env
 
         return load_env() or {}
     except Exception:

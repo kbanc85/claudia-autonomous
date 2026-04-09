@@ -28,7 +28,7 @@ def _isolate_hermes_home(tmp_path, monkeypatch):
     monkeypatch.setenv("HERMES_HOME", str(fake_home))
     # Reset plugin singleton so tests don't leak plugins from ~/.hermes/plugins/
     try:
-        import hermes_cli.plugins as _plugins_mod
+        import claudia_cli.plugins as _plugins_mod
         monkeypatch.setattr(_plugins_mod, "_plugin_manager", None)
     except Exception:
         pass

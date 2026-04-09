@@ -6,8 +6,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from hermes_cli.auth import AuthError
-from hermes_cli import main as hermes_main
+from claudia_cli.auth import AuthError
+from claudia_cli import main as hermes_main
 
 
 # ---------------------------------------------------------------------------
@@ -123,7 +123,7 @@ def _import_cli():
     return importlib.import_module("cli")
 
 
-def test_hermes_cli_init_does_not_eagerly_resolve_runtime_provider(monkeypatch):
+def test_claudia_cli_init_does_not_eagerly_resolve_runtime_provider(monkeypatch):
     cli = _import_cli()
     calls = {"count": 0}
 
@@ -131,8 +131,8 @@ def test_hermes_cli_init_does_not_eagerly_resolve_runtime_provider(monkeypatch):
         calls["count"] += 1
         raise AssertionError("resolve_runtime_provider should not be called in HermesCLI.__init__")
 
-    monkeypatch.setattr("hermes_cli.runtime_provider.resolve_runtime_provider", _unexpected_runtime_resolve)
-    monkeypatch.setattr("hermes_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
+    monkeypatch.setattr("claudia_cli.runtime_provider.resolve_runtime_provider", _unexpected_runtime_resolve)
+    monkeypatch.setattr("claudia_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
 
     shell = cli.HermesCLI(model="gpt-5", compact=True, max_turns=1)
 
@@ -160,8 +160,8 @@ def test_runtime_resolution_failure_is_not_sticky(monkeypatch):
         def __init__(self, *args, **kwargs):
             self.kwargs = kwargs
 
-    monkeypatch.setattr("hermes_cli.runtime_provider.resolve_runtime_provider", _runtime_resolve)
-    monkeypatch.setattr("hermes_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
+    monkeypatch.setattr("claudia_cli.runtime_provider.resolve_runtime_provider", _runtime_resolve)
+    monkeypatch.setattr("claudia_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
     monkeypatch.setattr(cli, "AIAgent", _DummyAgent)
 
     shell = cli.HermesCLI(model="gpt-5", compact=True, max_turns=1)
@@ -184,8 +184,8 @@ def test_runtime_resolution_rebuilds_agent_on_routing_change(monkeypatch):
             "source": "env/config",
         }
 
-    monkeypatch.setattr("hermes_cli.runtime_provider.resolve_runtime_provider", _runtime_resolve)
-    monkeypatch.setattr("hermes_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
+    monkeypatch.setattr("claudia_cli.runtime_provider.resolve_runtime_provider", _runtime_resolve)
+    monkeypatch.setattr("claudia_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
 
     shell = cli.HermesCLI(model="gpt-5", compact=True, max_turns=1)
     shell.provider = "openrouter"
@@ -229,7 +229,7 @@ def test_cli_turn_routing_uses_cheap_model_when_simple(monkeypatch):
             "source": "env/config",
         }
 
-    monkeypatch.setattr("hermes_cli.runtime_provider.resolve_runtime_provider", _runtime_resolve)
+    monkeypatch.setattr("claudia_cli.runtime_provider.resolve_runtime_provider", _runtime_resolve)
 
     shell = cli.HermesCLI(model="anthropic/claude-sonnet-4", compact=True, max_turns=1)
     shell.provider = "openrouter"
@@ -290,10 +290,10 @@ def test_codex_provider_replaces_incompatible_default_model(monkeypatch):
             "source": "env/config",
         }
 
-    monkeypatch.setattr("hermes_cli.runtime_provider.resolve_runtime_provider", _runtime_resolve)
-    monkeypatch.setattr("hermes_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
+    monkeypatch.setattr("claudia_cli.runtime_provider.resolve_runtime_provider", _runtime_resolve)
+    monkeypatch.setattr("claudia_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
     monkeypatch.setattr(
-        "hermes_cli.codex_models.get_codex_model_ids",
+        "claudia_cli.codex_models.get_codex_model_ids",
         lambda access_token=None: ["gpt-5.2-codex", "gpt-5.1-codex-mini"],
     )
 
@@ -316,25 +316,25 @@ def test_model_flow_nous_prints_subscription_guidance_without_mutating_explicit_
     }
 
     monkeypatch.setattr(
-        "hermes_cli.auth.get_provider_auth_state",
+        "claudia_cli.auth.get_provider_auth_state",
         lambda provider: {"access_token": "nous-token"},
     )
     monkeypatch.setattr(
-        "hermes_cli.auth.resolve_nous_runtime_credentials",
+        "claudia_cli.auth.resolve_nous_runtime_credentials",
         lambda *args, **kwargs: {
             "base_url": "https://inference.example.com/v1",
             "api_key": "nous-key",
         },
     )
     monkeypatch.setattr(
-        "hermes_cli.auth.fetch_nous_models",
+        "claudia_cli.auth.fetch_nous_models",
         lambda *args, **kwargs: ["claude-opus-4-6"],
     )
-    monkeypatch.setattr("hermes_cli.auth._prompt_model_selection", lambda model_ids, current_model="": "claude-opus-4-6")
-    monkeypatch.setattr("hermes_cli.auth._save_model_choice", lambda model: None)
-    monkeypatch.setattr("hermes_cli.auth._update_config_for_provider", lambda provider, url: None)
+    monkeypatch.setattr("claudia_cli.auth._prompt_model_selection", lambda model_ids, current_model="": "claude-opus-4-6")
+    monkeypatch.setattr("claudia_cli.auth._save_model_choice", lambda model: None)
+    monkeypatch.setattr("claudia_cli.auth._update_config_for_provider", lambda provider, url: None)
     monkeypatch.setattr(
-        "hermes_cli.nous_subscription.get_nous_subscription_explainer_lines",
+        "claudia_cli.nous_subscription.get_nous_subscription_explainer_lines",
         lambda: ["Nous subscription enables managed web tools."],
     )
 
@@ -354,25 +354,25 @@ def test_model_flow_nous_applies_managed_tts_default_when_unconfigured(monkeypat
     }
 
     monkeypatch.setattr(
-        "hermes_cli.auth.get_provider_auth_state",
+        "claudia_cli.auth.get_provider_auth_state",
         lambda provider: {"access_token": "nous-token"},
     )
     monkeypatch.setattr(
-        "hermes_cli.auth.resolve_nous_runtime_credentials",
+        "claudia_cli.auth.resolve_nous_runtime_credentials",
         lambda *args, **kwargs: {
             "base_url": "https://inference.example.com/v1",
             "api_key": "nous-key",
         },
     )
     monkeypatch.setattr(
-        "hermes_cli.auth.fetch_nous_models",
+        "claudia_cli.auth.fetch_nous_models",
         lambda *args, **kwargs: ["claude-opus-4-6"],
     )
-    monkeypatch.setattr("hermes_cli.auth._prompt_model_selection", lambda model_ids, current_model="": "claude-opus-4-6")
-    monkeypatch.setattr("hermes_cli.auth._save_model_choice", lambda model: None)
-    monkeypatch.setattr("hermes_cli.auth._update_config_for_provider", lambda provider, url: None)
+    monkeypatch.setattr("claudia_cli.auth._prompt_model_selection", lambda model_ids, current_model="": "claude-opus-4-6")
+    monkeypatch.setattr("claudia_cli.auth._save_model_choice", lambda model: None)
+    monkeypatch.setattr("claudia_cli.auth._update_config_for_provider", lambda provider, url: None)
     monkeypatch.setattr(
-        "hermes_cli.nous_subscription.get_nous_subscription_explainer_lines",
+        "claudia_cli.nous_subscription.get_nous_subscription_explainer_lines",
         lambda: ["Nous subscription enables managed web tools."],
     )
 
@@ -409,11 +409,11 @@ def test_codex_provider_uses_config_model(monkeypatch):
             "source": "env/config",
         }
 
-    monkeypatch.setattr("hermes_cli.runtime_provider.resolve_runtime_provider", _runtime_resolve)
-    monkeypatch.setattr("hermes_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
+    monkeypatch.setattr("claudia_cli.runtime_provider.resolve_runtime_provider", _runtime_resolve)
+    monkeypatch.setattr("claudia_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
     # Prevent live API call from overriding the config model
     monkeypatch.setattr(
-        "hermes_cli.codex_models.get_codex_model_ids",
+        "claudia_cli.codex_models.get_codex_model_ids",
         lambda access_token=None: ["gpt-5.2-codex"],
     )
 
@@ -452,11 +452,11 @@ def test_codex_config_model_not_replaced_by_normalization(monkeypatch):
             "source": "env/config",
         }
 
-    monkeypatch.setattr("hermes_cli.runtime_provider.resolve_runtime_provider", _runtime_resolve)
-    monkeypatch.setattr("hermes_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
+    monkeypatch.setattr("claudia_cli.runtime_provider.resolve_runtime_provider", _runtime_resolve)
+    monkeypatch.setattr("claudia_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
     # API returns a DIFFERENT model than what the user configured
     monkeypatch.setattr(
-        "hermes_cli.codex_models.get_codex_model_ids",
+        "claudia_cli.codex_models.get_codex_model_ids",
         lambda access_token=None: ["gpt-5.4", "gpt-5.3-codex"],
     )
 
@@ -487,8 +487,8 @@ def test_codex_provider_preserves_explicit_codex_model(monkeypatch):
             "source": "env/config",
         }
 
-    monkeypatch.setattr("hermes_cli.runtime_provider.resolve_runtime_provider", _runtime_resolve)
-    monkeypatch.setattr("hermes_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
+    monkeypatch.setattr("claudia_cli.runtime_provider.resolve_runtime_provider", _runtime_resolve)
+    monkeypatch.setattr("claudia_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
 
     shell = cli.HermesCLI(model="gpt-5.1-codex-mini", compact=True, max_turns=1)
 
@@ -514,8 +514,8 @@ def test_codex_provider_strips_provider_prefix_from_model(monkeypatch):
             "source": "env/config",
         }
 
-    monkeypatch.setattr("hermes_cli.runtime_provider.resolve_runtime_provider", _runtime_resolve)
-    monkeypatch.setattr("hermes_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
+    monkeypatch.setattr("claudia_cli.runtime_provider.resolve_runtime_provider", _runtime_resolve)
+    monkeypatch.setattr("claudia_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
 
     shell = cli.HermesCLI(model="openai/gpt-5.3-codex", compact=True, max_turns=1)
 
@@ -525,19 +525,19 @@ def test_codex_provider_strips_provider_prefix_from_model(monkeypatch):
 
 def test_cmd_model_falls_back_to_auto_on_invalid_provider(monkeypatch, capsys):
     monkeypatch.setattr(
-        "hermes_cli.config.load_config",
+        "claudia_cli.config.load_config",
         lambda: {"model": {"default": "gpt-5", "provider": "invalid-provider"}},
     )
-    monkeypatch.setattr("hermes_cli.config.save_config", lambda cfg: None)
-    monkeypatch.setattr("hermes_cli.config.get_env_value", lambda key: "")
-    monkeypatch.setattr("hermes_cli.config.save_env_value", lambda key, value: None)
+    monkeypatch.setattr("claudia_cli.config.save_config", lambda cfg: None)
+    monkeypatch.setattr("claudia_cli.config.get_env_value", lambda key: "")
+    monkeypatch.setattr("claudia_cli.config.save_env_value", lambda key, value: None)
 
     def _resolve_provider(requested, **kwargs):
         if requested == "invalid-provider":
             raise AuthError("Unknown provider 'invalid-provider'.", code="invalid_provider")
         return "openrouter"
 
-    monkeypatch.setattr("hermes_cli.auth.resolve_provider", _resolve_provider)
+    monkeypatch.setattr("claudia_cli.auth.resolve_provider", _resolve_provider)
     monkeypatch.setattr(hermes_main, "_prompt_provider_choice", lambda choices: len(choices) - 1)
     monkeypatch.setattr("sys.stdin", type("FakeTTY", (), {"isatty": lambda self: True})())
 
@@ -551,16 +551,16 @@ def test_cmd_model_falls_back_to_auto_on_invalid_provider(monkeypatch, capsys):
 
 def test_model_flow_custom_saves_verified_v1_base_url(monkeypatch, capsys):
     monkeypatch.setattr(
-        "hermes_cli.config.get_env_value",
+        "claudia_cli.config.get_env_value",
         lambda key: "" if key in {"OPENAI_BASE_URL", "OPENAI_API_KEY"} else "",
     )
     saved_env = {}
-    monkeypatch.setattr("hermes_cli.config.save_env_value", lambda key, value: saved_env.__setitem__(key, value))
-    monkeypatch.setattr("hermes_cli.auth._save_model_choice", lambda model: saved_env.__setitem__("MODEL", model))
-    monkeypatch.setattr("hermes_cli.auth.deactivate_provider", lambda: None)
-    monkeypatch.setattr("hermes_cli.main._save_custom_provider", lambda *args, **kwargs: None)
+    monkeypatch.setattr("claudia_cli.config.save_env_value", lambda key, value: saved_env.__setitem__(key, value))
+    monkeypatch.setattr("claudia_cli.auth._save_model_choice", lambda model: saved_env.__setitem__("MODEL", model))
+    monkeypatch.setattr("claudia_cli.auth.deactivate_provider", lambda: None)
+    monkeypatch.setattr("claudia_cli.main._save_custom_provider", lambda *args, **kwargs: None)
     monkeypatch.setattr(
-        "hermes_cli.models.probe_api_models",
+        "claudia_cli.models.probe_api_models",
         lambda api_key, base_url: {
             "models": ["llm"],
             "probed_url": "http://localhost:8000/v1/models",
@@ -570,10 +570,10 @@ def test_model_flow_custom_saves_verified_v1_base_url(monkeypatch, capsys):
         },
     )
     monkeypatch.setattr(
-        "hermes_cli.config.load_config",
+        "claudia_cli.config.load_config",
         lambda: {"model": {"default": "", "provider": "custom", "base_url": ""}},
     )
-    monkeypatch.setattr("hermes_cli.config.save_config", lambda cfg: None)
+    monkeypatch.setattr("claudia_cli.config.save_config", lambda cfg: None)
 
     # After the probe detects a single model ("llm"), the flow asks
     # "Use this model? [Y/n]:" — confirm with Enter, then context length.
@@ -593,14 +593,14 @@ def test_model_flow_custom_saves_verified_v1_base_url(monkeypatch, capsys):
 def test_cmd_model_forwards_nous_login_tls_options(monkeypatch):
     monkeypatch.setattr(hermes_main, "_require_tty", lambda *a: None)
     monkeypatch.setattr(
-        "hermes_cli.config.load_config",
+        "claudia_cli.config.load_config",
         lambda: {"model": {"default": "gpt-5", "provider": "nous"}},
     )
-    monkeypatch.setattr("hermes_cli.config.save_config", lambda cfg: None)
-    monkeypatch.setattr("hermes_cli.config.get_env_value", lambda key: "")
-    monkeypatch.setattr("hermes_cli.config.save_env_value", lambda key, value: None)
-    monkeypatch.setattr("hermes_cli.auth.resolve_provider", lambda requested, **kwargs: "nous")
-    monkeypatch.setattr("hermes_cli.auth.get_provider_auth_state", lambda provider_id: None)
+    monkeypatch.setattr("claudia_cli.config.save_config", lambda cfg: None)
+    monkeypatch.setattr("claudia_cli.config.get_env_value", lambda key: "")
+    monkeypatch.setattr("claudia_cli.config.save_env_value", lambda key, value: None)
+    monkeypatch.setattr("claudia_cli.auth.resolve_provider", lambda requested, **kwargs: "nous")
+    monkeypatch.setattr("claudia_cli.auth.get_provider_auth_state", lambda provider_id: None)
     monkeypatch.setattr(hermes_main, "_prompt_provider_choice", lambda choices: 0)
 
     captured = {}
@@ -615,7 +615,7 @@ def test_cmd_model_forwards_nous_login_tls_options(monkeypatch):
         captured["ca_bundle"] = login_args.ca_bundle
         captured["insecure"] = login_args.insecure
 
-    monkeypatch.setattr("hermes_cli.auth._login_nous", _fake_login)
+    monkeypatch.setattr("claudia_cli.auth._login_nous", _fake_login)
 
     hermes_main.cmd_model(
         SimpleNamespace(

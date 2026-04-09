@@ -14,12 +14,12 @@ import re
 import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
-from hermes_constants import get_hermes_home
+from claudia_constants import get_hermes_home
 from typing import Optional, Dict, List, Any
 
 logger = logging.getLogger(__name__)
 
-from hermes_time import now as _hermes_now
+from claudia_time import now as _hermes_now
 
 try:
     from croniter import croniter

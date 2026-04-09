@@ -56,7 +56,7 @@ def _resolve_download_timeout() -> float:
         except ValueError:
             pass
     try:
-        from hermes_cli.config import load_config
+        from claudia_cli.config import load_config
         cfg = load_config()
         val = cfg.get("auxiliary", {}).get("vision", {}).get("download_timeout")
         if val is not None:
@@ -394,7 +394,7 @@ async def vision_analyze_tool(
         # Local vision models (llama.cpp, ollama) can take well over 30s.
         vision_timeout = 120.0
         try:
-            from hermes_cli.config import load_config
+            from claudia_cli.config import load_config
             _cfg = load_config()
             _vt = _cfg.get("auxiliary", {}).get("vision", {}).get("timeout")
             if _vt is not None:

@@ -501,8 +501,8 @@ class TestGetTextAuxiliaryClient:
             }
         }
         monkeypatch.setenv("OPENAI_API_KEY", "lm-studio-key")
-        monkeypatch.setattr("hermes_cli.config.load_config", lambda: config)
-        monkeypatch.setattr("hermes_cli.runtime_provider.load_config", lambda: config)
+        monkeypatch.setattr("claudia_cli.config.load_config", lambda: config)
+        monkeypatch.setattr("claudia_cli.runtime_provider.load_config", lambda: config)
         # Override the autouse monkeypatch for codex
         monkeypatch.setattr(
             "agent.auxiliary_client._read_codex_access_token",
@@ -547,8 +547,8 @@ class TestGetTextAuxiliaryClient:
             }
         }
         monkeypatch.setenv("OPENAI_API_KEY", "lm-studio-key")
-        monkeypatch.setattr("hermes_cli.config.load_config", lambda: config)
-        monkeypatch.setattr("hermes_cli.runtime_provider.load_config", lambda: config)
+        monkeypatch.setattr("claudia_cli.config.load_config", lambda: config)
+        monkeypatch.setattr("claudia_cli.runtime_provider.load_config", lambda: config)
 
         with patch("agent.auxiliary_client._read_nous_auth", return_value=None), \
              patch("agent.auxiliary_client._read_codex_access_token", return_value=None), \
@@ -585,7 +585,7 @@ class TestGetTextAuxiliaryClient:
         with (
             patch("agent.auxiliary_client.load_pool", return_value=_Pool()),
             patch("agent.auxiliary_client.OpenAI"),
-            patch("hermes_cli.auth._read_codex_tokens", side_effect=AssertionError("legacy codex store should not run")),
+            patch("claudia_cli.auth._read_codex_tokens", side_effect=AssertionError("legacy codex store should not run")),
         ):
             from agent.auxiliary_client import _try_codex
 
@@ -679,7 +679,7 @@ class TestAuxiliaryPoolAwareness:
 
         with (
             patch(
-                "hermes_cli.auth.resolve_api_key_provider_credentials",
+                "claudia_cli.auth.resolve_api_key_provider_credentials",
                 return_value={
                     "provider": "copilot",
                     "api_key": "gh-cli-token",
@@ -723,7 +723,7 @@ class TestAuxiliaryPoolAwareness:
             patch("agent.anthropic_adapter.build_anthropic_client", return_value=MagicMock()),
             patch("agent.anthropic_adapter.resolve_anthropic_token", return_value="sk-ant-api03-key"),
             patch("agent.auxiliary_client.OpenAI") as mock_openai,
-            patch("hermes_cli.config.load_config", fake_load_config),
+            patch("claudia_cli.config.load_config", fake_load_config),
         ):
             client, model = get_vision_auxiliary_client()
 
@@ -737,7 +737,7 @@ class TestAuxiliaryPoolAwareness:
 
         codex_client = MagicMock()
         with (
-            patch("hermes_cli.config.load_config", fake_load_config),
+            patch("claudia_cli.config.load_config", fake_load_config),
             patch("agent.auxiliary_client._try_codex", return_value=(codex_client, "gpt-5.2-codex")) as mock_codex,
             patch("agent.auxiliary_client._try_openrouter") as mock_openrouter,
             patch("agent.auxiliary_client._try_nous") as mock_nous,
@@ -829,8 +829,8 @@ class TestAuxiliaryPoolAwareness:
         }
         monkeypatch.setenv("AUXILIARY_VISION_PROVIDER", "main")
         monkeypatch.setenv("OPENAI_API_KEY", "local-key")
-        monkeypatch.setattr("hermes_cli.config.load_config", lambda: config)
-        monkeypatch.setattr("hermes_cli.runtime_provider.load_config", lambda: config)
+        monkeypatch.setattr("claudia_cli.config.load_config", lambda: config)
+        monkeypatch.setattr("claudia_cli.runtime_provider.load_config", lambda: config)
         with patch("agent.auxiliary_client._read_nous_auth", return_value=None), \
              patch("agent.auxiliary_client.OpenAI") as mock_openai:
             client, model = get_vision_auxiliary_client()
@@ -936,8 +936,8 @@ class TestResolveForcedProvider:
             }
         }
         monkeypatch.setenv("OPENAI_API_KEY", "local-key")
-        monkeypatch.setattr("hermes_cli.config.load_config", lambda: config)
-        monkeypatch.setattr("hermes_cli.runtime_provider.load_config", lambda: config)
+        monkeypatch.setattr("claudia_cli.config.load_config", lambda: config)
+        monkeypatch.setattr("claudia_cli.runtime_provider.load_config", lambda: config)
         with patch("agent.auxiliary_client._read_nous_auth", return_value=None), \
              patch("agent.auxiliary_client.OpenAI") as mock_openai:
             client, model = _resolve_forced_provider("main")
@@ -952,8 +952,8 @@ class TestResolveForcedProvider:
             }
         }
         monkeypatch.setenv("OPENAI_API_KEY", "local-key")
-        monkeypatch.setattr("hermes_cli.config.load_config", lambda: config)
-        monkeypatch.setattr("hermes_cli.runtime_provider.load_config", lambda: config)
+        monkeypatch.setattr("claudia_cli.config.load_config", lambda: config)
+        monkeypatch.setattr("claudia_cli.runtime_provider.load_config", lambda: config)
         with patch("agent.auxiliary_client._read_nous_auth", return_value=None), \
              patch("agent.auxiliary_client._read_codex_access_token", return_value=None), \
              patch("agent.auxiliary_client._resolve_api_key_provider", return_value=(None, None)), \
@@ -975,8 +975,8 @@ class TestResolveForcedProvider:
         }
         monkeypatch.setenv("OPENROUTER_API_KEY", "or-key")
         monkeypatch.setenv("OPENAI_API_KEY", "local-key")
-        monkeypatch.setattr("hermes_cli.config.load_config", lambda: config)
-        monkeypatch.setattr("hermes_cli.runtime_provider.load_config", lambda: config)
+        monkeypatch.setattr("claudia_cli.config.load_config", lambda: config)
+        monkeypatch.setattr("claudia_cli.runtime_provider.load_config", lambda: config)
         with patch("agent.auxiliary_client._read_nous_auth", return_value=None), \
              patch("agent.auxiliary_client.OpenAI") as mock_openai:
             client, model = _resolve_forced_provider("main")

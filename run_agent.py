@@ -45,11 +45,11 @@ import fire
 from datetime import datetime
 from pathlib import Path
 
-from hermes_constants import get_hermes_home
+from claudia_constants import get_hermes_home
 
 # Load .env from ~/.hermes/.env first, then project root as dev fallback.
 # User-managed env files should override stale shell exports on restart.
-from hermes_cli.env_loader import load_hermes_dotenv
+from claudia_cli.env_loader import load_hermes_dotenv
 
 _hermes_home = get_hermes_home()
 _project_env = Path(__file__).parent / '.env'
@@ -73,7 +73,7 @@ from tools.interrupt import set_interrupt as _set_interrupt
 from tools.browser_tool import cleanup_browser
 
 
-from hermes_constants import OPENROUTER_BASE_URL
+from claudia_constants import OPENROUTER_BASE_URL
 
 # Agent internals extracted to agent/ package for modularity
 from agent.prompt_builder import (
@@ -717,7 +717,7 @@ class AIAgent:
                     'run_agent',            # agent runner internals
                     'trajectory_compressor',
                     'cron',                 # scheduler (only relevant in daemon mode)
-                    'hermes_cli',           # CLI helpers
+                    'claudia_cli',           # CLI helpers
                 ]:
                     logging.getLogger(quiet_logger).setLevel(logging.ERROR)
         
@@ -783,7 +783,7 @@ class AIAgent:
                         "X-OpenRouter-Categories": "productivity,cli-agent",
                     }
                 elif "api.githubcopilot.com" in effective_base.lower():
-                    from hermes_cli.models import copilot_default_headers
+                    from claudia_cli.models import copilot_default_headers
 
                     client_kwargs["default_headers"] = copilot_default_headers()
                 elif "api.kimi.com" in effective_base.lower():
@@ -993,7 +993,7 @@ class AIAgent:
         
         # Load config once for memory, skills, and compression sections
         try:
-            from hermes_cli.config import load_config as _load_agent_config
+            from claudia_cli.config import load_config as _load_agent_config
             _agent_cfg = _load_agent_config()
         except Exception:
             _agent_cfg = {}
@@ -1045,7 +1045,7 @@ class AIAgent:
                             _mem_provider_name = "honcho"
                             # Persist so this only auto-migrates once
                             try:
-                                from hermes_cli.config import load_config as _lc, save_config as _sc
+                                from claudia_cli.config import load_config as _lc, save_config as _sc
                                 _cfg = _lc()
                                 _cfg.setdefault("memory", {})["provider"] = "honcho"
                                 _sc(_cfg)
@@ -1065,7 +1065,7 @@ class AIAgent:
                     if _mp and _mp.is_available():
                         self._memory_manager.add_provider(_mp)
                     if self._memory_manager.providers:
-                        from hermes_constants import get_hermes_home as _ghh
+                        from claudia_constants import get_hermes_home as _ghh
                         _init_kwargs = {
                             "session_id": self.session_id,
                             "platform": platform or "cli",
@@ -1074,7 +1074,7 @@ class AIAgent:
                         }
                         # Profile identity for per-profile provider scoping
                         try:
-                            from hermes_cli.profiles import get_active_profile_name
+                            from claudia_cli.profiles import get_active_profile_name
                             _profile = get_active_profile_name()
                             _init_kwargs["agent_identity"] = _profile
                             _init_kwargs["agent_workspace"] = "hermes"
@@ -2545,7 +2545,7 @@ class AIAgent:
             if context_files_prompt:
                 prompt_parts.append(context_files_prompt)
 
-        from hermes_time import now as _hermes_now
+        from claudia_time import now as _hermes_now
         now = _hermes_now()
         timestamp_line = f"Conversation started: {now.strftime('%A, %B %d, %Y %I:%M %p')}"
         if self.pass_session_id and self.session_id:
@@ -3686,7 +3686,7 @@ class AIAgent:
             return False
 
         try:
-            from hermes_cli.auth import resolve_codex_runtime_credentials
+            from claudia_cli.auth import resolve_codex_runtime_credentials
 
             creds = resolve_codex_runtime_credentials(force_refresh=force)
         except Exception as exc:
@@ -3715,7 +3715,7 @@ class AIAgent:
             return False
 
         try:
-            from hermes_cli.auth import resolve_nous_runtime_credentials
+            from claudia_cli.auth import resolve_nous_runtime_credentials
 
             creds = resolve_nous_runtime_credentials(
                 min_key_ttl_seconds=max(60, int(os.getenv("HERMES_NOUS_MIN_KEY_TTL_SECONDS", "1800"))),
@@ -3791,7 +3791,7 @@ class AIAgent:
         if "openrouter" in normalized:
             self._client_kwargs["default_headers"] = dict(_OR_HEADERS)
         elif "api.githubcopilot.com" in normalized:
-            from hermes_cli.models import copilot_default_headers
+            from claudia_cli.models import copilot_default_headers
 
             self._client_kwargs["default_headers"] = copilot_default_headers()
         elif "api.kimi.com" in normalized:
@@ -5111,7 +5111,7 @@ class AIAgent:
             return True
         if "models.github.ai" in self._base_url_lower or "api.githubcopilot.com" in self._base_url_lower:
             try:
-                from hermes_cli.models import github_model_reasoning_efforts
+                from claudia_cli.models import github_model_reasoning_efforts
 
                 return bool(github_model_reasoning_efforts(self.model))
             except Exception:
@@ -5135,7 +5135,7 @@ class AIAgent:
     def _github_models_reasoning_extra_body(self) -> dict | None:
         """Format reasoning payload for GitHub Models/OpenAI-compatible routes."""
         try:
-            from hermes_cli.models import github_model_reasoning_efforts
+            from claudia_cli.models import github_model_reasoning_efforts
         except Exception:
             return None
 
@@ -6531,7 +6531,7 @@ class AIAgent:
                 # continuation).  Plugins can use this to initialise
                 # session-scoped state (e.g. warm a memory cache).
                 try:
-                    from hermes_cli.plugins import invoke_hook as _invoke_hook
+                    from claudia_cli.plugins import invoke_hook as _invoke_hook
                     _invoke_hook(
                         "on_session_start",
                         session_id=self.session_id,
@@ -6615,7 +6615,7 @@ class AIAgent:
         # API call in this turn (not persisted to session DB or cache).
         _plugin_turn_context = ""
         try:
-            from hermes_cli.plugins import invoke_hook as _invoke_hook
+            from claudia_cli.plugins import invoke_hook as _invoke_hook
             _pre_results = _invoke_hook(
                 "pre_llm_call",
                 session_id=self.session_id,
@@ -7347,7 +7347,7 @@ class AIAgent:
                         print(f"{self.log_prefix}   Auth method: {auth_method}")
                         print(f"{self.log_prefix}   Token prefix: {key[:12]}..." if key and len(key) > 12 else f"{self.log_prefix}   Token: (empty or short)")
                         print(f"{self.log_prefix}   Troubleshooting:")
-                        from hermes_constants import display_hermes_home as _dhh_fn
+                        from claudia_constants import display_hermes_home as _dhh_fn
                         _dhh = _dhh_fn()
                         print(f"{self.log_prefix}     • Check ANTHROPIC_TOKEN in {_dhh}/.env for Hermes-managed OAuth/setup tokens")
                         print(f"{self.log_prefix}     • Check ANTHROPIC_API_KEY in {_dhh}/.env for API keys or legacy token values")
@@ -8562,7 +8562,7 @@ class AIAgent:
         # to an external memory system).
         if final_response and not interrupted:
             try:
-                from hermes_cli.plugins import invoke_hook as _invoke_hook
+                from claudia_cli.plugins import invoke_hook as _invoke_hook
                 _invoke_hook(
                     "post_llm_call",
                     session_id=self.session_id,
@@ -8659,7 +8659,7 @@ class AIAgent:
         # Fired at the very end of every run_conversation call.
         # Plugins can use this for cleanup, flushing buffers, etc.
         try:
-            from hermes_cli.plugins import invoke_hook as _invoke_hook
+            from claudia_cli.plugins import invoke_hook as _invoke_hook
             _invoke_hook(
                 "on_session_end",
                 session_id=self.session_id,

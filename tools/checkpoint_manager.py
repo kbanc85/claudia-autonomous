@@ -24,7 +24,7 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
-from hermes_constants import get_hermes_home
+from claudia_constants import get_hermes_home
 from typing import Dict, List, Optional, Set
 
 logger = logging.getLogger(__name__)

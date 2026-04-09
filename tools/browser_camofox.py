@@ -34,7 +34,7 @@ from typing import Any, Dict, Optional
 
 import requests
 
-from hermes_cli.config import load_config
+from claudia_cli.config import load_config
 from tools.browser_camofox_state import get_camofox_identity
 
 logger = logging.getLogger(__name__)
@@ -462,7 +462,7 @@ def camofox_vision(question: str, annotate: bool = False,
         )
 
         # Save screenshot to cache
-        from hermes_constants import get_hermes_home
+        from claudia_constants import get_hermes_home
         screenshots_dir = get_hermes_home() / "browser_screenshots"
         screenshots_dir.mkdir(parents=True, exist_ok=True)
         screenshot_path = str(screenshots_dir / f"browser_screenshot_{uuid.uuid4().hex[:8]}.png")
@@ -500,7 +500,7 @@ def camofox_vision(question: str, annotate: bool = False,
         )
 
         try:
-            from hermes_cli.config import load_config
+            from claudia_cli.config import load_config
             _cfg = load_config()
             _vision_timeout = int(_cfg.get("auxiliary", {}).get("vision", {}).get("timeout", 120))
         except Exception:

@@ -40,7 +40,7 @@ def test_auth_add_api_key_persists_manual_entry(tmp_path, monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     _write_auth_store(tmp_path, {"version": 1, "providers": {}})
 
-    from hermes_cli.auth_commands import auth_add_command
+    from claudia_cli.auth_commands import auth_add_command
 
     class _Args:
         provider = "openrouter"
@@ -75,7 +75,7 @@ def test_auth_add_anthropic_oauth_persists_pool_entry(tmp_path, monkeypatch):
         },
     )
 
-    from hermes_cli.auth_commands import auth_add_command
+    from claudia_cli.auth_commands import auth_add_command
 
     class _Args:
         provider = "anthropic"
@@ -99,7 +99,7 @@ def test_auth_add_nous_oauth_persists_pool_entry(tmp_path, monkeypatch):
     _write_auth_store(tmp_path, {"version": 1, "providers": {}})
     token = _jwt_with_email("nous@example.com")
     monkeypatch.setattr(
-        "hermes_cli.auth._nous_device_code_login",
+        "claudia_cli.auth._nous_device_code_login",
         lambda **kwargs: {
             "portal_base_url": "https://portal.example.com",
             "inference_base_url": "https://inference.example.com/v1",
@@ -121,7 +121,7 @@ def test_auth_add_nous_oauth_persists_pool_entry(tmp_path, monkeypatch):
         },
     )
 
-    from hermes_cli.auth_commands import auth_add_command
+    from claudia_cli.auth_commands import auth_add_command
 
     class _Args:
         provider = "nous"
@@ -153,7 +153,7 @@ def test_auth_add_codex_oauth_persists_pool_entry(tmp_path, monkeypatch):
     _write_auth_store(tmp_path, {"version": 1, "providers": {}})
     token = _jwt_with_email("codex@example.com")
     monkeypatch.setattr(
-        "hermes_cli.auth._codex_device_code_login",
+        "claudia_cli.auth._codex_device_code_login",
         lambda: {
             "tokens": {
                 "access_token": token,
@@ -164,7 +164,7 @@ def test_auth_add_codex_oauth_persists_pool_entry(tmp_path, monkeypatch):
         },
     )
 
-    from hermes_cli.auth_commands import auth_add_command
+    from claudia_cli.auth_commands import auth_add_command
 
     class _Args:
         provider = "openai-codex"
@@ -220,7 +220,7 @@ def test_auth_remove_reindexes_priorities(tmp_path, monkeypatch):
         },
     )
 
-    from hermes_cli.auth_commands import auth_remove_command
+    from claudia_cli.auth_commands import auth_remove_command
 
     class _Args:
         provider = "anthropic"
@@ -259,7 +259,7 @@ def test_auth_reset_clears_provider_statuses(tmp_path, monkeypatch, capsys):
         },
     )
 
-    from hermes_cli.auth_commands import auth_reset_command
+    from claudia_cli.auth_commands import auth_reset_command
 
     class _Args:
         provider = "anthropic"
@@ -311,7 +311,7 @@ def test_clear_provider_auth_removes_provider_pool_entries(tmp_path, monkeypatch
         },
     )
 
-    from hermes_cli.auth import clear_provider_auth
+    from claudia_cli.auth import clear_provider_auth
 
     assert clear_provider_auth("anthropic") is True
 
@@ -323,7 +323,7 @@ def test_clear_provider_auth_removes_provider_pool_entries(tmp_path, monkeypatch
 
 
 def test_auth_list_does_not_call_mutating_select(monkeypatch, capsys):
-    from hermes_cli.auth_commands import auth_list_command
+    from claudia_cli.auth_commands import auth_list_command
 
     class _Entry:
         id = "cred-1"
@@ -345,7 +345,7 @@ def test_auth_list_does_not_call_mutating_select(monkeypatch, capsys):
             raise AssertionError("auth_list_command should not call select()")
 
     monkeypatch.setattr(
-        "hermes_cli.auth_commands.load_pool",
+        "claudia_cli.auth_commands.load_pool",
         lambda provider: _Pool() if provider == "openrouter" else type("_EmptyPool", (), {"entries": lambda self: []})(),
     )
 
@@ -360,7 +360,7 @@ def test_auth_list_does_not_call_mutating_select(monkeypatch, capsys):
 
 
 def test_auth_list_shows_exhausted_cooldown(monkeypatch, capsys):
-    from hermes_cli.auth_commands import auth_list_command
+    from claudia_cli.auth_commands import auth_list_command
 
     class _Entry:
         id = "cred-1"
@@ -378,8 +378,8 @@ def test_auth_list_shows_exhausted_cooldown(monkeypatch, capsys):
         def peek(self):
             return None
 
-    monkeypatch.setattr("hermes_cli.auth_commands.load_pool", lambda provider: _Pool())
-    monkeypatch.setattr("hermes_cli.auth_commands.time.time", lambda: 1030.0)
+    monkeypatch.setattr("claudia_cli.auth_commands.load_pool", lambda provider: _Pool())
+    monkeypatch.setattr("claudia_cli.auth_commands.time.time", lambda: 1030.0)
 
     class _Args:
         provider = "openrouter"

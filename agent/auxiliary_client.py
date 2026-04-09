@@ -48,8 +48,8 @@ from typing import Any, Dict, List, Optional, Tuple
 from openai import OpenAI
 
 from agent.credential_pool import load_pool
-from hermes_cli.config import get_hermes_home
-from hermes_constants import OPENROUTER_BASE_URL
+from claudia_cli.config import get_hermes_home
+from claudia_constants import OPENROUTER_BASE_URL
 
 logger = logging.getLogger(__name__)
 
@@ -529,7 +529,7 @@ def _read_codex_access_token() -> Optional[str]:
         return token or None
 
     try:
-        from hermes_cli.auth import _read_codex_tokens
+        from claudia_cli.auth import _read_codex_tokens
         data = _read_codex_tokens()
         tokens = data.get("tokens", {})
         access_token = tokens.get("access_token")
@@ -563,7 +563,7 @@ def _resolve_api_key_provider() -> Tuple[Optional[OpenAI], Optional[str]]:
     credentials, or (None, None) if none are configured.
     """
     try:
-        from hermes_cli.auth import PROVIDER_REGISTRY, resolve_api_key_provider_credentials
+        from claudia_cli.auth import PROVIDER_REGISTRY, resolve_api_key_provider_credentials
     except ImportError:
         logger.debug("Could not import PROVIDER_REGISTRY for API-key fallback")
         return None, None
@@ -587,7 +587,7 @@ def _resolve_api_key_provider() -> Tuple[Optional[OpenAI], Optional[str]]:
             if "api.kimi.com" in base_url.lower():
                 extra["default_headers"] = {"User-Agent": "KimiCLI/1.0"}
             elif "api.githubcopilot.com" in base_url.lower():
-                from hermes_cli.models import copilot_default_headers
+                from claudia_cli.models import copilot_default_headers
 
                 extra["default_headers"] = copilot_default_headers()
             return OpenAI(api_key=api_key, base_url=base_url, **extra), model
@@ -604,7 +604,7 @@ def _resolve_api_key_provider() -> Tuple[Optional[OpenAI], Optional[str]]:
         if "api.kimi.com" in base_url.lower():
             extra["default_headers"] = {"User-Agent": "KimiCLI/1.0"}
         elif "api.githubcopilot.com" in base_url.lower():
-            from hermes_cli.models import copilot_default_headers
+            from claudia_cli.models import copilot_default_headers
 
             extra["default_headers"] = copilot_default_headers()
         return OpenAI(api_key=api_key, base_url=base_url, **extra), model
@@ -683,7 +683,7 @@ def _read_main_model() -> str:
     model. Environment variables are no longer consulted.
     """
     try:
-        from hermes_cli.config import load_config
+        from claudia_cli.config import load_config
         cfg = load_config()
         model_cfg = cfg.get("model", {})
         if isinstance(model_cfg, str) and model_cfg.strip():
@@ -705,7 +705,7 @@ def _resolve_custom_runtime() -> Tuple[Optional[str], Optional[str]]:
     environment.
     """
     try:
-        from hermes_cli.runtime_provider import resolve_runtime_provider
+        from claudia_cli.runtime_provider import resolve_runtime_provider
 
         runtime = resolve_runtime_provider(requested="custom")
     except Exception as exc:
@@ -786,7 +786,7 @@ def _try_anthropic() -> Tuple[Optional[Any], Optional[str]]:
     # base_url (e.g. Codex endpoint) would leak into Anthropic requests.
     base_url = _pool_runtime_base_url(entry, _ANTHROPIC_DEFAULT_BASE_URL) if pool_present else _ANTHROPIC_DEFAULT_BASE_URL
     try:
-        from hermes_cli.config import load_config
+        from claudia_cli.config import load_config
         cfg = load_config()
         model_cfg = cfg.get("model")
         if isinstance(model_cfg, dict):
@@ -908,7 +908,7 @@ def _to_async_client(sync_client, model: str):
     if "openrouter" in base_lower:
         async_kwargs["default_headers"] = dict(_OR_HEADERS)
     elif "api.githubcopilot.com" in base_lower:
-        from hermes_cli.models import copilot_default_headers
+        from claudia_cli.models import copilot_default_headers
 
         async_kwargs["default_headers"] = copilot_default_headers()
     elif "api.kimi.com" in base_lower:
@@ -1053,9 +1053,9 @@ def resolve_provider_client(
 
     # ── API-key providers from PROVIDER_REGISTRY ─────────────────────
     try:
-        from hermes_cli.auth import PROVIDER_REGISTRY, resolve_api_key_provider_credentials
+        from claudia_cli.auth import PROVIDER_REGISTRY, resolve_api_key_provider_credentials
     except ImportError:
-        logger.debug("hermes_cli.auth not available for provider %s", provider)
+        logger.debug("claudia_cli.auth not available for provider %s", provider)
         return None, None
 
     pconfig = PROVIDER_REGISTRY.get(provider)
@@ -1093,7 +1093,7 @@ def resolve_provider_client(
         if "api.kimi.com" in base_url.lower():
             headers["User-Agent"] = "KimiCLI/1.0"
         elif "api.githubcopilot.com" in base_url.lower():
-            from hermes_cli.models import copilot_default_headers
+            from claudia_cli.models import copilot_default_headers
 
             headers.update(copilot_default_headers())
 
@@ -1197,7 +1197,7 @@ def _strict_vision_backend_available(provider: str) -> bool:
 def _preferred_main_vision_provider() -> Optional[str]:
     """Return the selected main provider when it is also a supported vision backend."""
     try:
-        from hermes_cli.config import load_config
+        from claudia_cli.config import load_config
 
         config = load_config()
         model_cfg = config.get("model", {})
@@ -1537,7 +1537,7 @@ def _resolve_task_provider_model(
 
     if task:
         try:
-            from hermes_cli.config import load_config
+            from claudia_cli.config import load_config
             config = load_config()
         except ImportError:
             config = {}
@@ -1597,7 +1597,7 @@ def _get_task_timeout(task: str, default: float = _DEFAULT_AUX_TIMEOUT) -> float
     if not task:
         return default
     try:
-        from hermes_cli.config import load_config
+        from claudia_cli.config import load_config
         config = load_config()
     except ImportError:
         return default

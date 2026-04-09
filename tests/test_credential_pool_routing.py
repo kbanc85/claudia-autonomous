@@ -98,7 +98,7 @@ class TestSmartRoutingPoolPreservation:
         }
         # Force resolve_runtime_provider to fail so it falls back to primary
         monkeypatch.setattr(
-            "hermes_cli.runtime_provider.resolve_runtime_provider",
+            "claudia_cli.runtime_provider.resolve_runtime_provider",
             MagicMock(side_effect=RuntimeError("no credentials")),
         )
         result = resolve_turn_route("hi", routing_config, primary)

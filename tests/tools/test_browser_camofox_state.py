@@ -54,13 +54,13 @@ class TestCamofoxIdentity:
 
 class TestCamofoxConfigDefaults:
     def test_default_config_includes_managed_persistence_toggle(self):
-        from hermes_cli.config import DEFAULT_CONFIG
+        from claudia_cli.config import DEFAULT_CONFIG
 
         browser_cfg = DEFAULT_CONFIG["browser"]
         assert browser_cfg["camofox"]["managed_persistence"] is False
 
     def test_config_version_unchanged(self):
-        from hermes_cli.config import DEFAULT_CONFIG
+        from claudia_cli.config import DEFAULT_CONFIG
 
         # managed_persistence is auto-merged by _deep_merge, no version bump needed
         assert DEFAULT_CONFIG["_config_version"] == 11

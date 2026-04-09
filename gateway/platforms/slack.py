@@ -101,7 +101,7 @@ class SlackAdapter(BasePlatformAdapter):
         bot_tokens = [t.strip() for t in raw_token.split(",") if t.strip()]
 
         # Also load tokens from OAuth token file
-        from hermes_constants import get_hermes_home
+        from claudia_constants import get_hermes_home
         tokens_file = get_hermes_home() / "slack_tokens.json"
         if tokens_file.exists():
             try:
@@ -885,7 +885,7 @@ class SlackAdapter(BasePlatformAdapter):
 
         # Map subcommands to gateway commands — derived from central registry.
         # Also keep "compact" as a Slack-specific alias for /compress.
-        from hermes_cli.commands import slack_subcommand_map
+        from claudia_cli.commands import slack_subcommand_map
         subcommand_map = slack_subcommand_map()
         subcommand_map["compact"] = "/compress"
         first_word = text.split()[0] if text else ""
