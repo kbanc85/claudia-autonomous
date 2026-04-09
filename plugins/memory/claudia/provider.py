@@ -366,6 +366,32 @@ MEMORY_CONTRADICTS_MEMORY_SCHEMA: Dict[str, Any] = {
 }
 
 
+MEMORY_TRACE_SCHEMA: Dict[str, Any] = {
+    "name": "memory.trace",
+    "description": (
+        "Walk the correction chain for a memory. Returns every "
+        "version of the fact — the original extracted memory, "
+        "every subsequent correction, and the current authoritative "
+        "version — ordered oldest-first. Used for provenance "
+        "audits: 'why does Claudia think X?' shows the timeline of "
+        "how the fact evolved."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "id": {
+                "type": "integer",
+                "description": (
+                    "Any memory id in the chain. The result is the "
+                    "same regardless of which version you pass."
+                ),
+            },
+        },
+        "required": ["id"],
+    },
+}
+
+
 MEMORY_SEARCH_ENTITIES_SCHEMA: Dict[str, Any] = {
     "name": "memory.search_entities",
     "description": (
@@ -483,6 +509,7 @@ _ALL_TOOL_SCHEMAS = [
     MEMORY_CORRECT_MEMORY_SCHEMA,
     MEMORY_RELATE_SCHEMA,
     MEMORY_SEARCH_ENTITIES_SCHEMA,
+    MEMORY_TRACE_SCHEMA,
 ]
 
 
@@ -1376,6 +1403,8 @@ class ClaudiaMemoryProvider(MemoryProvider):
                 return self._handle_relate(args)
             if tool_name == "memory.search_entities":
                 return self._handle_search_entities(args)
+            if tool_name == "memory.trace":
+                return self._handle_trace(args)
             return json.dumps({"error": f"unknown tool: {tool_name}"})
         except Exception as exc:
             logger.exception("claudia memory tool call failed: %s", tool_name)
@@ -1591,6 +1620,132 @@ class ClaudiaMemoryProvider(MemoryProvider):
         return self._handle_commitment_status_transition(
             args, "dropped", "memory.commitment_drop"
         )
+
+    def _handle_trace(self, args: Dict[str, Any]) -> str:
+        """Walk a memory's correction chain (Phase 2C.12).
+
+        Returns every version of the fact in one flat list,
+        ordered by ``created_at`` ascending. Walks backward from
+        the given id via the ``corrected_from`` column and forward
+        via a reverse lookup on other memories' ``corrected_from``.
+
+        The traversal is breadth-first but small — correction
+        chains rarely exceed a few steps in practice. Safe-cap
+        at 100 entries to prevent pathological cycles (shouldn't
+        happen given the linear nature of corrections, but
+        defensive).
+        """
+        raw_id = args.get("id")
+        if raw_id is None:
+            return json.dumps({
+                "error": "memory.trace: missing required parameter 'id'"
+            })
+        try:
+            memory_id = int(raw_id)
+        except (TypeError, ValueError):
+            return json.dumps({
+                "error": (
+                    f"memory.trace: 'id' must be an integer, got {raw_id!r}"
+                )
+            })
+
+        if self._reader_pool is None:
+            return json.dumps({
+                "error": "memory.trace: provider not initialized"
+            })
+
+        profile = self._profile
+
+        with self._reader_pool.acquire() as conn:
+            # Verify the root exists in this profile
+            root = conn.execute(
+                """
+                SELECT id FROM memories
+                WHERE id = ? AND profile = ? AND deleted_at IS NULL
+                """,
+                (memory_id, profile),
+            ).fetchone()
+            if root is None:
+                return json.dumps({
+                    "error": (
+                        f"memory.trace: no memory with id {memory_id} "
+                        f"in profile {profile!r}"
+                    )
+                })
+
+            # Collect the chain via a BFS over corrected_from links
+            visited: set = set()
+            to_visit = [memory_id]
+            CAP = 100
+
+            while to_visit and len(visited) < CAP:
+                current = to_visit.pop(0)
+                if current in visited:
+                    continue
+                visited.add(current)
+
+                # Follow backward: predecessor via corrected_from
+                row = conn.execute(
+                    """
+                    SELECT corrected_from FROM memories
+                    WHERE id = ? AND profile = ?
+                    """,
+                    (current, profile),
+                ).fetchone()
+                if row is not None and row["corrected_from"] is not None:
+                    to_visit.append(int(row["corrected_from"]))
+
+                # Follow forward: any memory that corrected_from == current
+                forward_rows = conn.execute(
+                    """
+                    SELECT id FROM memories
+                    WHERE corrected_from = ? AND profile = ?
+                      AND deleted_at IS NULL
+                    """,
+                    (current, profile),
+                ).fetchall()
+                for fwd in forward_rows:
+                    to_visit.append(int(fwd["id"]))
+
+            if not visited:
+                return json.dumps({
+                    "error": (
+                        f"memory.trace: no memory with id {memory_id}"
+                    )
+                })
+
+            # Fetch full rows for the collected ids and sort by time
+            placeholders = ",".join("?" * len(visited))
+            rows = conn.execute(
+                f"""
+                SELECT id, content, origin, confidence, verification,
+                       corrected_from, source_type, source_ref,
+                       created_at, accessed_at
+                FROM memories
+                WHERE id IN ({placeholders})
+                  AND profile = ?
+                ORDER BY created_at ASC, id ASC
+                """,
+                (*visited, profile),
+            ).fetchall()
+
+        chain = [
+            {
+                "id": row["id"],
+                "content": row["content"],
+                "origin": row["origin"],
+                "confidence": float(row["confidence"]),
+                "verification": row["verification"],
+                "corrected_from": row["corrected_from"],
+                "source_type": row["source_type"],
+                "source_ref": row["source_ref"],
+                "created_at": row["created_at"],
+                "accessed_at": row["accessed_at"],
+            }
+            for row in rows
+        ]
+
+        return json.dumps({"chain": chain})
 
     def _handle_search_entities(self, args: Dict[str, Any]) -> str:
         """Fuzzy entity search (Phase 2C.11).
