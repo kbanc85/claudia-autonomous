@@ -1,7 +1,7 @@
-# Claudia ☤
+# Claudia
 
 <p align="center">
-  <strong>An AI chief of staff you can actually trust with your work.</strong>
+  <strong>Terminal-based AI chief of staff. Remembers relationships, tracks commitments, helps you think strategically.</strong>
 </p>
 
 <p align="center">
