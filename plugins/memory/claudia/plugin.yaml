@@ -1,0 +1,27 @@
+name: claudia
+display_name: "Claudia Hybrid Memory"
+version: "0.1.0-dev"
+abc_version: "1.0"
+description: |
+  Claudia's chief-of-staff memory system. SQLite + vector embeddings
+  (Ollama all-minilm:l6-v2 by default) with hybrid ranking: 50% vector
+  similarity, 25% importance, 10% recency, 15% FTS, plus rehearsal
+  boosting. Includes entity CRUD for people, organizations, and
+  projects; relationship graphs with health scores; commitment
+  lifecycle tracking; and three-tier offline degradation.
+
+  Status: Phase 2A.2 implementation in progress. The schema module
+  (2A.2a) is the first sub-task. Embedding pipeline, hybrid search,
+  entity CRUD, offline degradation, and provider registration follow
+  in subsequent sessions.
+
+  Designed per docs/decisions/memory-provider-design.md.
+
+author: "Kamil Banc"
+license: MIT
+requires:
+  - sqlite3  # stdlib, always available
+  # sqlite-vec is optional. Plugin runs in pure-FTS mode if absent.
+  # ollama is optional. Plugin runs with FTS + importance + recency
+  # reweighting if ollama is unreachable.
+category: memory
