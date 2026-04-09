@@ -73,7 +73,17 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from agent.memory_provider import MemoryProvider
-from plugins.memory.claudia import entities, hybrid_search, schema
+from plugins.memory.claudia import (
+    commitments as commitments_module,
+    entities,
+    hybrid_search,
+    schema,
+)
+from plugins.memory.claudia.commitment_detector import (
+    CommitmentDetector,
+    DetectedCommitment,
+    HybridCommitmentDetector,
+)
 from plugins.memory.claudia.embeddings import OllamaEmbedder
 from plugins.memory.claudia.extractor import (
     ExtractedEntity,
@@ -217,16 +227,21 @@ class ClaudiaMemoryProvider(MemoryProvider):
         self._agent_context: str = "primary"
         self._claudia_home: Optional[Path] = None
 
-        # Phase 2B.1: LLM entity extraction. Dedicated single-worker
-        # executor keeps extraction off the caller thread (invariant
+        # Phase 2B cognitive pipeline: LLM entity extraction (2B.1) +
+        # commitment detection (2B.2). One dedicated single-worker
+        # executor shared by both tasks, because both have the same
+        # latency profile (slow LLM calls) and the same non-blocking
+        # requirement. The pool stays off the caller thread (invariant
         # #3: sync_turn non-blocking) AND off the writer thread (so
         # slow LLM calls don't stall queued writes). Pending futures
-        # are tracked under a lock so flush()/shutdown() can drain
-        # them before closing the writer.
+        # from BOTH pipelines are tracked under one lock so
+        # flush()/shutdown() can drain everything together before
+        # closing the writer.
         self._extractor: Optional[LLMExtractor] = None
-        self._extractor_pool: Optional[concurrent.futures.ThreadPoolExecutor] = None
-        self._pending_extraction_futures: List[concurrent.futures.Future] = []
-        self._extraction_lock = threading.Lock()
+        self._commitment_detector: Optional[CommitmentDetector] = None
+        self._cognitive_pool: Optional[concurrent.futures.ThreadPoolExecutor] = None
+        self._pending_cognitive_futures: List[concurrent.futures.Future] = []
+        self._cognitive_lock = threading.Lock()
 
     # ── Required ABC members ──────────────────────────────────────────
 
@@ -275,9 +290,10 @@ class ClaudiaMemoryProvider(MemoryProvider):
         self._reader_pool = self._make_reader_pool()
 
         self._extractor = self._make_extractor()
-        self._extractor_pool = concurrent.futures.ThreadPoolExecutor(
+        self._commitment_detector = self._make_commitment_detector()
+        self._cognitive_pool = concurrent.futures.ThreadPoolExecutor(
             max_workers=1,
-            thread_name_prefix="claudia-extract",
+            thread_name_prefix="claudia-cognitive",
         )
 
         logger.info(
@@ -321,6 +337,17 @@ class ClaudiaMemoryProvider(MemoryProvider):
         probes lazily on first use per invariant #1.
         """
         return OllamaLLMExtractor()
+
+    def _make_commitment_detector(self) -> CommitmentDetector:
+        """Construct the commitment detector (Phase 2B.2).
+
+        Default is ``HybridCommitmentDetector`` which combines a
+        regex pre-filter with optional LLM refinement. Tests override
+        this to inject a scripted fake. Offline sessions get pattern
+        output only; sessions with a running Ollama daemon get LLM
+        refinement.
+        """
+        return HybridCommitmentDetector()
 
     # ── Profile and home resolution ───────────────────────────────────
 
@@ -415,24 +442,31 @@ class ClaudiaMemoryProvider(MemoryProvider):
         *,
         session_id: str = "",
     ) -> None:
-        """Store the completed turn as a memory row + extract entities.
+        """Store the completed turn + extract entities + detect commitments.
 
-        Two async fire-and-forget pipelines are kicked off:
+        Three async fire-and-forget pipelines are kicked off:
 
         1. **Memory insert.** Embedding is generated on the caller
            thread (invariant #11) and the INSERT is enqueued on the
            writer queue. This is the Phase 2A path, unchanged.
-        2. **Entity extraction.** The combined turn text is submitted
-           to the dedicated extraction executor (Phase 2B.1). The
-           worker thread calls ``LLMExtractor.extract()``, then
-           enqueues an ``upsert_entity`` job for each result on the
-           writer queue.
+        2. **Entity extraction** (Phase 2B.1). The combined turn
+           text is submitted to the cognitive executor; the worker
+           calls ``LLMExtractor.extract()`` and enqueues entity
+           upserts on the writer.
+        3. **Commitment detection** (Phase 2B.2). The USER's content
+           (not the combined turn) is submitted to the cognitive
+           executor; the worker calls
+           ``CommitmentDetector.detect()`` and enqueues commitment
+           inserts on the writer. Only user content is scanned
+           because commitments come from the user — Claudia's
+           responses go through approval flow before becoming
+           commitments.
 
-        Both paths are skipped entirely for non-primary agent contexts
+        All three paths skip entirely for non-primary agent contexts
         (cron, subagent, flush) per the ABC guidance. ``sync_turn``
-        itself stays non-blocking: it generates the embedding and
-        submits the extraction future, then returns. Actual LLM
-        latency lives on the extraction worker thread.
+        stays non-blocking: it computes the embedding and submits
+        both cognitive futures, then returns. Actual LLM latency
+        lives on the cognitive worker thread.
         """
         if self._writer is None:
             return
@@ -454,6 +488,9 @@ class ClaudiaMemoryProvider(MemoryProvider):
         )
 
         self._enqueue_extract(combined, source_ref=source_ref)
+        self._enqueue_detect_commitments(
+            user_content, source_ref=source_ref
+        )
 
     def flush(self, timeout: float = 5.0) -> bool:
         """Wait for all pending extractions and writes to drain.
@@ -469,7 +506,7 @@ class ClaudiaMemoryProvider(MemoryProvider):
         """
         deadline = time.monotonic() + timeout
 
-        if not self._drain_extraction_futures(deadline):
+        if not self._drain_cognitive_futures(deadline):
             return False
 
         if self._writer is None:
@@ -478,7 +515,7 @@ class ClaudiaMemoryProvider(MemoryProvider):
         remaining = max(0.0, deadline - time.monotonic())
         return self._writer.flush(timeout=remaining)
 
-    def _drain_extraction_futures(self, deadline: float) -> bool:
+    def _drain_cognitive_futures(self, deadline: float) -> bool:
         """Wait for all pending extraction futures to complete.
 
         Snapshots the pending-futures list under the lock, then waits
@@ -486,11 +523,11 @@ class ClaudiaMemoryProvider(MemoryProvider):
         still register their completion callbacks. Returns True if
         all snapshotted futures finished before the deadline.
         """
-        if self._extractor_pool is None:
+        if self._cognitive_pool is None:
             return True
 
-        with self._extraction_lock:
-            pending = list(self._pending_extraction_futures)
+        with self._cognitive_lock:
+            pending = list(self._pending_cognitive_futures)
 
         if not pending:
             return True
@@ -515,16 +552,16 @@ class ClaudiaMemoryProvider(MemoryProvider):
         Each stage is independently wrapped so a failure in one does
         not skip the others.
         """
-        if self._extractor_pool is not None:
+        if self._cognitive_pool is not None:
             try:
                 # wait=True drains the executor's task queue before
                 # joining its workers. Since we submit with fire-and-
                 # forget futures, the worker processes every enqueued
                 # extraction before shutdown returns.
-                self._extractor_pool.shutdown(wait=True)
+                self._cognitive_pool.shutdown(wait=True)
             except Exception:  # pragma: no cover - defensive
                 logger.debug("Error shutting down claudia extraction pool")
-            self._extractor_pool = None
+            self._cognitive_pool = None
 
         if self._writer is not None:
             try:
@@ -806,33 +843,33 @@ class ClaudiaMemoryProvider(MemoryProvider):
         what makes ``sync_turn`` non-blocking (invariant #3) despite
         LLM latency.
 
-        Pending futures are tracked under ``_extraction_lock`` so
+        Pending futures are tracked under ``_cognitive_lock`` so
         ``flush`` and ``shutdown`` can wait for them to drain before
         closing the writer. A done-callback removes each future from
         the pending list as soon as it completes.
         """
-        if self._extractor_pool is None or self._extractor is None:
+        if self._cognitive_pool is None or self._extractor is None:
             return
         if not text or not text.strip():
             return
 
-        future = self._extractor_pool.submit(
+        future = self._cognitive_pool.submit(
             self._run_extract, text, source_ref
         )
 
-        with self._extraction_lock:
-            self._pending_extraction_futures.append(future)
+        with self._cognitive_lock:
+            self._pending_cognitive_futures.append(future)
 
-        future.add_done_callback(self._on_extract_done)
+        future.add_done_callback(self._on_cognitive_done)
 
-    def _on_extract_done(
+    def _on_cognitive_done(
         self,
         future: "concurrent.futures.Future",
     ) -> None:
         """Done-callback: drop the future from the pending list."""
-        with self._extraction_lock:
+        with self._cognitive_lock:
             try:
-                self._pending_extraction_futures.remove(future)
+                self._pending_cognitive_futures.remove(future)
             except ValueError:
                 # Already removed (e.g. shutdown drained and cleared).
                 pass
@@ -899,6 +936,114 @@ class ClaudiaMemoryProvider(MemoryProvider):
                 logger.debug(
                     "upsert_entity rejected kind=%r name=%r: %s",
                     kind, name, exc,
+                )
+
+        writer.enqueue(_job, block=False)
+
+    # ── Commitment detection pipeline (Phase 2B.2) ────────────────────
+
+    def _enqueue_detect_commitments(
+        self,
+        text: str,
+        *,
+        source_ref: str,
+    ) -> None:
+        """Submit text to the cognitive executor for commitment detection.
+
+        Shares the executor with entity extraction (2B.1). Both
+        pipelines push their results back through the writer queue,
+        so flush() and shutdown() drain them together.
+
+        Called with USER content only (not the combined turn). See
+        the sync_turn docstring for the rationale: commitments come
+        from the user; Claudia's responses go through approval
+        before becoming commitments.
+        """
+        if self._cognitive_pool is None or self._commitment_detector is None:
+            return
+        if not text or not text.strip():
+            return
+
+        future = self._cognitive_pool.submit(
+            self._run_detect_commitments, text, source_ref
+        )
+
+        with self._cognitive_lock:
+            self._pending_cognitive_futures.append(future)
+
+        future.add_done_callback(self._on_cognitive_done)
+
+    def _run_detect_commitments(
+        self,
+        text: str,
+        source_ref: str,
+    ) -> None:
+        """Worker body: call detector, enqueue commitment inserts.
+
+        Runs on the cognitive worker thread. Any exception is logged
+        and swallowed. Detection is best-effort and must never
+        block the memory insert path or kill the worker.
+        """
+        if self._commitment_detector is None:
+            return
+
+        try:
+            detected = self._commitment_detector.detect(
+                text, source_ref=source_ref
+            )
+        except Exception:  # pragma: no cover - detector contract says no raise
+            logger.exception(
+                "claudia commitment detector raised (contract violation)"
+            )
+            return
+
+        if not detected:
+            return
+
+        for c in detected:
+            self._enqueue_insert_commitment(c)
+
+    def _enqueue_insert_commitment(
+        self,
+        c: DetectedCommitment,
+    ) -> None:
+        """Enqueue a commitment insert on the writer queue.
+
+        Runs on the cognitive worker thread. Captures all needed
+        values at enqueue time so profile/state changes between
+        submit and execute cannot corrupt the write.
+
+        FK fields (owner_entity_id, target_entity_id) are left NULL
+        on first write. Phase 2B.3 consolidation will resolve
+        entity references once extraction has populated the
+        entities table.
+        """
+        writer = self._writer
+        if writer is None:
+            return
+
+        profile = self._profile
+        content = c.content
+        deadline = c.deadline_iso  # only the parsed ISO form; None if unparseable
+        source_type = "conversation"
+        source_ref = c.source_ref
+
+        def _job(conn):
+            try:
+                commitments_module.create_commitment(
+                    conn,
+                    content,
+                    deadline=deadline,
+                    source_type=source_type,
+                    source_ref=source_ref,
+                    profile=profile,
+                )
+            except ValueError as exc:
+                # Shouldn't happen — coercer produces only valid
+                # statuses — but log defensively.
+                logger.debug(
+                    "create_commitment rejected content=%r: %s",
+                    content, exc,
                 )
 
         writer.enqueue(_job, block=False)

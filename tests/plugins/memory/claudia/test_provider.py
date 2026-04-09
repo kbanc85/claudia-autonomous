@@ -39,6 +39,7 @@ from plugins.memory.claudia import (
     entities as entities_module,
     register,
 )
+from plugins.memory.claudia.commitment_detector import CommitmentDetector
 from plugins.memory.claudia.embeddings import OllamaEmbedder
 from plugins.memory.claudia.extractor import LLMExtractor
 from plugins.memory.claudia.offline import MemoryMode
@@ -103,8 +104,27 @@ class _NoOpExtractor(LLMExtractor):
         return []
 
 
+class _NoOpCommitmentDetector(CommitmentDetector):
+    """No-op commitment detector. Analog of ``_NoOpExtractor``.
+
+    Phase 2B.2 adds a commitment detection pipeline to sync_turn.
+    Without this override, test_provider.py would instantiate a
+    real ``HybridCommitmentDetector`` which probes Ollama on first
+    LLM call. Although the pattern pre-filter short-circuits on
+    most test strings, injecting the no-op removes all environment
+    dependence — tests never touch the network.
+
+    Commitment detection behavior is tested in
+    ``test_provider_commitments.py`` (integration) and
+    ``test_commitment_detector.py`` (unit).
+    """
+
+    def detect(self, text, *, source_ref=""):  # type: ignore[override]
+        return []
+
+
 class _TestProvider(ClaudiaMemoryProvider):
-    """Provider subclass that injects scripted fake embedder + no-op extractor.
+    """Provider subclass with scripted fake embedder + no-op cognitive fakes.
 
     Saves the embedder instance on the class so tests can assert on
     ``provider.embedder.call_count`` after exercising the provider.
@@ -119,6 +139,9 @@ class _TestProvider(ClaudiaMemoryProvider):
 
     def _make_extractor(self) -> LLMExtractor:  # type: ignore[override]
         return _NoOpExtractor()
+
+    def _make_commitment_detector(self) -> CommitmentDetector:  # type: ignore[override]
+        return _NoOpCommitmentDetector()
 
 
 def _count_memories(p) -> int:

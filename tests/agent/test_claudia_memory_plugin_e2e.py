@@ -40,6 +40,7 @@ import pytest
 from agent.builtin_memory_provider import BuiltinMemoryProvider
 from agent.memory_manager import MemoryManager
 from plugins.memory.claudia import ClaudiaMemoryProvider
+from plugins.memory.claudia.commitment_detector import CommitmentDetector
 from plugins.memory.claudia.embeddings import OllamaEmbedder
 from plugins.memory.claudia.extractor import ExtractedEntity, LLMExtractor
 
@@ -84,9 +85,23 @@ class _NoOpExtractor(LLMExtractor):
         return []
 
 
+class _NoOpCommitmentDetector(CommitmentDetector):
+    """Returns no commitments. Analog of ``_NoOpExtractor`` for Phase 2B.2.
+
+    Phase 2B.2 adds a commitment detection pipeline to sync_turn.
+    The e2e test runs real ``sync_turn`` calls through the
+    MemoryManager, which would otherwise hit the hybrid detector's
+    pattern pre-filter and potentially touch the Ollama daemon. This
+    no-op keeps the integration path offline and deterministic.
+    """
+
+    def detect(self, text, *, source_ref=""):  # type: ignore[override]
+        return []
+
+
 class _TestClaudiaProvider(ClaudiaMemoryProvider):
-    """ClaudiaMemoryProvider with the embedder and extractor factories
-    swapped for offline fakes.
+    """ClaudiaMemoryProvider with all cognitive factories swapped for
+    offline fakes.
     """
 
     def _make_embedder(self) -> OllamaEmbedder:  # type: ignore[override]
@@ -94,6 +109,9 @@ class _TestClaudiaProvider(ClaudiaMemoryProvider):
 
     def _make_extractor(self) -> LLMExtractor:  # type: ignore[override]
         return _NoOpExtractor()
+
+    def _make_commitment_detector(self) -> CommitmentDetector:  # type: ignore[override]
+        return _NoOpCommitmentDetector()
 
 
 # ─── Fixtures ───────────────────────────────────────────────────────────
