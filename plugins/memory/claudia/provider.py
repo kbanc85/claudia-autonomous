@@ -75,6 +75,7 @@ from typing import Any, Dict, List, Optional
 from agent.memory_provider import MemoryProvider
 from plugins.memory.claudia import (
     commitments as commitments_module,
+    consolidation,
     entities,
     hybrid_search,
     schema,
@@ -84,6 +85,7 @@ from plugins.memory.claudia.commitment_detector import (
     DetectedCommitment,
     HybridCommitmentDetector,
 )
+from plugins.memory.claudia.consolidation import ConsolidationResult
 from plugins.memory.claudia.embeddings import OllamaEmbedder
 from plugins.memory.claudia.extractor import (
     ExtractedEntity,
@@ -539,6 +541,57 @@ class ClaudiaMemoryProvider(MemoryProvider):
             return_when=concurrent.futures.ALL_COMPLETED,
         )
         return not not_done
+
+    def consolidate(
+        self,
+        *,
+        timeout: float = 30.0,
+    ) -> ConsolidationResult:
+        """Run a full consolidation pass (Phase 2B.3).
+
+        Flushes pending cognitive work first so the consolidator sees
+        a consistent view (extracted entities from recent turns, not
+        a half-processed state), then submits the consolidation job
+        through the writer queue and waits for the result.
+
+        Order:
+          1. ``flush()`` drains any pending extractions and commitment
+             detections. Their entity/commitment writes land in the
+             tables before consolidation starts scanning.
+          2. A single writer job runs
+             ``consolidation.run_consolidation`` inside the writer's
+             transaction, so all fuzzy merges and commitment-FK
+             updates commit atomically alongside normal writes.
+          3. The caller blocks (up to ``timeout`` seconds) until the
+             job finishes and returns the ``ConsolidationResult``.
+
+        Designed to be called by an external scheduler (cron-style)
+        rather than on every sync_turn. Safe to call concurrently
+        with sync_turn calls — the writer queue serializes work.
+
+        Returns an empty ConsolidationResult if the provider has
+        been shut down or if the writer queue rejects the job.
+        """
+        if self._writer is None:
+            return ConsolidationResult()
+
+        if not self.flush(timeout=timeout):
+            logger.warning(
+                "consolidate: flush timed out, proceeding with "
+                "possibly-stale state"
+            )
+
+        profile = self._profile
+
+        def _job(conn):
+            return consolidation.run_consolidation(
+                conn, profile=profile
+            )
+
+        result = self._writer.enqueue_and_wait(_job, timeout=timeout)
+        if isinstance(result, ConsolidationResult):
+            return result
+        return ConsolidationResult()
 
     def shutdown(self) -> None:
         """Graceful shutdown.
