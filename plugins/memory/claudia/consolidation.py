@@ -102,11 +102,16 @@ class ConsolidationResult:
     Callers can log this or surface it to the user ("merged 3
     entities, linked 7 commitments, took 120ms"). Scheduled
     consolidation jobs would emit this as a metric.
+
+    When ``dry_run`` is True, the counts reflect what WOULD have
+    been merged/linked if the pass had committed — no DB state
+    was mutated.
     """
 
     entities_merged: int = 0
     commitments_linked: int = 0
     duration_seconds: float = 0.0
+    dry_run: bool = False
 
 
 # ─── Fuzzy matching ─────────────────────────────────────────────────────
@@ -565,6 +570,7 @@ def run_consolidation(
     profile: str = "default",
     now: Optional[datetime] = None,
     threshold: float = AUTO_MERGE_THRESHOLD,
+    dry_run: bool = False,
 ) -> ConsolidationResult:
     """Full consolidation pass for one profile.
 
@@ -578,9 +584,15 @@ def run_consolidation(
     2C.3 threads a ``auto_merge_threshold`` config value through
     ``provider.consolidate()`` so users can tune it per-profile.
 
+    ``dry_run`` (Phase 2D.6): when True, runs the discovery phase
+    (fuzzy candidate scan, unlinked commitment scan) but does NOT
+    commit any merges or FK updates. The returned counts reflect
+    what WOULD have happened; the DB state is unchanged. Use this
+    to preview a destructive operation before pulling the trigger.
+
     Returns a ConsolidationResult with counts and wall-clock
-    duration. Idempotent: running twice in a row on the same
-    state produces zeros on the second run.
+    duration. Idempotent on real runs. Dry runs are
+    side-effect-free.
     """
     start = time.monotonic()
 
@@ -588,23 +600,49 @@ def run_consolidation(
     candidates = find_fuzzy_candidates(
         conn, profile=profile, threshold=threshold
     )
-    for keep_id, merge_id, _score in candidates:
-        # Re-check both entities exist — earlier merges in this
-        # pass might have soft-deleted one of them (transitive
-        # merges). Skip if either is gone.
-        if entities.get_entity(conn, keep_id, profile=profile) is None:
-            continue
-        if entities.get_entity(conn, merge_id, profile=profile) is None:
-            continue
-        result = merge_entities(
-            conn, keep_id, merge_id, profile=profile, now=now
-        )
-        if result is not None:
-            entities_merged += 1
 
-    commitments_linked = resolve_commitment_fks(
-        conn, profile=profile, now=now
-    )
+    if dry_run:
+        # Count candidates without executing merges. We still
+        # have to verify both ends exist so the count matches
+        # what a real run would achieve (duplicates and
+        # already-soft-deleted rows don't count).
+        seen_merge_ids = set()
+        for keep_id, merge_id, _score in candidates:
+            if entities.get_entity(conn, keep_id, profile=profile) is None:
+                continue
+            if entities.get_entity(conn, merge_id, profile=profile) is None:
+                continue
+            if merge_id in seen_merge_ids:
+                continue  # same merge_id paired with multiple keeps
+            seen_merge_ids.add(merge_id)
+            entities_merged += 1
+    else:
+        for keep_id, merge_id, _score in candidates:
+            # Re-check both entities exist — earlier merges in
+            # this pass might have soft-deleted one of them
+            # (transitive merges). Skip if either is gone.
+            if entities.get_entity(conn, keep_id, profile=profile) is None:
+                continue
+            if entities.get_entity(conn, merge_id, profile=profile) is None:
+                continue
+            result = merge_entities(
+                conn, keep_id, merge_id, profile=profile, now=now
+            )
+            if result is not None:
+                entities_merged += 1
+
+    if dry_run:
+        # Count unlinked commitments that WOULD have gotten a
+        # target_entity_id via name matching. Uses the same
+        # helpers as resolve_commitment_fks but without the
+        # UPDATE step.
+        commitments_linked = _count_linkable_commitments(
+            conn, profile=profile
+        )
+    else:
+        commitments_linked = resolve_commitment_fks(
+            conn, profile=profile, now=now
+        )
 
     duration = time.monotonic() - start
 
@@ -612,4 +650,70 @@ def run_consolidation(
         entities_merged=entities_merged,
         commitments_linked=commitments_linked,
         duration_seconds=duration,
+        dry_run=dry_run,
     )
+
+
+def _count_linkable_commitments(
+    conn: sqlite3.Connection,
+    *,
+    profile: str,
+    limit: int = DEFAULT_COMMITMENT_SCAN_LIMIT,
+) -> int:
+    """Dry-run helper: count how many commitments WOULD be linked.
+
+    Mirrors the matching logic in ``resolve_commitment_fks`` exactly
+    (same person index, same substring match, same first-match-wins
+    precedence) but returns an integer count instead of issuing
+    UPDATEs. The count is guaranteed to match what a real
+    resolve_commitment_fks call would return on the same state.
+    """
+    person_rows = conn.execute(
+        """
+        SELECT id, name, aliases_json
+        FROM entities
+        WHERE profile = ?
+          AND kind = 'person'
+          AND deleted_at IS NULL
+        """,
+        (profile,),
+    ).fetchall()
+
+    if not person_rows:
+        return 0
+
+    person_index = []
+    for p in person_rows:
+        names = [p["name"].lower()]
+        names.extend(
+            a.lower() for a in _parse_aliases(p["aliases_json"])
+        )
+        names = [n for n in names if len(n) >= 3]
+        if names:
+            person_index.append((p["id"], names))
+
+    if not person_index:
+        return 0
+
+    unlinked = conn.execute(
+        """
+        SELECT id, content
+        FROM commitments
+        WHERE profile = ?
+          AND deleted_at IS NULL
+          AND target_entity_id IS NULL
+        LIMIT ?
+        """,
+        (profile, limit),
+    ).fetchall()
+
+    count = 0
+    for c in unlinked:
+        content_lower = (c["content"] or "").lower()
+        if not content_lower:
+            continue
+        for _person_id, names in person_index:
+            if any(name in content_lower for name in names):
+                count += 1
+                break
+    return count

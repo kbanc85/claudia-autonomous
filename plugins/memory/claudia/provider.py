@@ -1438,6 +1438,7 @@ class ClaudiaMemoryProvider(MemoryProvider):
         self,
         *,
         timeout: float = 30.0,
+        dry_run: bool = False,
     ) -> ConsolidationResult:
         """Run a full consolidation pass (Phase 2B.3).
 
@@ -1487,19 +1488,23 @@ class ClaudiaMemoryProvider(MemoryProvider):
 
         def _job(conn):
             return consolidation.run_consolidation(
-                conn, profile=profile, threshold=threshold
+                conn,
+                profile=profile,
+                threshold=threshold,
+                dry_run=dry_run,
             )
 
         result = self._writer.enqueue_and_wait(_job, timeout=timeout)
         if isinstance(result, ConsolidationResult):
             return result
-        return ConsolidationResult()
+        return ConsolidationResult(dry_run=dry_run)
 
     def purge_old_soft_deletes(
         self,
         *,
         timeout: float = 30.0,
         retention_days: Optional[int] = None,
+        dry_run: bool = False,
     ) -> RetentionResult:
         """Permanently remove soft-deleted rows older than the window (Phase 2C.4).
 
@@ -1534,12 +1539,13 @@ class ClaudiaMemoryProvider(MemoryProvider):
                 conn,
                 profile=profile,
                 retention_days=retention_days,
+                dry_run=dry_run,
             )
 
         result = self._writer.enqueue_and_wait(_job, timeout=timeout)
         if isinstance(result, RetentionResult):
             return result
-        return RetentionResult()
+        return RetentionResult(dry_run=dry_run)
 
     def verify(
         self,

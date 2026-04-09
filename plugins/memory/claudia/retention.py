@@ -79,12 +79,16 @@ class RetentionResult:
 
     Per-table counts let callers log which tables dominated the
     purge. The ``total()`` helper is for quick reporting.
+
+    When ``dry_run`` is True, the counts reflect what WOULD have
+    been purged if the pass had committed — no rows were deleted.
     """
 
     memories_purged: int = 0
     entities_purged: int = 0
     relationships_purged: int = 0
     commitments_purged: int = 0
+    dry_run: bool = False
 
     def total(self) -> int:
         return (
@@ -101,6 +105,7 @@ def purge_old_soft_deletes(
     profile: str = "default",
     now: Optional[datetime] = None,
     retention_days: int = DEFAULT_RETENTION_DAYS,
+    dry_run: bool = False,
 ) -> RetentionResult:
     """Permanently remove soft-deleted rows older than the retention window.
 
@@ -118,6 +123,10 @@ def purge_old_soft_deletes(
     ``retention_days`` of 0 or less purges all soft-deleted rows
     regardless of age (clamped to 0 for the cutoff math).
 
+    ``dry_run`` (Phase 2D.6): when True, runs SELECT COUNT(*)
+    instead of DELETE for each table. The returned counts reflect
+    what WOULD have been purged; no rows are removed.
+
     Returns a ``RetentionResult`` with per-table counts.
     """
     if now is None:
@@ -132,20 +141,33 @@ def purge_old_soft_deletes(
 
     counts = {}
     for table in _SOFT_DELETE_TABLES:
-        cur = conn.execute(
-            f"""
-            DELETE FROM {table}
-            WHERE profile = ?
-              AND deleted_at IS NOT NULL
-              AND deleted_at < ?
-            """,
-            (profile, cutoff),
-        )
-        counts[table] = cur.rowcount
+        if dry_run:
+            row = conn.execute(
+                f"""
+                SELECT COUNT(*) AS n FROM {table}
+                WHERE profile = ?
+                  AND deleted_at IS NOT NULL
+                  AND deleted_at < ?
+                """,
+                (profile, cutoff),
+            ).fetchone()
+            counts[table] = row["n"]
+        else:
+            cur = conn.execute(
+                f"""
+                DELETE FROM {table}
+                WHERE profile = ?
+                  AND deleted_at IS NOT NULL
+                  AND deleted_at < ?
+                """,
+                (profile, cutoff),
+            )
+            counts[table] = cur.rowcount
 
     return RetentionResult(
         memories_purged=counts.get("memories", 0),
         entities_purged=counts.get("entities", 0),
         relationships_purged=counts.get("relationships", 0),
         commitments_purged=counts.get("commitments", 0),
+        dry_run=dry_run,
     )
