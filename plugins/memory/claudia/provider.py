@@ -913,6 +913,60 @@ class ClaudiaMemoryProvider(MemoryProvider):
 
     # ── Optional lifecycle hooks ──────────────────────────────────────
 
+    def on_delegation(
+        self,
+        task: str,
+        result: str,
+        *,
+        child_session_id: str = "",
+        **kwargs: Any,
+    ) -> None:
+        """Parent-side observation of subagent work (Phase 2C.16).
+
+        Called on the PARENT provider when a subagent completes.
+        Claudia captures this as a ``memories`` row so the parent
+        can recall what was delegated:
+
+          content = "Delegated: <task> → Result: <result>"
+          origin = 'inferred' (it's an observation, not a user fact)
+          source_type = 'delegation'
+          source_ref = child_session_id (for provenance back to the
+                       subagent's log)
+          importance = 0.6 (above default because delegation is
+                       a deliberate user action with known intent)
+
+        Skipped entirely for non-primary agent_context. Empty
+        task AND empty result is a no-op (nothing to record). If
+        only the task is non-empty (subagent returned nothing),
+        we still record it — the parent observed that it tried.
+        """
+        if self._writer is None:
+            return
+        if self._agent_context != "primary":
+            return
+
+        task_stripped = (task or "").strip()
+        result_stripped = (result or "").strip()
+        if not task_stripped and not result_stripped:
+            return
+
+        if task_stripped and result_stripped:
+            content = f"Delegated: {task_stripped} → Result: {result_stripped}"
+        elif task_stripped:
+            content = f"Delegated: {task_stripped} (no result)"
+        else:
+            content = f"Subagent result: {result_stripped}"
+
+        source_ref = child_session_id or self._session_id or ""
+
+        self._enqueue_insert_memory(
+            content,
+            origin="inferred",
+            source_type="delegation",
+            source_ref=source_ref,
+            importance=0.6,
+        )
+
     def on_session_end(
         self,
         messages: List[Dict[str, Any]],
