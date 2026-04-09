@@ -31,22 +31,41 @@ Talk to her from the terminal, from Telegram, Discord, Slack, WhatsApp, Signal, 
 
 ## Install
 
-> **Pre-beta**: the npm installer and quick-install script ship in Phase 6. For now, clone and run the dev setup:
+**One-line installer** (macOS, Linux, WSL2):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/kbanc85/claudia-autonomous/main/install.sh | bash
+```
+
+The installer checks prerequisites (git, curl, python3 ≥ 3.11), installs [Ollama](https://ollama.com) if missing, clones the repo to `~/claudia-autonomous`, runs `setup-claudia.sh` (uv-based venv + editable install), symlinks the `claudia` CLI into `~/.local/bin`, and pulls the two default Ollama models for the hybrid memory plugin (`all-minilm:l6-v2` for embeddings, `qwen2.5:3b` for extraction).
+
+Native Windows is not supported. WSL2 works.
+
+After the installer finishes:
+
+```bash
+source ~/.zshrc            # or ~/.bashrc — reload shell so ~/.local/bin is on PATH
+claudia memory setup       # pick 'claudia' for the trust-aware memory provider
+claudia doctor             # verify everything is wired up
+claudia                    # start chatting
+```
+
+**Environment overrides** for the installer:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `INSTALL_DIR` | `~/claudia-autonomous` | Where to clone the repo |
+| `BRANCH` | `main` | Branch or tag to check out (use a release tag for stability) |
+| `SKIP_OLLAMA` | unset | Skip Ollama install + model pull (useful if you already have it) |
+| `SKIP_MODELS` | unset | Skip model pull only (useful if Ollama daemon isn't running yet) |
+| `SKIP_SETUP` | unset | Skip running `setup-claudia.sh` (clone only) |
+
+**Dev setup** (if you're contributing, clone manually):
 
 ```bash
 git clone https://github.com/kbanc85/claudia-autonomous.git
 cd claudia-autonomous
-curl -LsSf https://astral.sh/uv/install.sh | sh
 ./setup-claudia.sh
-```
-
-Works on Linux, macOS, and WSL2. Native Windows is not supported.
-
-After setup:
-
-```bash
-source ~/.bashrc    # reload shell (or: source ~/.zshrc)
-claudia             # start chatting
 ```
 
 ## Getting started
