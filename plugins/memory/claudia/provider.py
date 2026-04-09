@@ -367,6 +367,38 @@ MEMORY_CONTRADICTS_MEMORY_SCHEMA: Dict[str, Any] = {
 }
 
 
+MEMORY_RECENT_SCHEMA: Dict[str, Any] = {
+    "name": "memory.recent",
+    "description": (
+        "List recently-accessed (or recently-created) memories in "
+        "the current profile. Complements memory.recall (semantic "
+        "search) with a chronological view. Use when the user "
+        "asks 'what have we talked about lately' or 'show me the "
+        "last few things you learned'."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "limit": {
+                "type": "integer",
+                "description": "Max memories to return. Default 10.",
+                "default": 10,
+            },
+            "by": {
+                "type": "string",
+                "enum": ["accessed_at", "created_at"],
+                "description": (
+                    "Sort field. 'accessed_at' (default) orders by "
+                    "most-recently-used. 'created_at' orders by "
+                    "insertion time regardless of access."
+                ),
+                "default": "accessed_at",
+            },
+        },
+    },
+}
+
+
 MEMORY_METRICS_SCHEMA: Dict[str, Any] = {
     "name": "memory.metrics",
     "description": (
@@ -578,6 +610,7 @@ _ALL_TOOL_SCHEMAS = [
     MEMORY_FORGET_MEMORY_SCHEMA,
     MEMORY_FORGET_ENTITY_SCHEMA,
     MEMORY_METRICS_SCHEMA,
+    MEMORY_RECENT_SCHEMA,
 ]
 
 
@@ -1554,6 +1587,8 @@ class ClaudiaMemoryProvider(MemoryProvider):
                 return self._handle_forget_entity(args)
             if tool_name == "memory.metrics":
                 return self._handle_metrics(args)
+            if tool_name == "memory.recent":
+                return self._handle_recent(args)
             self._metrics.inc("tool.errors")
             return json.dumps({"error": f"unknown tool: {tool_name}"})
         except Exception as exc:
@@ -1775,6 +1810,67 @@ class ClaudiaMemoryProvider(MemoryProvider):
     def _handle_metrics(self, args: Dict[str, Any]) -> str:
         """Return the current metrics snapshot (Phase 2C.17)."""
         return json.dumps({"metrics": self._metrics.snapshot()})
+
+    def _handle_recent(self, args: Dict[str, Any]) -> str:
+        """Chronological memory listing (Phase 2C.18).
+
+        Reads rows in the current profile sorted by either
+        accessed_at (default) or created_at, descending. Profile-
+        isolated, soft-delete filtered. Limit clamped to [1, 100].
+        """
+        by = args.get("by", "accessed_at")
+        if by not in ("accessed_at", "created_at"):
+            return json.dumps({
+                "error": (
+                    f"memory.recent: 'by' must be 'accessed_at' or "
+                    f"'created_at', got {by!r}"
+                )
+            })
+
+        limit = int(args.get("limit", 10))
+        if limit < 1:
+            limit = 1
+        if limit > 100:
+            limit = 100
+
+        if self._reader_pool is None:
+            return json.dumps({
+                "error": "memory.recent: provider not initialized"
+            })
+
+        profile = self._profile
+
+        # Column name is controlled, not user-provided, so string
+        # interpolation into the ORDER BY clause is safe. ``by`` is
+        # validated above to be one of two literal values.
+        sql = f"""
+            SELECT id, content, origin, confidence, verification,
+                   source_type, source_ref, created_at, accessed_at
+            FROM memories
+            WHERE profile = ? AND deleted_at IS NULL
+            ORDER BY {by} DESC
+            LIMIT ?
+        """
+
+        with self._reader_pool.acquire() as conn:
+            rows = conn.execute(sql, (profile, limit)).fetchall()
+
+        return json.dumps({
+            "memories": [
+                {
+                    "id": row["id"],
+                    "content": row["content"],
+                    "origin": row["origin"],
+                    "confidence": float(row["confidence"]),
+                    "verification": row["verification"],
+                    "source_type": row["source_type"],
+                    "source_ref": row["source_ref"],
+                    "created_at": row["created_at"],
+                    "accessed_at": row["accessed_at"],
+                }
+                for row in rows
+            ]
+        })
 
     def get_metrics(self) -> Dict[str, int]:
         """Public accessor for the metrics snapshot.
