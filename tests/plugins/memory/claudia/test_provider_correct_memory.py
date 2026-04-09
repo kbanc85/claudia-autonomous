@@ -137,11 +137,13 @@ class TestSchema:
         finally:
             p.shutdown()
 
-    def test_total_tool_count(self, tmp_path):
-        """Previously 10. 2C.9 adds 1 → 11."""
+    def test_correct_memory_present(self, tmp_path):
+        """Focused check: correct_memory is exposed. The total tool
+        count lives in test_provider.py as the single source of truth."""
         p = _provider(tmp_path)
         try:
-            assert len(p.get_tool_schemas()) == 11
+            names = {s["name"] for s in p.get_tool_schemas()}
+            assert "memory.correct_memory" in names
         finally:
             p.shutdown()
 

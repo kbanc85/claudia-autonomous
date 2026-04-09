@@ -66,6 +66,7 @@ from __future__ import annotations
 import concurrent.futures
 import json
 import logging
+import sqlite3
 import threading
 import time
 from datetime import datetime, timezone
@@ -365,6 +366,45 @@ MEMORY_CONTRADICTS_MEMORY_SCHEMA: Dict[str, Any] = {
 }
 
 
+MEMORY_RELATE_SCHEMA: Dict[str, Any] = {
+    "name": "memory.relate",
+    "description": (
+        "Create a directed relationship between two existing "
+        "entities. Use this when the user explicitly states a "
+        "connection ('Sarah works at Acme', 'this project belongs "
+        "to Q4', 'Bob reports to Alice'). Both entities must exist; "
+        "if one doesn't, create it first via the extraction pipeline "
+        "or a memory.remember with the entity name in the content. "
+        "Returns the created relationship."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "from_name": {
+                "type": "string",
+                "description": "Source entity name (case-insensitive).",
+            },
+            "to_name": {
+                "type": "string",
+                "description": "Target entity name (case-insensitive).",
+            },
+            "type": {
+                "type": "string",
+                "description": (
+                    "Relationship type (free-form: 'works_at', "
+                    "'knows', 'reports_to', 'belongs_to', etc.)."
+                ),
+            },
+            "notes": {
+                "type": "string",
+                "description": "Optional context about the relationship.",
+            },
+        },
+        "required": ["from_name", "to_name", "type"],
+    },
+}
+
+
 MEMORY_CORRECT_MEMORY_SCHEMA: Dict[str, Any] = {
     "name": "memory.correct_memory",
     "description": (
@@ -407,6 +447,7 @@ _ALL_TOOL_SCHEMAS = [
     MEMORY_FLAG_MEMORY_SCHEMA,
     MEMORY_CONTRADICTS_MEMORY_SCHEMA,
     MEMORY_CORRECT_MEMORY_SCHEMA,
+    MEMORY_RELATE_SCHEMA,
 ]
 
 
@@ -1296,6 +1337,8 @@ class ClaudiaMemoryProvider(MemoryProvider):
                 return self._handle_contradicts_memory(args)
             if tool_name == "memory.correct_memory":
                 return self._handle_correct_memory(args)
+            if tool_name == "memory.relate":
+                return self._handle_relate(args)
             return json.dumps({"error": f"unknown tool: {tool_name}"})
         except Exception as exc:
             logger.exception("claudia memory tool call failed: %s", tool_name)
@@ -1511,6 +1554,111 @@ class ClaudiaMemoryProvider(MemoryProvider):
         return self._handle_commitment_status_transition(
             args, "dropped", "memory.commitment_drop"
         )
+
+    def _handle_relate(self, args: Dict[str, Any]) -> str:
+        """Create an explicit entity relationship (Phase 2C.10).
+
+        Both entities must exist in the current profile. If either
+        is missing, returns an error naming which entity could not
+        be found (helpful for the LLM to decide whether to create
+        the entity first).
+
+        Wraps entities.find_entity + create_relationship inside a
+        single writer job. Unique constraint collisions
+        (profile, from, to, type) return a clean error JSON.
+        """
+        from_name = args.get("from_name", "")
+        to_name = args.get("to_name", "")
+        rel_type = args.get("type", "")
+        notes = args.get("notes")
+
+        if not isinstance(from_name, str) or not from_name.strip():
+            return json.dumps({
+                "error": "memory.relate: 'from_name' is required"
+            })
+        if not isinstance(to_name, str) or not to_name.strip():
+            return json.dumps({
+                "error": "memory.relate: 'to_name' is required"
+            })
+        if not isinstance(rel_type, str) or not rel_type.strip():
+            return json.dumps({
+                "error": "memory.relate: 'type' is required"
+            })
+
+        from_name = from_name.strip()
+        to_name = to_name.strip()
+        rel_type = rel_type.strip()
+        notes_str: Optional[str] = None
+        if isinstance(notes, str) and notes.strip():
+            notes_str = notes.strip()
+
+        if self._writer is None:
+            return json.dumps({
+                "error": "memory.relate: provider not initialized"
+            })
+
+        profile = self._profile
+
+        def _job(conn):
+            from_ent = entities.find_entity(
+                conn, from_name, profile=profile
+            )
+            if from_ent is None:
+                return {"error": f"unknown entity 'from_name'={from_name!r}"}
+
+            to_ent = entities.find_entity(
+                conn, to_name, profile=profile
+            )
+            if to_ent is None:
+                return {"error": f"unknown entity 'to_name'={to_name!r}"}
+
+            try:
+                rel = entities.create_relationship(
+                    conn,
+                    from_ent.id,
+                    to_ent.id,
+                    rel_type,
+                    notes=notes_str,
+                    profile=profile,
+                )
+            except sqlite3.IntegrityError:
+                return {
+                    "error": (
+                        f"relationship already exists: "
+                        f"({from_name!r} -> {to_name!r}, type={rel_type!r})"
+                    )
+                }
+
+            return {
+                "relationship": {
+                    "id": rel.id,
+                    "from_entity_id": rel.from_entity_id,
+                    "to_entity_id": rel.to_entity_id,
+                    "type": rel.type,
+                    "health_score": rel.health_score,
+                    "notes": rel.notes,
+                    "created_at": rel.created_at,
+                },
+                "from_entity": {
+                    "id": from_ent.id,
+                    "name": from_ent.name,
+                    "kind": from_ent.kind,
+                },
+                "to_entity": {
+                    "id": to_ent.id,
+                    "name": to_ent.name,
+                    "kind": to_ent.kind,
+                },
+            }
+
+        result = self._writer.enqueue_and_wait(_job, timeout=5.0)
+        if result is None:
+            return json.dumps({
+                "error": "memory.relate: writer queue timeout"
+            })
+        if "error" in result:
+            return json.dumps({"error": result["error"]})
+        return json.dumps({"ok": True, **result})
 
     def _handle_correct_memory(self, args: Dict[str, Any]) -> str:
         """Replace a memory with a corrected version (Phase 2C.9).
