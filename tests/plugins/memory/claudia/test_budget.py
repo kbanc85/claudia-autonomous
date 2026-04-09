@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 import pytest
 
 from plugins.memory.claudia.budget import (
+    CHARS_PER_TOKEN,
     CRITICAL_TOKEN_THRESHOLD,
     DEFAULT_PREFETCH_LIMIT,
     DEFAULT_PREFETCH_TOKEN_BUDGET,
@@ -27,6 +28,8 @@ from plugins.memory.claudia.budget import (
     BudgetDecision,
     BudgetState,
     decide_budget,
+    estimate_tokens,
+    truncate_to_budget,
     update_budget_state,
 )
 
@@ -121,6 +124,80 @@ class TestDecideBudget:
 
 
 # ─── update_budget_state ────────────────────────────────────────────────
+
+
+# ─── Token estimation (Phase 2B.6) ──────────────────────────────────────
+
+
+class TestEstimateTokens:
+    def test_empty_returns_zero(self):
+        assert estimate_tokens("") == 0
+        assert estimate_tokens(None) == 0  # type: ignore[arg-type]
+
+    def test_short_text(self):
+        """A 12-char string is ~3 tokens (12/4)."""
+        assert estimate_tokens("hello world!") == 3
+
+    def test_rounds_up(self):
+        """5 chars is 2 tokens (ceil(5/4))."""
+        assert estimate_tokens("hello") == 2
+
+    def test_monotonic(self):
+        """Longer text always has >= token count."""
+        a = estimate_tokens("hello")
+        b = estimate_tokens("hello world")
+        assert b >= a
+
+
+# ─── truncate_to_budget ─────────────────────────────────────────────────
+
+
+class TestTruncateToBudget:
+    def test_under_budget_returns_unchanged(self):
+        text = "\n".join(["line 1", "line 2", "line 3"])
+        assert truncate_to_budget(text, max_tokens=100) == text
+
+    def test_zero_budget_returns_empty(self):
+        assert truncate_to_budget("hello world", max_tokens=0) == ""
+        assert truncate_to_budget("hello world", max_tokens=-1) == ""
+
+    def test_empty_input(self):
+        assert truncate_to_budget("", max_tokens=100) == ""
+
+    def test_drops_lines_from_bottom(self):
+        """Over-budget text drops lines from the bottom, not the top.
+
+        Uses a realistic budget (20 tokens) so the header + some
+        bullets survive. Smaller budgets can't fit the truncation
+        marker plus any content, and return empty.
+        """
+        text = "## Claudia Memory\n- first fact\n- second fact\n- third fact\n- fourth fact\n- fifth fact"
+        # Total ~90 chars → ~23 tokens. Budget 20 tokens → drop 1-2 bullets.
+        result = truncate_to_budget(text, max_tokens=20)
+        assert "## Claudia Memory" in result
+        assert "first fact" in result
+        assert "truncated" in result.lower()
+        # Bottom bullets should be gone
+        assert "fifth fact" not in result
+
+    def test_marker_appended_on_truncation(self):
+        text = "\n".join([f"- item {i}" for i in range(20)])
+        result = truncate_to_budget(text, max_tokens=30)
+        assert "truncated" in result.lower()
+
+    def test_tiny_budget_returns_empty(self):
+        """A budget smaller than one line + marker returns empty."""
+        text = "some longer text that cannot fit"
+        result = truncate_to_budget(text, max_tokens=1)
+        assert result == ""
+
+    def test_preserves_header_line(self):
+        """Whole-line truncation keeps the header when budget permits."""
+        text = "## Claudia Memory\n- a\n- b\n- c\n- d\n- e\n- f\n- g"
+        # ~38 chars → ~10 tokens. Budget 12 should keep header + marker
+        # and some bullets.
+        result = truncate_to_budget(text, max_tokens=12)
+        assert "## Claudia Memory" in result
 
 
 class TestUpdateBudgetState:

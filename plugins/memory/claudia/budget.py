@@ -180,3 +180,73 @@ def update_budget_state(
         turn_number=turn_number if turn_number is not None else state.turn_number,
         last_updated=now or datetime.now(timezone.utc),
     )
+
+
+# ─── Token estimation and truncation (Phase 2B.6) ───────────────────────
+
+
+#: Approximate characters per token. Tokenizers vary (BPE, SentencePiece,
+#: word-piece) but this is the rough middle-of-the-road for English.
+#: Callers that need exact counts should tokenize through the actual
+#: model, but for budget decisions this is close enough — we'd rather
+#: over-estimate and truncate a bit more than over-run the budget.
+CHARS_PER_TOKEN = 4
+
+
+def estimate_tokens(text: str) -> int:
+    """Estimate the token count of ``text`` without running a tokenizer.
+
+    Uses ``len(text) / CHARS_PER_TOKEN`` as an approximation, rounded
+    up. Returns 0 for empty or None input. Deliberately approximate:
+    exact counts would require the model's real tokenizer, which is
+    overkill for budget decisions that have ±10% tolerance anyway.
+    """
+    if not text:
+        return 0
+    return (len(text) + CHARS_PER_TOKEN - 1) // CHARS_PER_TOKEN
+
+
+def truncate_to_budget(
+    text: str,
+    max_tokens: int,
+    *,
+    truncated_marker: str = "\n- ... (truncated)",
+) -> str:
+    """Truncate ``text`` so the estimated token count fits within
+    ``max_tokens``.
+
+    Truncation is line-oriented — we drop whole lines from the END
+    of the text until the result (plus the marker) fits under budget.
+    The marker is appended only when truncation actually happened.
+
+    Line-oriented truncation is a good fit for the prefetch output
+    format, which is one bullet per memory plus a header line.
+    Dropping whole bullets preserves the structure the LLM expects.
+
+    Returns the text unchanged if already under budget. Returns an
+    empty string if ``max_tokens`` is 0/negative or if no line
+    (plus marker) can fit within the budget.
+    """
+    if max_tokens <= 0:
+        return ""
+    if not text:
+        return text
+
+    if estimate_tokens(text) <= max_tokens:
+        return text
+
+    lines = text.split("\n")
+
+    # Drop lines from the bottom until ``content + marker`` fits.
+    # The marker is included in the measurement so we don't overrun
+    # after appending it. If even a single line + marker exceeds
+    # the budget, we'll drain the list completely and return empty.
+    while lines:
+        candidate = "\n".join(lines) + truncated_marker
+        if estimate_tokens(candidate) <= max_tokens:
+            return candidate
+        lines.pop()
+
+    # No line combination fits. Return empty rather than emitting
+    # a marker-only stub (cleaner for the caller).
+    return ""

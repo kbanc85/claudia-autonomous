@@ -85,6 +85,8 @@ from plugins.memory.claudia.budget import (
     BudgetDecision,
     BudgetState,
     decide_budget,
+    estimate_tokens,
+    truncate_to_budget,
     update_budget_state,
 )
 from plugins.memory.claudia.commitment_detector import (
@@ -442,16 +444,21 @@ class ClaudiaMemoryProvider(MemoryProvider):
         )
 
     def prefetch(self, query: str, *, session_id: str = "") -> str:
-        """Run hybrid search on the current turn's query and format the result.
+        """Run hybrid search and format the result as budgeted bullets.
 
-        Acquires a reader connection from the pool, runs the router's
-        one-shot search, and formats results as compact bullets. The
-        reader connection is returned to the pool on exit, allowing
-        other threads to run prefetch in parallel.
+        Acquires a reader connection, runs the router's one-shot
+        search, formats results as compact bullets, then truncates
+        to fit the active token budget.
 
-        Phase 2B.5: the result limit is governed by
-        ``decide_budget(self._budget_state).prefetch_limit`` so a
-        tight token budget produces a smaller recall payload.
+        Phase 2B.5: result COUNT is governed by
+        ``decide_budget(self._budget_state).prefetch_limit``.
+        Phase 2B.6: result TOKEN TOTAL is bounded by
+        ``decide_budget(self._budget_state).prefetch_budget_tokens``
+        via ``truncate_to_budget``. If the formatted text would
+        exceed the budget, bullets are dropped from the bottom and
+        a ``(truncated)`` marker is appended. This ensures Claudia
+        never blows past the prompt budget even if the SQL result
+        set happens to contain verbose memory content.
         """
         if self._reader_pool is None or self._router is None:
             return ""
@@ -481,7 +488,15 @@ class ClaudiaMemoryProvider(MemoryProvider):
                 f"- {r.content} "
                 f"(score={r.score:.2f}, importance={r.importance:.2f}){provenance}"
             )
-        return "\n".join(lines)
+        formatted = "\n".join(lines)
+
+        # Phase 2B.6: enforce the token budget. This is the LAST
+        # step before returning so any downstream format change
+        # is still counted.
+        return truncate_to_budget(
+            formatted,
+            max_tokens=decision.prefetch_budget_tokens,
+        )
 
     def sync_turn(
         self,

@@ -260,3 +260,82 @@ class TestPrefetchLimitDegrades:
             assert text == ""
         finally:
             p.shutdown()
+
+
+class TestPrefetchTokenBudgetEnforced:
+    """Phase 2B.6: prefetch output respects prefetch_budget_tokens."""
+
+    def _seed_verbose_memories(self, p, count: int):
+        """Seed memories with long content to ensure they can exceed
+        a token budget."""
+
+        def _seed(conn):
+            import struct
+            now_iso = "2026-04-09T12:00:00+00:00"
+            blob = struct.pack("<3f", 0.1, 0.2, 0.3)
+            verbose = "widgets " * 50  # ~400 chars per memory
+            for i in range(count):
+                conn.execute(
+                    """
+                    INSERT INTO memories (
+                        content, origin, confidence, importance, access_count,
+                        embedding, embedding_dim, source_type, source_ref,
+                        profile, created_at, accessed_at
+                    ) VALUES (?, 'extracted', 0.7, ?, 0, ?, 3,
+                              'conversation', 'test', 'default', ?, ?)
+                    """,
+                    (
+                        f"fact {i}: {verbose}",
+                        0.5 + i * 0.01,
+                        blob,
+                        now_iso,
+                        now_iso,
+                    ),
+                )
+
+        p._writer.enqueue_and_wait(_seed, timeout=5.0)
+        assert p.flush(timeout=5.0)
+
+    def test_verbose_prefetch_truncated_to_budget(self, tmp_path):
+        """With verbose memories, the prefetch output gets truncated
+        to stay under the normal token budget (~1500 tokens ≈ 6000
+        chars). Without Phase 2B.6 truncation, a full result set of
+        these ~400-char memories times 10 would produce ~4000+ chars
+        which is fine, but a larger limit or larger memories would
+        blow the budget."""
+        from plugins.memory.claudia.budget import (
+            DEFAULT_PREFETCH_TOKEN_BUDGET,
+            estimate_tokens,
+        )
+
+        p, _, _ = _provider(tmp_path)
+        try:
+            # Seed enough verbose memories that the formatted result
+            # exceeds the default budget
+            self._seed_verbose_memories(p, 20)
+            p.on_turn_start(1, "widgets", remaining_tokens=50_000)
+            text = p.prefetch("widgets")
+            # Output must be under the default budget
+            assert estimate_tokens(text) <= DEFAULT_PREFETCH_TOKEN_BUDGET
+        finally:
+            p.shutdown()
+
+    def test_critical_budget_produces_even_shorter_output(self, tmp_path):
+        """Critical budget uses CRITICAL_PREFETCH_TOKEN_BUDGET (500),
+        which is 3x smaller than the default. Output should be
+        correspondingly smaller."""
+        from plugins.memory.claudia.budget import (
+            CRITICAL_PREFETCH_TOKEN_BUDGET,
+            estimate_tokens,
+        )
+
+        p, _, _ = _provider(tmp_path)
+        try:
+            self._seed_verbose_memories(p, 20)
+            p.on_turn_start(
+                1, "widgets", remaining_tokens=CRITICAL_TOKEN_THRESHOLD - 1
+            )
+            text = p.prefetch("widgets")
+            assert estimate_tokens(text) <= CRITICAL_PREFETCH_TOKEN_BUDGET
+        finally:
+            p.shutdown()
