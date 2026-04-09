@@ -93,12 +93,17 @@ class TestSchemas:
         finally:
             p.shutdown()
 
-    def test_total_tool_count(self, tmp_path):
-        """Phase 2C.5 added 2 (commitments, status). 2C.7 adds 2
-        more (complete, drop). Total should be 7 now."""
+    def test_commitment_tools_present(self, tmp_path):
+        """Focused check: both commitment mutation tools present.
+
+        Total tool count is checked in test_provider.py as the
+        authoritative source (updated on every new tool phase).
+        """
         p = _provider(tmp_path)
         try:
-            assert len(p.get_tool_schemas()) == 7
+            names = {s["name"] for s in p.get_tool_schemas()}
+            assert "memory.commitment_complete" in names
+            assert "memory.commitment_drop" in names
         finally:
             p.shutdown()
 

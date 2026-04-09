@@ -302,6 +302,69 @@ MEMORY_COMMITMENT_DROP_SCHEMA: Dict[str, Any] = {
 }
 
 
+MEMORY_VERIFY_MEMORY_SCHEMA: Dict[str, Any] = {
+    "name": "memory.verify_memory",
+    "description": (
+        "Mark a memory as explicitly verified. Use this when the "
+        "user confirms a fact Claudia extracted is correct ('yes, "
+        "that's right'). Verified memories get the full trust "
+        "weight in recall ranking and are exempt from stale-flagging."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "id": {
+                "type": "integer",
+                "description": "The memory row id.",
+            },
+        },
+        "required": ["id"],
+    },
+}
+
+
+MEMORY_FLAG_MEMORY_SCHEMA: Dict[str, Any] = {
+    "name": "memory.flag_memory",
+    "description": (
+        "Mark a memory as flagged for review. Use this when a "
+        "memory looks suspicious or needs user attention but isn't "
+        "definitively wrong. Flagged memories rank lower in recall "
+        "(~0.5× multiplier) and are visible as a distinct status."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "id": {
+                "type": "integer",
+                "description": "The memory row id.",
+            },
+        },
+        "required": ["id"],
+    },
+}
+
+
+MEMORY_CONTRADICTS_MEMORY_SCHEMA: Dict[str, Any] = {
+    "name": "memory.contradicts_memory",
+    "description": (
+        "Mark a memory as contradicting another known memory. Use "
+        "this when the user explicitly corrects a fact ('no, that's "
+        "wrong, it's actually X'). Contradicted memories get a "
+        "heavy demotion (~0.3× multiplier) in recall ranking."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "id": {
+                "type": "integer",
+                "description": "The memory row id.",
+            },
+        },
+        "required": ["id"],
+    },
+}
+
+
 _ALL_TOOL_SCHEMAS = [
     MEMORY_RECALL_SCHEMA,
     MEMORY_REMEMBER_SCHEMA,
@@ -310,6 +373,9 @@ _ALL_TOOL_SCHEMAS = [
     MEMORY_STATUS_SCHEMA,
     MEMORY_COMMITMENT_COMPLETE_SCHEMA,
     MEMORY_COMMITMENT_DROP_SCHEMA,
+    MEMORY_VERIFY_MEMORY_SCHEMA,
+    MEMORY_FLAG_MEMORY_SCHEMA,
+    MEMORY_CONTRADICTS_MEMORY_SCHEMA,
 ]
 
 
@@ -1191,6 +1257,12 @@ class ClaudiaMemoryProvider(MemoryProvider):
                 return self._handle_commitment_complete(args)
             if tool_name == "memory.commitment_drop":
                 return self._handle_commitment_drop(args)
+            if tool_name == "memory.verify_memory":
+                return self._handle_verify_memory(args)
+            if tool_name == "memory.flag_memory":
+                return self._handle_flag_memory(args)
+            if tool_name == "memory.contradicts_memory":
+                return self._handle_contradicts_memory(args)
             return json.dumps({"error": f"unknown tool: {tool_name}"})
         except Exception as exc:
             logger.exception("claudia memory tool call failed: %s", tool_name)
@@ -1406,6 +1478,100 @@ class ClaudiaMemoryProvider(MemoryProvider):
         return self._handle_commitment_status_transition(
             args, "dropped", "memory.commitment_drop"
         )
+
+    def _handle_verify_memory(self, args: Dict[str, Any]) -> str:
+        """Mark a memory as verified (Phase 2C.8)."""
+        return self._handle_memory_verification_transition(
+            args, verification.mark_verified, "memory.verify_memory", "verified"
+        )
+
+    def _handle_flag_memory(self, args: Dict[str, Any]) -> str:
+        """Mark a memory as flagged (Phase 2C.8)."""
+        return self._handle_memory_verification_transition(
+            args, verification.mark_flagged, "memory.flag_memory", "flagged"
+        )
+
+    def _handle_contradicts_memory(self, args: Dict[str, Any]) -> str:
+        """Mark a memory as contradicting another (Phase 2C.8)."""
+        return self._handle_memory_verification_transition(
+            args,
+            verification.mark_contradicts,
+            "memory.contradicts_memory",
+            "contradicts",
+        )
+
+    def _handle_memory_verification_transition(
+        self,
+        args: Dict[str, Any],
+        mark_fn,
+        tool_name: str,
+        expected_status: str,
+    ) -> str:
+        """Shared helper for memory verification state tools (2C.8).
+
+        Validates the id, submits the verification.mark_* call
+        through the writer queue, and reads back the updated row
+        to return its current state. ``mark_fn`` is one of
+        ``verification.mark_verified``, ``mark_flagged``, or
+        ``mark_contradicts``.
+        """
+        raw_id = args.get("id")
+        if raw_id is None:
+            return json.dumps({
+                "error": f"{tool_name}: missing required parameter 'id'"
+            })
+        try:
+            memory_id = int(raw_id)
+        except (TypeError, ValueError):
+            return json.dumps({
+                "error": (
+                    f"{tool_name}: 'id' must be an integer, got {raw_id!r}"
+                )
+            })
+
+        if self._writer is None:
+            return json.dumps({"error": f"{tool_name}: provider not initialized"})
+
+        profile = self._profile
+
+        def _job(conn):
+            ok = mark_fn(conn, memory_id, profile=profile)
+            if not ok:
+                return None
+            row = conn.execute(
+                """
+                SELECT id, content, verification, confidence, origin,
+                       source_type, source_ref, created_at, accessed_at
+                FROM memories
+                WHERE id = ? AND profile = ? AND deleted_at IS NULL
+                """,
+                (memory_id, profile),
+            ).fetchone()
+            if row is None:
+                return None
+            return {
+                "id": row["id"],
+                "content": row["content"],
+                "verification": row["verification"],
+                "confidence": float(row["confidence"]),
+                "origin": row["origin"],
+                "source_type": row["source_type"],
+                "source_ref": row["source_ref"],
+                "created_at": row["created_at"],
+                "accessed_at": row["accessed_at"],
+            }
+
+        result = self._writer.enqueue_and_wait(_job, timeout=5.0)
+        if result is None:
+            return json.dumps({
+                "error": (
+                    f"{tool_name}: no memory with id {memory_id} in "
+                    f"profile {profile!r} (may be deleted or in "
+                    "another profile)"
+                )
+            })
+
+        return json.dumps({"ok": True, "memory": result})
 
     def _handle_commitment_status_transition(
         self,
