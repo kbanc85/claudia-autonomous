@@ -207,3 +207,7 @@ The database is plain SQLite — you can inspect it with `sqlite3 $CLAUDIA_HOME/
 ## License
 
 MIT.
+
+## Author
+
+Built by [Kamil Banc](https://github.com/kbanc85) as part of [claudia-autonomous](https://github.com/kbanc85/claudia-autonomous). Contributions, bug reports, and design feedback welcome — open an issue on the fork or tag `@kbanc85`.

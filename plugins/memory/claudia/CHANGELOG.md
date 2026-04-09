@@ -3,6 +3,8 @@
 All notable changes to the plugin will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+Author: [Kamil Banc](https://github.com/kbanc85). Part of [claudia-autonomous](https://github.com/kbanc85/claudia-autonomous).
+
 ## [1.0.0] — 2026-04-09
 
 First user-facing release. Feature-complete for a trust-aware

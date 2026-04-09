@@ -5,6 +5,9 @@ offline (no Ollama required) using scripted fakes for the
 extractor and commitment detector, so you can see every
 feature of the provider without any setup.
 
+Author: Kamil Banc (https://github.com/kbanc85)
+Part of: claudia-autonomous (https://github.com/kbanc85/claudia-autonomous)
+
 Usage:
     python -m plugins.memory.claudia.demo
 

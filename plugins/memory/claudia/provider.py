@@ -1,5 +1,9 @@
 """ClaudiaMemoryProvider — MemoryProvider ABC implementation.
 
+Author: Kamil Banc (https://github.com/kbanc85)
+Part of: claudia-autonomous (https://github.com/kbanc85/claudia-autonomous)
+License: MIT
+
 Wires the seven implementation modules (schema, embeddings,
 hybrid_search, entities, offline, writer, reader) into a single
 class that satisfies ``agent/memory_provider.MemoryProvider`` and

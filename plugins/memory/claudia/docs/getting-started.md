@@ -287,3 +287,7 @@ Edit and restart your session for changes to take effect. Common tweaks:
 Troubleshooting is in the [README's troubleshooting section](../README.md#troubleshooting). If something's wrong that isn't covered there, file an issue with the output of `claudia doctor` and the last few lines of your session log.
 
 Welcome to Claudia.
+
+---
+
+*Claudia Hybrid Memory is built by [Kamil Banc](https://github.com/kbanc85) as part of [claudia-autonomous](https://github.com/kbanc85/claudia-autonomous).*

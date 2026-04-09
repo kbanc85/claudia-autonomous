@@ -1,37 +1,72 @@
-"""Claudia hybrid memory provider plugin.
+"""Claudia Hybrid Memory — local-first, trust-aware memory provider.
 
-Phase 2A.2 + 2A.3 complete. Exports:
+Author: Kamil Banc (https://github.com/kbanc85)
+Part of: claudia-autonomous (https://github.com/kbanc85/claudia-autonomous)
+License: MIT
 
-- schema: SQLite DDL and migration runner (sub-task 2A.2a)
-- embeddings: Ollama client for all-minilm:l6-v2 (sub-task 2A.2b)
-- hybrid_search: 50/25/10/15 ranking formula (sub-task 2A.2c)
-- entities: entity and relationship CRUD (sub-task 2A.2d)
-- offline: three-tier degradation router (sub-task 2A.2e)
-- provider: ClaudiaMemoryProvider ABC subclass (sub-task 2A.2f)
-- writer: Serialized WriterQueue for concurrent-safe writes (Phase 2A.3)
-- reader: Bounded ReaderPool for concurrent reads (Phase 2A.3)
+A ``MemoryProvider`` plugin for the claudia-autonomous fork of
+Hermes Agent v0.7.0. SQLite + vector embeddings via Ollama, with
+trust-aware hybrid ranking, LLM entity extraction, hybrid pattern
++ LLM commitment detection, fuzzy consolidation, confidence decay,
+and 18 ``memory.*`` tools covering read / write / state mutation
+/ delete operations.
 
-The module-level ``register(ctx)`` function is the entry point
-the memory manager calls when loading this plugin. It constructs
-a ``ClaudiaMemoryProvider`` and registers it alongside the
-always-on built-in memory provider.
+Runs 100% locally. No API keys, no cloud services. Degrades
+gracefully when Ollama is unreachable (recall still works via
+FTS + importance + recency ranking).
 
-Design reference: docs/decisions/memory-provider-design.md
+Modules:
+
+    schema                — SQLite DDL, migrations, WAL, FTS5
+    embeddings            — Ollama embedding client
+    hybrid_search         — Trust-weighted hybrid ranking
+    entities              — Entity and relationship CRUD
+    offline               — Three-tier degradation router
+    writer                — Serialized writer queue
+    reader                — Bounded reader pool
+    provider              — ClaudiaMemoryProvider ABC implementation
+    extractor             — LLM entity extraction (Ollama-backed)
+    commitments           — Commitment CRUD
+    commitment_detector   — Hybrid pattern + LLM commitment detection
+    consolidation         — Fuzzy entity dedup + FK resolution
+    verification          — Confidence decay + stale flagging
+    budget                — Token budget estimation and truncation
+    retention             — Permanent removal of old soft-deletes
+    metrics               — Thread-safe internal counters
+
+Module-level ``register(ctx)`` is the entry point the fork's
+memory manager calls during agent startup.
+
+Documentation:
+    README.md                  — reference docs
+    CHANGELOG.md               — v1.0 release notes
+    docs/getting-started.md    — 10-step first-time user tutorial
+    demo.py                    — runnable scripted walkthrough
 """
 
 from plugins.memory.claudia import (  # noqa: F401
+    budget,
+    commitment_detector,
+    commitments,
+    consolidation,
     embeddings,
     entities,
+    extractor,
     hybrid_search,
+    metrics,
     offline,
     provider,
     reader,
+    retention,
     schema,
+    verification,
     writer,
 )
 from plugins.memory.claudia.provider import ClaudiaMemoryProvider
 
-__version__ = "0.1.0-dev"
+__version__ = "1.0.0"
+__author__ = "Kamil Banc"
+__license__ = "MIT"
 
 
 def register(ctx) -> None:
