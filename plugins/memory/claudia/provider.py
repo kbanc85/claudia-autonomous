@@ -206,10 +206,61 @@ MEMORY_ABOUT_SCHEMA: Dict[str, Any] = {
 }
 
 
+MEMORY_COMMITMENTS_SCHEMA: Dict[str, Any] = {
+    "name": "memory.commitments",
+    "description": (
+        "List commitments Claudia has tracked from recent "
+        "conversations. Use this when the user asks 'what did I "
+        "promise?', 'what do I owe?', or 'what's outstanding?'. "
+        "Returns a list ordered by deadline (NULLs last), each "
+        "with id, content, deadline, and status."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "status": {
+                "type": "string",
+                "enum": [
+                    "open", "completed", "overdue",
+                    "dropped", "superseded", "all",
+                ],
+                "description": (
+                    "Filter by status. Default 'open'. Pass 'all' "
+                    "to return commitments regardless of status."
+                ),
+                "default": "open",
+            },
+            "limit": {
+                "type": "integer",
+                "description": "Max commitments to return. Default 50.",
+                "default": 50,
+            },
+        },
+    },
+}
+
+
+MEMORY_STATUS_SCHEMA: Dict[str, Any] = {
+    "name": "memory.status",
+    "description": (
+        "Get Claudia's memory system status: counts per table, "
+        "current offline mode, and session id. Useful for "
+        "diagnostics ('how many memories do you have?') and for "
+        "choosing between local and detailed recall."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {},
+    },
+}
+
+
 _ALL_TOOL_SCHEMAS = [
     MEMORY_RECALL_SCHEMA,
     MEMORY_REMEMBER_SCHEMA,
     MEMORY_ABOUT_SCHEMA,
+    MEMORY_COMMITMENTS_SCHEMA,
+    MEMORY_STATUS_SCHEMA,
 ]
 
 
@@ -999,6 +1050,10 @@ class ClaudiaMemoryProvider(MemoryProvider):
                 return self._handle_remember(args)
             if tool_name == "memory.about":
                 return self._handle_about(args)
+            if tool_name == "memory.commitments":
+                return self._handle_commitments(args)
+            if tool_name == "memory.status":
+                return self._handle_status(args)
             return json.dumps({"error": f"unknown tool: {tool_name}"})
         except Exception as exc:
             logger.exception("claudia memory tool call failed: %s", tool_name)
@@ -1125,6 +1180,95 @@ class ClaudiaMemoryProvider(MemoryProvider):
                 }
             }
         )
+
+    def _handle_commitments(self, args: Dict[str, Any]) -> str:
+        """List commitments in the current profile (Phase 2C.5).
+
+        Args:
+          status: one of 'open', 'completed', 'overdue',
+                  'dropped', 'superseded', or 'all'. Default 'open'.
+          limit: max rows to return. Default 50, clamped to [1, 200].
+
+        Returns a JSON string with a top-level ``commitments`` array.
+        Each entry has id, content, deadline, status, source_type,
+        source_ref, created_at, updated_at.
+        """
+        status_raw = args.get("status", "open")
+        if not isinstance(status_raw, str):
+            return json.dumps({"error": "status must be a string"})
+        status: Optional[str] = status_raw.lower().strip()
+
+        if status == "all":
+            status_filter: Optional[str] = None
+        elif status in commitments_module.VALID_COMMITMENT_STATUSES:
+            status_filter = status
+        else:
+            return json.dumps({
+                "error": (
+                    f"invalid status: {status!r}. Must be one of "
+                    f"{sorted(commitments_module.VALID_COMMITMENT_STATUSES)} "
+                    "or 'all'."
+                )
+            })
+
+        limit = int(args.get("limit", 50))
+        if limit < 1:
+            limit = 1
+        if limit > 200:
+            limit = 200
+
+        assert self._reader_pool is not None
+        with self._reader_pool.acquire() as conn:
+            rows = commitments_module.list_commitments(
+                conn,
+                status=status_filter,
+                profile=self._profile,
+                limit=limit,
+            )
+
+        return json.dumps({
+            "commitments": [
+                {
+                    "id": row.id,
+                    "content": row.content,
+                    "deadline": row.deadline,
+                    "status": row.status,
+                    "source_type": row.source_type,
+                    "source_ref": row.source_ref,
+                    "created_at": row.created_at,
+                    "updated_at": row.updated_at,
+                }
+                for row in rows
+            ]
+        })
+
+    def _handle_status(self, args: Dict[str, Any]) -> str:
+        """Return memory system status (Phase 2C.5).
+
+        JSON fields:
+          - memories_count / entities_count / relationships_count /
+            commitments_count: row counts (non-deleted)
+          - mode: current offline mode (FULL_HYBRID, FTS_IMP_REC, PURE_FTS)
+          - session_id: the initialize()-time session id
+          - profile: active profile key
+        """
+        if self._reader_pool is None or self._router is None:
+            return json.dumps({"error": "provider not initialized"})
+
+        with self._reader_pool.acquire() as conn:
+            stats = schema.describe_schema(conn)
+
+        decision = self._router.select_mode()
+
+        return json.dumps({
+            "memories_count": stats.get("memories_count", 0),
+            "entities_count": stats.get("entities_count", 0),
+            "relationships_count": stats.get("relationships_count", 0),
+            "commitments_count": stats.get("commitments_count", 0),
+            "mode": decision.mode.value,
+            "session_id": self._session_id or "",
+            "profile": self._profile,
+        })
 
     # ── Internal write helpers ────────────────────────────────────────
 
