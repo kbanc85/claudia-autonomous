@@ -619,8 +619,8 @@ def test_cmd_model_forwards_nous_login_tls_options(monkeypatch):
 
     claudia_main.cmd_model(
         SimpleNamespace(
-            portal_url="https://portal.nousresearch.com",
-            inference_url="https://inference.nousresearch.com/v1",
+            portal_url="https://portal.example.com",
+            inference_url="https://inference.example.com/v1",
             client_id="claudia-local",
             scope="openid profile",
             no_browser=True,
@@ -631,8 +631,8 @@ def test_cmd_model_forwards_nous_login_tls_options(monkeypatch):
     )
 
     assert captured == {
-        "portal_url": "https://portal.nousresearch.com",
-        "inference_url": "https://inference.nousresearch.com/v1",
+        "portal_url": "https://portal.example.com",
+        "inference_url": "https://inference.example.com/v1",
         "client_id": "claudia-local",
         "scope": "openid profile",
         "no_browser": True,

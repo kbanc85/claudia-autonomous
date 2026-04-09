@@ -11,7 +11,7 @@ body:
         **Quick checks first:**
         - Run `claudia doctor` and include the output below
         - Try `claudia update` to get the latest version
-        - Check the [README troubleshooting section](https://github.com/NousResearch/claudia-autonomous#troubleshooting)
+        - Check the [README troubleshooting section](https://github.com/kbanc85/claudia-autonomous#troubleshooting)
         - For general questions, consider the [Nous Research Discord](https://discord.gg/NousResearch) for faster help
 
   - type: textarea

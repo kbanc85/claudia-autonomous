@@ -2,7 +2,7 @@
 name: google-workspace
 description: Gmail, Calendar, Drive, Contacts, Sheets, and Docs integration via Python. Uses OAuth2 with automatic token refresh. No external binaries needed — runs entirely with Google's Python client libraries in the Claudia venv.
 version: 1.0.0
-author: Nous Research
+author: Kamil Banc
 license: MIT
 required_credential_files:
   - path: google_token.json
@@ -12,7 +12,7 @@ required_credential_files:
 metadata:
   claudia:
     tags: [Google, Gmail, Calendar, Drive, Sheets, Docs, Contacts, Email, OAuth]
-    homepage: https://github.com/NousResearch/claudia-autonomous
+    homepage: https://github.com/kbanc85/claudia-autonomous
     related_skills: [himalaya]
 ---
 

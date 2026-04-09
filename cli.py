@@ -957,7 +957,7 @@ CLAUDIA_CADUCEUS = """[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀�
 COMPACT_BANNER = """
 [bold #FFD700]╔══════════════════════════════════════════════════════════════╗[/]
 [bold #FFD700]║[/]  [#FFBF00]⚕ NOUS CLAUDIA[/] [dim #B8860B]- AI Agent Framework[/]              [bold #FFD700]║[/]
-[bold #FFD700]║[/]  [#CD7F32]Messenger of the Digital Gods[/]    [dim #B8860B]Nous Research[/]   [bold #FFD700]║[/]
+[bold #FFD700]║[/]  [#CD7F32]Messenger of the Digital Gods[/]    [dim #B8860B]Kamil Banc[/]   [bold #FFD700]║[/]
 [bold #FFD700]╚══════════════════════════════════════════════════════════════╝[/]
 """
 
@@ -966,11 +966,11 @@ def _build_compact_banner() -> str:
     """Build a compact banner that fits the current terminal width."""
     w = min(shutil.get_terminal_size().columns - 2, 64)
     if w < 30:
-        return "\n[#FFBF00]⚕ NOUS CLAUDIA[/] [dim #B8860B]- Nous Research[/]\n"
+        return "\n[#FFBF00]⚕ NOUS CLAUDIA[/] [dim #B8860B]- Kamil Banc[/]\n"
     inner = w - 2  # inside the box border
     bar = "═" * w
     line1 = "⚕ NOUS CLAUDIA - AI Agent Framework"
-    line2 = "Messenger of the Digital Gods  ·  Nous Research"
+    line2 = "Messenger of the Digital Gods  ·  Kamil Banc"
     # Truncate and pad to fit
     line1 = line1[:inner - 2].ljust(inner - 2)
     line2 = line2[:inner - 2].ljust(inner - 2)

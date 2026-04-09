@@ -255,7 +255,7 @@ def do_browse(page: int = 1, page_size: int = 20, source: str = "all",
     c.print(f"\n[bold]Skills Hub — Browse {source_label}[/]"
             f"  [dim]({total} skills, page {page}/{total_pages})[/]")
     if official_count > 0 and page == 1:
-        c.print(f"[bright_cyan]★ {official_count} official optional skill(s) from Nous Research[/]")
+        c.print(f"[bright_cyan]★ {official_count} official optional skill(s) from Kamil Banc[/]")
     c.print()
 
     # Build table
@@ -393,7 +393,7 @@ def do_install(identifier: str, category: str = "", force: bool = False,
         c.print()
         if bundle.source == "official":
             c.print(Panel(
-                "[bold bright_cyan]This is an official optional skill maintained by Nous Research.[/]\n\n"
+                "[bold bright_cyan]This is an official optional skill maintained by Kamil Banc.[/]\n\n"
                 "It ships with claudia-autonomous but is not activated by default.\n"
                 "Installing will copy it to your skills directory where the agent can use it.\n\n"
                 f"Files will be at: [cyan]{display_claudia_home()}/skills/{category + '/' if category else ''}{bundle.name}/[/]",

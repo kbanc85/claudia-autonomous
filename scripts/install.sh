@@ -6,7 +6,7 @@
 # Uses uv for fast Python provisioning and package management.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/NousResearch/claudia-autonomous/main/scripts/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/kbanc85/claudia-autonomous/main/scripts/install.sh | bash
 #
 # Or with options:
 #   curl -fsSL ... | bash -s -- --no-venv --skip-setup
@@ -26,8 +26,8 @@ NC='\033[0m' # No Color
 BOLD='\033[1m'
 
 # Configuration
-REPO_URL_SSH="git@github.com:NousResearch/claudia-autonomous.git"
-REPO_URL_HTTPS="https://github.com/NousResearch/claudia-autonomous.git"
+REPO_URL_SSH="git@github.com:kbanc85/claudia-autonomous.git"
+REPO_URL_HTTPS="https://github.com/kbanc85/claudia-autonomous.git"
 CLAUDIA_HOME="$HOME/.claudia"
 INSTALL_DIR="${CLAUDIA_INSTALL_DIR:-$CLAUDIA_HOME/claudia-autonomous}"
 PYTHON_VERSION="3.11"
@@ -96,7 +96,7 @@ print_banner() {
     echo "┌─────────────────────────────────────────────────────────┐"
     echo "│             ⚕ Claudia Installer                    │"
     echo "├─────────────────────────────────────────────────────────┤"
-    echo "│  An open source AI agent by Nous Research.              │"
+    echo "│  An open source AI agent by Kamil Banc.              │"
     echo "└─────────────────────────────────────────────────────────┘"
     echo -e "${NC}"
 }
@@ -140,7 +140,7 @@ detect_os() {
             OS="windows"
             DISTRO="windows"
             log_error "Windows detected. Please use the PowerShell installer:"
-            log_info "  irm https://raw.githubusercontent.com/NousResearch/claudia-autonomous/main/scripts/install.ps1 | iex"
+            log_info "  irm https://raw.githubusercontent.com/kbanc85/claudia-autonomous/main/scripts/install.ps1 | iex"
             exit 1
             ;;
         *)

@@ -7,13 +7,13 @@ license: MIT
 metadata:
   claudia:
     tags: [claudia, setup, configuration, multi-agent, spawning, cli, gateway, development]
-    homepage: https://github.com/NousResearch/claudia-autonomous
+    homepage: https://github.com/kbanc85/claudia-autonomous
     related_skills: [claude-code, codex, opencode]
 ---
 
 # Claudia
 
-Claudia is an open-source AI agent framework by Nous Research that runs in your terminal, messaging platforms, and IDEs. It belongs to the same category as Claude Code (Anthropic), Codex (OpenAI), and OpenClaw — autonomous coding and task-execution agents that use tool calling to interact with your system. Claudia works with any LLM provider (OpenRouter, Anthropic, OpenAI, DeepSeek, local models, and 15+ others) and runs on Linux, macOS, and WSL.
+Claudia is an open-source AI agent framework by Kamil Banc that runs in your terminal, messaging platforms, and IDEs. It belongs to the same category as Claude Code (Anthropic), Codex (OpenAI), and OpenClaw — autonomous coding and task-execution agents that use tool calling to interact with your system. Claudia works with any LLM provider (OpenRouter, Anthropic, OpenAI, DeepSeek, local models, and 15+ others) and runs on Linux, macOS, and WSL.
 
 What makes Claudia different:
 
@@ -28,13 +28,13 @@ People use Claudia for software development, research, system administration, da
 
 **This skill helps you work with Claudia effectively** — setting it up, configuring features, spawning additional agent instances, troubleshooting issues, finding the right commands and settings, and understanding how the system works when you need to extend or contribute to it.
 
-**Docs:** https://claudia-autonomous.nousresearch.com/docs/
+**Docs:** https://claudia-autonomous.example.com/docs/
 
 ## Quick Start
 
 ```bash
 # Install
-curl -fsSL https://raw.githubusercontent.com/NousResearch/claudia-autonomous/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/kbanc85/claudia-autonomous/main/scripts/install.sh | bash
 
 # Interactive chat (default)
 claudia
@@ -150,7 +150,7 @@ claudia gateway setup        Configure platforms
 
 Supported platforms: Telegram, Discord, Slack, WhatsApp, Signal, Email, SMS, Matrix, Mattermost, Home Assistant, DingTalk, Feishu, WeCom, API Server, Webhooks, Open WebUI.
 
-Platform docs: https://claudia-autonomous.nousresearch.com/docs/user-guide/messaging/
+Platform docs: https://claudia-autonomous.example.com/docs/user-guide/messaging/
 
 ### Sessions
 
@@ -320,7 +320,7 @@ Edit with `claudia config edit` or `claudia config set section.key value`.
 | `smart_model_routing` | `enabled`, `cheap_model` |
 | `checkpoints` | `enabled`, `max_snapshots` (50) |
 
-Full config reference: https://claudia-autonomous.nousresearch.com/docs/user-guide/configuration
+Full config reference: https://claudia-autonomous.example.com/docs/user-guide/configuration
 
 ### Providers
 
@@ -344,7 +344,7 @@ Full config reference: https://claudia-autonomous.nousresearch.com/docs/user-gui
 
 Plus: AI Gateway, OpenCode Zen, OpenCode Go, MiniMax CN, GitHub Copilot ACP.
 
-Full provider docs: https://claudia-autonomous.nousresearch.com/docs/integrations/providers
+Full provider docs: https://claudia-autonomous.example.com/docs/integrations/providers
 
 ### Toolsets
 
@@ -527,18 +527,18 @@ grep -i "failed to send\|error" ~/.claudia/logs/gateway.log | tail -20
 
 | Looking for... | Location |
 |----------------|----------|
-| Config options | `claudia config edit` or [Configuration docs](https://claudia-autonomous.nousresearch.com/docs/user-guide/configuration) |
-| Available tools | `claudia tools list` or [Tools reference](https://claudia-autonomous.nousresearch.com/docs/reference/tools-reference) |
-| Slash commands | `/help` in session or [Slash commands reference](https://claudia-autonomous.nousresearch.com/docs/reference/slash-commands) |
-| Skills catalog | `claudia skills browse` or [Skills catalog](https://claudia-autonomous.nousresearch.com/docs/reference/skills-catalog) |
-| Provider setup | `claudia model` or [Providers guide](https://claudia-autonomous.nousresearch.com/docs/integrations/providers) |
-| Platform setup | `claudia gateway setup` or [Messaging docs](https://claudia-autonomous.nousresearch.com/docs/user-guide/messaging/) |
-| MCP servers | `claudia mcp list` or [MCP guide](https://claudia-autonomous.nousresearch.com/docs/user-guide/features/mcp) |
-| Profiles | `claudia profile list` or [Profiles docs](https://claudia-autonomous.nousresearch.com/docs/user-guide/profiles) |
-| Cron jobs | `claudia cron list` or [Cron docs](https://claudia-autonomous.nousresearch.com/docs/user-guide/features/cron) |
-| Memory | `claudia memory status` or [Memory docs](https://claudia-autonomous.nousresearch.com/docs/user-guide/features/memory) |
-| Env variables | `claudia config env-path` or [Env vars reference](https://claudia-autonomous.nousresearch.com/docs/reference/environment-variables) |
-| CLI commands | `claudia --help` or [CLI reference](https://claudia-autonomous.nousresearch.com/docs/reference/cli-commands) |
+| Config options | `claudia config edit` or [Configuration docs](https://claudia-autonomous.example.com/docs/user-guide/configuration) |
+| Available tools | `claudia tools list` or [Tools reference](https://claudia-autonomous.example.com/docs/reference/tools-reference) |
+| Slash commands | `/help` in session or [Slash commands reference](https://claudia-autonomous.example.com/docs/reference/slash-commands) |
+| Skills catalog | `claudia skills browse` or [Skills catalog](https://claudia-autonomous.example.com/docs/reference/skills-catalog) |
+| Provider setup | `claudia model` or [Providers guide](https://claudia-autonomous.example.com/docs/integrations/providers) |
+| Platform setup | `claudia gateway setup` or [Messaging docs](https://claudia-autonomous.example.com/docs/user-guide/messaging/) |
+| MCP servers | `claudia mcp list` or [MCP guide](https://claudia-autonomous.example.com/docs/user-guide/features/mcp) |
+| Profiles | `claudia profile list` or [Profiles docs](https://claudia-autonomous.example.com/docs/user-guide/profiles) |
+| Cron jobs | `claudia cron list` or [Cron docs](https://claudia-autonomous.example.com/docs/user-guide/features/cron) |
+| Memory | `claudia memory status` or [Memory docs](https://claudia-autonomous.example.com/docs/user-guide/features/memory) |
+| Env variables | `claudia config env-path` or [Env vars reference](https://claudia-autonomous.example.com/docs/reference/environment-variables) |
+| CLI commands | `claudia --help` or [CLI reference](https://claudia-autonomous.example.com/docs/reference/cli-commands) |
 | Gateway logs | `~/.claudia/logs/gateway.log` |
 | Session files | `~/.claudia/sessions/` or `claudia sessions browse` |
 | Source code | `~/.claudia/claudia-autonomous/` |
@@ -547,7 +547,7 @@ grep -i "failed to send\|error" ~/.claudia/logs/gateway.log | tail -20
 
 ## Contributor Quick Reference
 
-For occasional contributors and PR authors. Full developer docs: https://claudia-autonomous.nousresearch.com/docs/developer-guide/
+For occasional contributors and PR authors. Full developer docs: https://claudia-autonomous.example.com/docs/developer-guide/
 
 ### Project Layout
 

@@ -1,5 +1,5 @@
 {
-  description = "Claudia - AI agent framework by Nous Research";
+  description = "Claudia - AI agent framework by Kamil Banc";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";

@@ -93,7 +93,7 @@ def test_toolset_has_keys_for_vision_accepts_codex_auth(tmp_path, monkeypatch):
 def test_save_platform_tools_preserves_mcp_server_names():
     """Ensure MCP server names are preserved when saving platform tools.
 
-    Regression test for https://github.com/NousResearch/claudia-autonomous/issues/1247
+    Regression test for https://github.com/kbanc85/claudia-autonomous/issues/1247
     """
     config = {
         "platform_toolsets": {

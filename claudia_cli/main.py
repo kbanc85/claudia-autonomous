@@ -936,7 +936,7 @@ def select_provider_and_model(args=None):
     # Step 1: Provider selection — put active provider first with marker
     providers = [
         ("openrouter", "OpenRouter (100+ models, pay-per-use)"),
-        ("nous", "Nous Portal (Nous Research subscription)"),
+        ("nous", "Nous Portal (Kamil Banc subscription)"),
         ("openai-codex", "OpenAI Codex"),
         ("copilot-acp", "GitHub Copilot ACP (spawns `copilot --acp --stdio`)"),
         ("copilot", "GitHub Copilot (uses GITHUB_TOKEN or gh auth token)"),
@@ -2566,7 +2566,7 @@ def _update_via_zip(args):
     from urllib.request import urlretrieve
     
     branch = "main"
-    zip_url = f"https://github.com/NousResearch/claudia-autonomous/archive/refs/heads/{branch}.zip"
+    zip_url = f"https://github.com/kbanc85/claudia-autonomous/archive/refs/heads/{branch}.zip"
     
     print("→ Downloading latest version...")
     try:
@@ -2854,12 +2854,12 @@ def _restore_stashed_changes(
 # =========================================================================
 
 OFFICIAL_REPO_URLS = {
-    "https://github.com/NousResearch/claudia-autonomous.git",
-    "git@github.com:NousResearch/claudia-autonomous.git",
-    "https://github.com/NousResearch/claudia-autonomous",
-    "git@github.com:NousResearch/claudia-autonomous",
+    "https://github.com/kbanc85/claudia-autonomous.git",
+    "git@github.com:kbanc85/claudia-autonomous.git",
+    "https://github.com/kbanc85/claudia-autonomous",
+    "git@github.com:kbanc85/claudia-autonomous",
 }
-OFFICIAL_REPO_URL = "https://github.com/NousResearch/claudia-autonomous.git"
+OFFICIAL_REPO_URL = "https://github.com/kbanc85/claudia-autonomous.git"
 SKIP_UPSTREAM_PROMPT_FILE = ".skip_upstream_prompt"
 
 
@@ -2991,7 +2991,7 @@ def _sync_with_upstream_if_needed(git_cmd: list[str], cwd: Path) -> None:
         # Ask user if they want to add upstream
         print()
         print("ℹ Your fork is not tracking the official Claudia repository.")
-        print("  This means you may miss updates from NousResearch/claudia-autonomous.")
+        print("  This means you may miss updates from kbanc85/claudia-autonomous.")
         print()
         try:
             response = input("Add official repo as 'upstream' remote? [Y/n]: ").strip().lower()
@@ -3002,13 +3002,13 @@ def _sync_with_upstream_if_needed(git_cmd: list[str], cwd: Path) -> None:
         if response in ("", "y", "yes"):
             print("→ Adding upstream remote...")
             if _add_upstream_remote(git_cmd, cwd):
-                print("  ✓ Added upstream: https://github.com/NousResearch/claudia-autonomous.git")
+                print("  ✓ Added upstream: https://github.com/kbanc85/claudia-autonomous.git")
                 has_upstream = True
             else:
                 print("  ✗ Failed to add upstream remote. Skipping upstream sync.")
                 return
         else:
-            print("  Skipped. Run 'git remote add upstream https://github.com/NousResearch/claudia-autonomous.git' to add later.")
+            print("  Skipped. Run 'git remote add upstream https://github.com/kbanc85/claudia-autonomous.git' to add later.")
             _mark_skip_upstream_prompt()
             return
 
@@ -3199,7 +3199,7 @@ def cmd_update(args):
             use_zip_update = True
         else:
             print("✗ Not a git repository. Please reinstall:")
-            print("  curl -fsSL https://raw.githubusercontent.com/NousResearch/claudia-autonomous/main/scripts/install.sh | bash")
+            print("  curl -fsSL https://raw.githubusercontent.com/kbanc85/claudia-autonomous/main/scripts/install.sh | bash")
             sys.exit(1)
     
     # On Windows, git can fail with "unable to write loose object file: Invalid argument"

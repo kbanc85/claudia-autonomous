@@ -63,7 +63,7 @@ If your skill is specialized, community-contributed, or niche, it's better suite
 ### Clone and install
 
 ```bash
-git clone --recurse-submodules https://github.com/NousResearch/claudia-autonomous.git
+git clone --recurse-submodules https://github.com/kbanc85/claudia-autonomous.git
 cd claudia-autonomous
 
 # Create venv with Python 3.11
@@ -175,7 +175,7 @@ claudia-autonomous/
 ├── optional-skills/          # Official optional skills (discoverable via hub, not activated by default)
 ├── environments/             # RL training environments (Atropos integration)
 ├── tests/                    # Test suite
-├── website/                  # Documentation site (claudia-autonomous.nousresearch.com)
+├── website/                  # Documentation site (claudia-autonomous.example.com)
 │
 ├── cli-config.yaml.example   # Example configuration (copied to ~/.claudia/config.yaml)
 └── AGENTS.md                 # Development guide for AI coding assistants
@@ -639,7 +639,7 @@ test(tools): add unit tests for file_operations
 
 ## Reporting Issues
 
-- Use [GitHub Issues](https://github.com/NousResearch/claudia-autonomous/issues)
+- Use [GitHub Issues](https://github.com/kbanc85/claudia-autonomous/issues)
 - Include: OS, Python version, Claudia version (`claudia version`), full error traceback
 - Include steps to reproduce
 - Check existing issues before creating duplicates

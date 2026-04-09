@@ -3181,7 +3181,7 @@ axolotl train examples/llama-3/lora-1b.yml
 
 Example 3 (yaml):
 ```yaml
-base_model: NousResearch/Llama-3.2-1B
+base_model: kbanc85/Llama-3.2-1B
 
 load_in_8bit: true
 adapter: lora
@@ -3196,7 +3196,7 @@ output_dir: ./outputs/lora-out
 
 Example 4 (yaml):
 ```yaml
-base_model: NousResearch/Nous-Claudia-llama-1b-v1
+base_model: kbanc85/Nous-Claudia-llama-1b-v1
 
 load_in_8bit: true
 adapter: lora

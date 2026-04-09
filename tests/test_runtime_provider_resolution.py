@@ -541,7 +541,7 @@ def test_named_custom_provider_does_not_shadow_builtin_provider(monkeypatch):
         rp,
         "resolve_nous_runtime_credentials",
         lambda **kwargs: {
-            "base_url": "https://inference-api.nousresearch.com/v1",
+            "base_url": "https://inference-api.example.com/v1",
             "api_key": "nous-runtime-key",
             "source": "portal",
             "expires_at": None,
@@ -551,7 +551,7 @@ def test_named_custom_provider_does_not_shadow_builtin_provider(monkeypatch):
     resolved = rp.resolve_runtime_provider(requested="nous")
 
     assert resolved["provider"] == "nous"
-    assert resolved["base_url"] == "https://inference-api.nousresearch.com/v1"
+    assert resolved["base_url"] == "https://inference-api.example.com/v1"
     assert resolved["api_key"] == "nous-runtime-key"
     assert resolved["requested_provider"] == "nous"
 

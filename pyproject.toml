@@ -8,7 +8,7 @@ version = "0.7.0"
 description = "The self-improving AI agent — creates skills from experience, improves them during use, and runs anywhere"
 readme = "README.md"
 requires-python = ">=3.11"
-authors = [{ name = "Nous Research" }]
+authors = [{ name = "Kamil Banc" }]
 license = { text = "MIT" }
 dependencies = [
   # Core — pinned to known-good ranges to limit supply chain attack surface
@@ -65,7 +65,7 @@ acp = ["agent-client-protocol>=0.8.1,<0.9"]
 dingtalk = ["dingtalk-stream>=0.1.0,<1"]
 feishu = ["lark-oapi>=1.5.3,<2"]
 rl = [
-  "atroposlib @ git+https://github.com/NousResearch/atropos.git",
+  "atroposlib @ git+https://github.com/kbanc85/atropos.git",
   "tinker @ git+https://github.com/thinking-machines-lab/tinker.git",
   "fastapi>=0.104.0,<1",
   "uvicorn[standard]>=0.24.0,<1",

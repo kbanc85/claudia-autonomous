@@ -224,5 +224,5 @@ CLAUDIA_LOG_LEVEL=DEBUG claudia acp
 ## Further Reading
 
 - [ACP Specification](https://github.com/anysphere/acp)
-- [Claudia Documentation](https://github.com/NousResearch/claudia-autonomous)
+- [Claudia Documentation](https://github.com/kbanc85/claudia-autonomous)
 - Run `claudia --help` for all CLI options

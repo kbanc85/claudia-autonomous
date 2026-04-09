@@ -262,7 +262,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/87/c6/53da25344e3e3a9c0
 [[package]]
 name = "atroposlib"
 version = "0.4.0"
-source = { git = "https://github.com/NousResearch/atropos.git#c421582b6f7ce8a32f751aab3117d3824ac8f709" }
+source = { git = "https://github.com/kbanc85/atropos.git#c421582b6f7ce8a32f751aab3117d3824ac8f709" }
 dependencies = [
     { name = "aiofiles" },
     { name = "aiohttp" },
@@ -1726,7 +1726,7 @@ requires-dist = [
     { name = "aiohttp", marker = "extra == 'messaging'", specifier = ">=3.13.3,<4" },
     { name = "aiohttp", marker = "extra == 'sms'", specifier = ">=3.9.0,<4" },
     { name = "anthropic", specifier = ">=0.39.0,<1" },
-    { name = "atroposlib", marker = "extra == 'rl'", git = "https://github.com/NousResearch/atropos.git" },
+    { name = "atroposlib", marker = "extra == 'rl'", git = "https://github.com/kbanc85/atropos.git" },
     { name = "croniter", marker = "extra == 'cron'", specifier = ">=6.0.0,<7" },
     { name = "daytona", marker = "extra == 'daytona'", specifier = ">=0.148.0,<1" },
     { name = "dingtalk-stream", marker = "extra == 'dingtalk'", specifier = ">=0.1.0,<1" },

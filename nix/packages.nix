@@ -44,7 +44,7 @@
 
         meta = with pkgs.lib; {
           description = "AI agent with advanced tool-calling capabilities";
-          homepage = "https://github.com/NousResearch/claudia-autonomous";
+          homepage = "https://github.com/kbanc85/claudia-autonomous";
           mainProgram = "claudia";
           license = licenses.mit;
           platforms = platforms.unix;

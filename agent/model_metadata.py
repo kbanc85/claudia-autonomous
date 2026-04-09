@@ -172,7 +172,7 @@ _URL_TO_PROVIDER: Dict[str, str] = {
     "dashscope-intl.aliyuncs.com": "alibaba",
     "openrouter.ai": "openrouter",
     "generativelanguage.googleapis.com": "google",
-    "inference-api.nousresearch.com": "nous",
+    "inference-api.example.com": "nous",
     "api.deepseek.com": "deepseek",
     "api.githubcopilot.com": "copilot",
     "models.github.ai": "copilot",

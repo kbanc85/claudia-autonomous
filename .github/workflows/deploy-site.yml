@@ -22,7 +22,7 @@ concurrency:
 jobs:
   build-and-deploy:
     # Only run on the upstream repository, not on forks
-    if: github.repository == 'NousResearch/claudia-autonomous'
+    if: github.repository == 'kbanc85/claudia-autonomous'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -62,7 +62,7 @@ jobs:
           # Docusaurus at /docs/
           cp -r website/build/* _site/docs/
           # CNAME so GitHub Pages keeps the custom domain between deploys
-          echo "claudia-autonomous.nousresearch.com" > _site/CNAME
+          echo "claudia-autonomous.example.com" > _site/CNAME
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

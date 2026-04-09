@@ -43,7 +43,7 @@ PYPROJECT_FILE = REPO_ROOT / "pyproject.toml"
 AUTHOR_MAP = {
     # teknium (multiple emails)
     "teknium1@gmail.com": "teknium1",
-    "teknium@nousresearch.com": "teknium1",
+    "teknium@example.com": "teknium1",
     "127238744+teknium1@users.noreply.github.com": "teknium1",
     # contributors (from noreply pattern)
     "35742124+0xbyt4@users.noreply.github.com": "0xbyt4",
@@ -69,7 +69,7 @@ AUTHOR_MAP = {
     "samherring99@gmail.com": "samherring99",
     "desaiaum08@gmail.com": "Aum08Desai",
     "shannon.sands.1979@gmail.com": "shannonsands",
-    "shannon@nousresearch.com": "shannonsands",
+    "shannon@example.com": "shannonsands",
     "eri@plasticlabs.ai": "Erosika",
     "hjcpuro@gmail.com": "hjc-puro",
     "xaydinoktay@gmail.com": "aydnOktay",
@@ -98,7 +98,7 @@ AUTHOR_MAP = {
     "johnsonblake1@gmail.com": "blakejohnson",
     "bryan@intertwinesys.com": "bryanyoung",
     "christo.mitov@gmail.com": "christomitov",
-    "claudia@nousresearch.com": "NousResearch",
+    "claudia@example.com": "NousResearch",
     "openclaw@sparklab.ai": "openclaw",
     "semihcvlk53@gmail.com": "Himess",
     "erenkar950@gmail.com": "erenkarakus",
@@ -363,7 +363,7 @@ def get_pr_number(subject: str) -> str:
     return None
 
 
-def generate_changelog(commits, tag_name, semver, repo_url="https://github.com/NousResearch/claudia-autonomous",
+def generate_changelog(commits, tag_name, semver, repo_url="https://github.com/kbanc85/claudia-autonomous",
                        prev_tag=None, first_release=False):
     """Generate markdown changelog from categorized commits."""
     lines = []

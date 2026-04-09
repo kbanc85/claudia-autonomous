@@ -1,6 +1,6 @@
 # Optional Skills
 
-Official skills maintained by Nous Research that are **not activated by default**.
+Official skills maintained by Kamil Banc that are **not activated by default**.
 
 These skills ship with the claudia-autonomous repository but are not copied to
 `~/.claudia/skills/` during setup. They are discoverable via the Skills Hub:

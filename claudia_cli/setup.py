@@ -2017,7 +2017,7 @@ def setup_gateway(config: dict):
         )
         print()
         print_info(
-            "   Full guide: https://claudia-autonomous.nousresearch.com/docs/user-guide/messaging/slack/"
+            "   Full guide: https://claudia-autonomous.example.com/docs/user-guide/messaging/slack/"
         )
         print()
         bot_token = prompt("Slack Bot Token (xoxb-...)", password=True)
@@ -2248,7 +2248,7 @@ def setup_gateway(config: dict):
         )
         print()
         print_info(
-            "   Full guide: https://claudia-autonomous.nousresearch.com/docs/user-guide/messaging/webhooks/"
+            "   Full guide: https://claudia-autonomous.example.com/docs/user-guide/messaging/webhooks/"
         )
         print()
 
@@ -2279,7 +2279,7 @@ def setup_gateway(config: dict):
             "   Route configuration guide:"
         )
         print_info(
-            "   https://claudia-autonomous.nousresearch.com/docs/user-guide/messaging/webhooks/#configuring-routes"
+            "   https://claudia-autonomous.example.com/docs/user-guide/messaging/webhooks/#configuring-routes"
         )
         print()
         print_info("   Open config in your editor:  claudia config edit")
