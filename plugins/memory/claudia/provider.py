@@ -79,6 +79,7 @@ from plugins.memory.claudia import (
     entities,
     hybrid_search,
     schema,
+    verification,
 )
 from plugins.memory.claudia.commitment_detector import (
     CommitmentDetector,
@@ -86,6 +87,7 @@ from plugins.memory.claudia.commitment_detector import (
     HybridCommitmentDetector,
 )
 from plugins.memory.claudia.consolidation import ConsolidationResult
+from plugins.memory.claudia.verification import VerificationResult
 from plugins.memory.claudia.embeddings import OllamaEmbedder
 from plugins.memory.claudia.extractor import (
     ExtractedEntity,
@@ -592,6 +594,44 @@ class ClaudiaMemoryProvider(MemoryProvider):
         if isinstance(result, ConsolidationResult):
             return result
         return ConsolidationResult()
+
+    def verify(
+        self,
+        *,
+        timeout: float = 30.0,
+    ) -> VerificationResult:
+        """Run a full verification pass (Phase 2B.4).
+
+        Applies confidence decay to eligible memories and flags
+        stale pending memories. Same pattern as ``consolidate()``:
+        flush pending cognitive work, then submit
+        ``verification.run_verification`` as a single writer job.
+
+        Designed for scheduled invocation. Running it on every
+        sync_turn would be wasteful — the decay function is driven
+        by elapsed time since ``accessed_at``, so sub-day cadence
+        produces minimal state change. A daily schedule is typical.
+
+        Returns an empty result on a shut-down provider or on
+        writer timeout.
+        """
+        if self._writer is None:
+            return VerificationResult()
+
+        if not self.flush(timeout=timeout):
+            logger.warning(
+                "verify: flush timed out, proceeding with possibly-stale state"
+            )
+
+        profile = self._profile
+
+        def _job(conn):
+            return verification.run_verification(conn, profile=profile)
+
+        result = self._writer.enqueue_and_wait(_job, timeout=timeout)
+        if isinstance(result, VerificationResult):
+            return result
+        return VerificationResult()
 
     def shutdown(self) -> None:
         """Graceful shutdown.
