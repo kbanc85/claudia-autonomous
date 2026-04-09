@@ -366,6 +366,29 @@ MEMORY_CONTRADICTS_MEMORY_SCHEMA: Dict[str, Any] = {
 }
 
 
+MEMORY_FORGET_MEMORY_SCHEMA: Dict[str, Any] = {
+    "name": "memory.forget_memory",
+    "description": (
+        "Soft-delete a specific memory by id. The row stays in "
+        "the DB with deleted_at set (so trace/audit queries can "
+        "still see it) but is excluded from every recall path. "
+        "Use when the user explicitly asks to remove a memory "
+        "('forget what I said about X'). For permanent removal, "
+        "wait for the retention purge to sweep it out."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "id": {
+                "type": "integer",
+                "description": "The memory row id to forget.",
+            },
+        },
+        "required": ["id"],
+    },
+}
+
+
 MEMORY_TRACE_SCHEMA: Dict[str, Any] = {
     "name": "memory.trace",
     "description": (
@@ -510,6 +533,7 @@ _ALL_TOOL_SCHEMAS = [
     MEMORY_RELATE_SCHEMA,
     MEMORY_SEARCH_ENTITIES_SCHEMA,
     MEMORY_TRACE_SCHEMA,
+    MEMORY_FORGET_MEMORY_SCHEMA,
 ]
 
 
@@ -1405,6 +1429,8 @@ class ClaudiaMemoryProvider(MemoryProvider):
                 return self._handle_search_entities(args)
             if tool_name == "memory.trace":
                 return self._handle_trace(args)
+            if tool_name == "memory.forget_memory":
+                return self._handle_forget_memory(args)
             return json.dumps({"error": f"unknown tool: {tool_name}"})
         except Exception as exc:
             logger.exception("claudia memory tool call failed: %s", tool_name)
@@ -1620,6 +1646,62 @@ class ClaudiaMemoryProvider(MemoryProvider):
         return self._handle_commitment_status_transition(
             args, "dropped", "memory.commitment_drop"
         )
+
+    def _handle_forget_memory(self, args: Dict[str, Any]) -> str:
+        """Soft-delete a memory (Phase 2C.14).
+
+        Issues an UPDATE setting deleted_at to the current time
+        via the writer queue. Follows the standard profile-isolation
+        path: cross-profile and already-deleted rows return "unknown
+        id" errors. Returns ``{ok: true, id: <id>}`` on success.
+        """
+        raw_id = args.get("id")
+        if raw_id is None:
+            return json.dumps({
+                "error": "memory.forget_memory: missing required parameter 'id'"
+            })
+        try:
+            memory_id = int(raw_id)
+        except (TypeError, ValueError):
+            return json.dumps({
+                "error": (
+                    f"memory.forget_memory: 'id' must be an integer, "
+                    f"got {raw_id!r}"
+                )
+            })
+
+        if self._writer is None:
+            return json.dumps({
+                "error": "memory.forget_memory: provider not initialized"
+            })
+
+        profile = self._profile
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        def _job(conn):
+            cur = conn.execute(
+                """
+                UPDATE memories
+                SET deleted_at = ?
+                WHERE id = ?
+                  AND profile = ?
+                  AND deleted_at IS NULL
+                """,
+                (now_iso, memory_id, profile),
+            )
+            return cur.rowcount > 0
+
+        updated = self._writer.enqueue_and_wait(_job, timeout=5.0)
+        if not updated:
+            return json.dumps({
+                "error": (
+                    f"memory.forget_memory: no memory with id {memory_id} "
+                    f"in profile {profile!r} (may already be deleted or "
+                    "in another profile)"
+                )
+            })
+
+        return json.dumps({"ok": True, "id": memory_id})
 
     def _handle_trace(self, args: Dict[str, Any]) -> str:
         """Walk a memory's correction chain (Phase 2C.12).
