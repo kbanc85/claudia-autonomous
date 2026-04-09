@@ -80,9 +80,9 @@ Claudia has two entry points: start the terminal UI with `claudia`, or run the g
 Claudia builds on [Hermes Agent v0.7.0](https://github.com/NousResearch/hermes-agent/releases/tag/v2026.4.3) (MIT-licensed) and adds:
 
 - **Chief-of-staff persona** — a rich identity injected via `SOUL.md` that shapes every response toward strategic thinking, proactive commitment tracking, and relational awareness
-- **Hybrid memory** (shipping in Phase 2A) — SQLite + vector embeddings with 50% vector similarity, 25% importance, 10% recency, 15% FTS, plus rehearsal boosting. Implemented as a Hermes v0.7.0 pluggable memory provider.
-- **Commitment lifecycle** (Phase 2B) — automatic detection, deadline tracking, overdue alerts
-- **Relationship graphs** (Phase 2B) — health scores, cooling-contact warnings
+- **Hybrid memory** ([`plugins/memory/claudia/`](plugins/memory/claudia/)) — **shipped**. SQLite + vector embeddings with trust-aware ranking (`confidence × verification multiplier` on top of `50% vector + 25% importance + 10% recency + 15% FTS` + rehearsal). Local-first (Ollama on localhost), graceful offline fallback, 18 LLM tools including commitment tracking, entity/relationship management, user corrections with full audit trails, and internal metrics. Run `claudia memory setup` and pick "claudia", or `python -m plugins.memory.claudia.demo` for a scripted walkthrough. See the plugin [README](plugins/memory/claudia/README.md) for details.
+- **Commitment lifecycle** — shipped as part of the memory plugin. Hybrid pattern + LLM detection on user turns, status tracking (open/completed/overdue/dropped), natural-language deadline parsing, LLM-facing mutation tools (`memory.commitment_complete`, `memory.commitment_drop`, `memory.commitments` listing).
+- **Relationship graphs** — shipped. Entity upsert via extraction, explicit linking via `memory.relate`, fuzzy consolidation with last-token safety for people, relationship CRUD with health scoring.
 - **Proactive daily behaviour** (Phase 4) — morning briefs, commitment checks, relationship health reports delivered via cron
 
 The execution backends (local, Docker, SSH, Daytona, Singularity, Modal), the messaging gateway layer, the skill system, and the ~40 tools are all inherited from Hermes v0.7.0 and remain fully compatible.
