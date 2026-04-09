@@ -1,16 +1,17 @@
-<p align="center">
-  <img src="assets/banner.png" alt="Claudia" width="100%">
-</p>
-
 # Claudia ☤
 
 <p align="center">
-  <a href="https://github.com/kbanc85/claudia-autonomous/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
-  <a href="https://github.com/kbanc85/claudia-autonomous"><img src="https://img.shields.io/badge/Status-Pre--beta-orange?style=for-the-badge" alt="Pre-beta"></a>
-  <a href="https://github.com/kbanc85/claudia-autonomous/blob/main/THIRD-PARTY.md"><img src="https://img.shields.io/badge/Forked%20from-Hermes%20Agent%20v0.7.0-blueviolet?style=for-the-badge" alt="Forked from Hermes Agent"></a>
+  <strong>An AI chief of staff you can actually trust with your work.</strong>
 </p>
 
-**Claudia is an AI chief of staff you can actually trust with your work.** She runs 24/7 on a laptop, VPS, Mac Mini, or cloud VM. She tracks your commitments, remembers your relationships, notices patterns across conversations, and never takes external action without your explicit approval.
+<p align="center">
+  <a href="https://github.com/kbanc85/claudia-autonomous/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
+  <a href="https://github.com/kbanc85/claudia-autonomous/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/Memory%20Plugin-v1.0.0-brightgreen?style=for-the-badge" alt="Memory plugin v1.0.0"></a>
+  <a href="https://github.com/kbanc85/claudia-autonomous"><img src="https://img.shields.io/badge/Agent-Pre--beta-orange?style=for-the-badge" alt="Agent pre-beta"></a>
+  <a href="https://github.com/kbanc85/claudia-autonomous/blob/main/THIRD-PARTY.md"><img src="https://img.shields.io/badge/Forked%20from-Hermes%20v0.7.0-blueviolet?style=for-the-badge" alt="Forked from Hermes Agent"></a>
+</p>
+
+Claudia runs 24/7 on a laptop, VPS, Mac Mini, or cloud VM. She tracks your commitments, remembers your relationships, notices patterns across conversations, and never takes external action without your explicit approval.
 
 Talk to her from the terminal, from Telegram, Discord, Slack, WhatsApp, Signal, or email — all from a single gateway process. Switch between Claude Sonnet, GPT-4.1, Llama 3.3, or a local Ollama model with one command. No lock-in to any provider.
 
