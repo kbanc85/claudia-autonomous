@@ -65,12 +65,20 @@ def mock_config():
 
 
 # ── Global test timeout ─────────────────────────────────────────────────────
-# Kill any individual test that takes longer than 30 seconds.
+# Kill any individual test that takes longer than 60 seconds.
 # Prevents hanging tests (subprocess spawns, blocking I/O) from stalling the
 # entire test suite.
+#
+# Bumped from 30s to 60s in Claudia Autonomous Phase 0.4 to unblock the
+# tests/tools/test_file_read_guards.py suite, which creates large in-memory
+# strings that exceeded 30s under GitHub Actions parallel execution
+# (-n auto with pytest-xdist). Local dev machines stay under 30s; CI runners
+# are slower. 60s is still aggressive enough to catch real hangs.
+
+_GLOBAL_TEST_TIMEOUT_SECONDS = 60
 
 def _timeout_handler(signum, frame):
-    raise TimeoutError("Test exceeded 30 second timeout")
+    raise TimeoutError(f"Test exceeded {_GLOBAL_TEST_TIMEOUT_SECONDS} second timeout")
 
 @pytest.fixture(autouse=True)
 def _ensure_current_event_loop(request):
@@ -113,7 +121,7 @@ def _enforce_test_timeout():
         yield
         return
     old = signal.signal(signal.SIGALRM, _timeout_handler)
-    signal.alarm(30)
+    signal.alarm(_GLOBAL_TEST_TIMEOUT_SECONDS)
     yield
     signal.alarm(0)
     signal.signal(signal.SIGALRM, old)
