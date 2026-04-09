@@ -1102,6 +1102,117 @@ class ClaudiaMemoryProvider(MemoryProvider):
 
         writer.enqueue(_job, block=False)
 
+    # ── Built-in memory mirror (Phase 2C.2) ───────────────────────────
+
+    #: Maps the ``target`` parameter of ``on_memory_write`` to the
+    #: source_type we use for mirrored rows. Unknown targets are
+    #: silently ignored (defensive: the ABC contract says 'memory'
+    #: or 'user', but a future extension could add more).
+    _BUILTIN_TARGET_SOURCE_TYPES = {
+        "memory": "builtin_memory",
+        "user": "builtin_user",
+    }
+
+    def on_memory_write(
+        self,
+        action: str,
+        target: str,
+        content: str,
+    ) -> None:
+        """Mirror built-in memory writes into Claudia's store (Phase 2C.2).
+
+        The ABC calls this whenever the built-in memory tool (MEMORY.md
+        or USER.md) is modified. Claudia mirrors the change so her
+        recall surface stays in sync with whatever the user stored via
+        the built-in path:
+
+        - ``action='add'``: insert a new memory row with
+          ``origin='user_stated'`` (explicit user assertion) and
+          ``source_type='builtin_memory'`` or ``'builtin_user'``.
+        - ``action='replace'``: soft-delete all existing mirrors for
+          the same target, then insert the new content as a fresh row.
+          This matches the built-in semantic of "the section now
+          contains exactly this".
+        - ``action='remove'``: soft-delete all existing mirrors for
+          the same target.
+
+        Unknown actions and targets are no-ops (defensive). Empty
+        content on an ``add`` or ``replace`` is a no-op; empty
+        content on ``remove`` still executes the soft-delete step.
+
+        Thread safety: all writes go through the writer queue so this
+        method is safe to call from any thread. It is non-blocking:
+        enqueue and return.
+        """
+        if self._writer is None:
+            return
+
+        source_type = self._BUILTIN_TARGET_SOURCE_TYPES.get(target)
+        if source_type is None:
+            return
+
+        action = (action or "").lower()
+
+        if action == "add":
+            if not content or not content.strip():
+                return
+            self._enqueue_mirror_insert(content, source_type)
+        elif action == "replace":
+            self._enqueue_mirror_soft_delete(source_type)
+            if content and content.strip():
+                self._enqueue_mirror_insert(content, source_type)
+        elif action == "remove":
+            self._enqueue_mirror_soft_delete(source_type)
+        # Unknown action → no-op
+
+    def _enqueue_mirror_insert(
+        self,
+        content: str,
+        source_type: str,
+    ) -> None:
+        """Enqueue an insert of a mirrored memory row."""
+        assert self._writer is not None
+
+        params = self._build_insert_params(
+            content,
+            origin="user_stated",
+            source_type=source_type,
+            source_ref=self._session_id or "",
+            importance=0.6,
+        )
+
+        def _job(conn):
+            conn.execute(_INSERT_MEMORY_SQL, params)
+
+        self._writer.enqueue(_job, block=False)
+
+    def _enqueue_mirror_soft_delete(self, source_type: str) -> None:
+        """Enqueue a soft-delete of all non-deleted mirrors for a target.
+
+        Soft-deletes rows matching the source_type and the current
+        profile. Other source types (conversation turns, captures,
+        etc.) are untouched.
+        """
+        if self._writer is None:
+            return
+
+        profile = self._profile
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        def _job(conn):
+            conn.execute(
+                """
+                UPDATE memories
+                SET deleted_at = ?
+                WHERE source_type = ?
+                  AND profile = ?
+                  AND deleted_at IS NULL
+                """,
+                (now_iso, source_type, profile),
+            )
+
+        self._writer.enqueue(_job, block=False)
+
     # ── Commitment detection pipeline (Phase 2B.2) ────────────────────
 
     def _enqueue_detect_commitments(
