@@ -365,6 +365,36 @@ MEMORY_CONTRADICTS_MEMORY_SCHEMA: Dict[str, Any] = {
 }
 
 
+MEMORY_CORRECT_MEMORY_SCHEMA: Dict[str, Any] = {
+    "name": "memory.correct_memory",
+    "description": (
+        "Replace the content of a stored memory with a corrected "
+        "version. Creates a NEW memory row with the new content "
+        "(origin='corrected', verification='verified', confidence=1.0) "
+        "that references the old row via corrected_from. Marks the "
+        "old row as contradicts so it ranks lower in recall while "
+        "remaining visible in provenance audits. Use this when the "
+        "user explicitly corrects a fact Claudia extracted."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "id": {
+                "type": "integer",
+                "description": "The memory row id to correct.",
+            },
+            "new_content": {
+                "type": "string",
+                "description": (
+                    "The corrected content. Must be non-empty."
+                ),
+            },
+        },
+        "required": ["id", "new_content"],
+    },
+}
+
+
 _ALL_TOOL_SCHEMAS = [
     MEMORY_RECALL_SCHEMA,
     MEMORY_REMEMBER_SCHEMA,
@@ -376,6 +406,7 @@ _ALL_TOOL_SCHEMAS = [
     MEMORY_VERIFY_MEMORY_SCHEMA,
     MEMORY_FLAG_MEMORY_SCHEMA,
     MEMORY_CONTRADICTS_MEMORY_SCHEMA,
+    MEMORY_CORRECT_MEMORY_SCHEMA,
 ]
 
 
@@ -1263,6 +1294,8 @@ class ClaudiaMemoryProvider(MemoryProvider):
                 return self._handle_flag_memory(args)
             if tool_name == "memory.contradicts_memory":
                 return self._handle_contradicts_memory(args)
+            if tool_name == "memory.correct_memory":
+                return self._handle_correct_memory(args)
             return json.dumps({"error": f"unknown tool: {tool_name}"})
         except Exception as exc:
             logger.exception("claudia memory tool call failed: %s", tool_name)
@@ -1478,6 +1511,139 @@ class ClaudiaMemoryProvider(MemoryProvider):
         return self._handle_commitment_status_transition(
             args, "dropped", "memory.commitment_drop"
         )
+
+    def _handle_correct_memory(self, args: Dict[str, Any]) -> str:
+        """Replace a memory with a corrected version (Phase 2C.9).
+
+        Creates a new memory row linked to the old via
+        ``corrected_from``. Marks the old row as ``contradicts``
+        so the original content stays in the DB (audit trail) but
+        ranks low in recall. Both operations happen inside one
+        writer job so the correction is atomic.
+        """
+        raw_id = args.get("id")
+        if raw_id is None:
+            return json.dumps({
+                "error": (
+                    "memory.correct_memory: missing required parameter 'id'"
+                )
+            })
+        try:
+            old_id = int(raw_id)
+        except (TypeError, ValueError):
+            return json.dumps({
+                "error": (
+                    f"memory.correct_memory: 'id' must be an integer, "
+                    f"got {raw_id!r}"
+                )
+            })
+
+        new_content = args.get("new_content", "")
+        if not isinstance(new_content, str) or not new_content.strip():
+            return json.dumps({
+                "error": (
+                    "memory.correct_memory: 'new_content' is required "
+                    "and must be a non-empty string"
+                )
+            })
+        new_content = new_content.strip()
+
+        if self._writer is None:
+            return json.dumps({
+                "error": "memory.correct_memory: provider not initialized"
+            })
+
+        profile = self._profile
+        # Generate embedding on caller thread (invariant #11)
+        embedding_blob = None
+        embedding_dim = None
+        if self._embedder is not None:
+            embed_result = self._embedder.embed(new_content)
+            if embed_result is not None:
+                embedding_blob, embedding_dim = embed_result
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        session_ref = self._session_id or ""
+
+        def _job(conn):
+            # 1. Verify the old memory exists in this profile
+            old_row = conn.execute(
+                """
+                SELECT id, content FROM memories
+                WHERE id = ? AND profile = ? AND deleted_at IS NULL
+                """,
+                (old_id, profile),
+            ).fetchone()
+            if old_row is None:
+                return None
+
+            # 2. Insert the new corrected memory row
+            cur = conn.execute(
+                """
+                INSERT INTO memories (
+                    content, origin, confidence, importance, access_count,
+                    embedding, embedding_dim, source_type, source_ref,
+                    corrected_from, verification, profile,
+                    created_at, accessed_at
+                ) VALUES (?, 'corrected', 1.0, 0.8, 0, ?, ?,
+                          'conversation', ?, ?, 'verified', ?, ?, ?)
+                """,
+                (
+                    new_content,
+                    embedding_blob,
+                    embedding_dim,
+                    session_ref,
+                    old_id,
+                    profile,
+                    now_iso,
+                    now_iso,
+                ),
+            )
+            new_id = int(cur.lastrowid)
+
+            # 3. Mark old memory as contradicts
+            conn.execute(
+                """
+                UPDATE memories
+                SET verification = 'contradicts'
+                WHERE id = ? AND profile = ? AND deleted_at IS NULL
+                """,
+                (old_id, profile),
+            )
+
+            # 4. Read back the new row for the response
+            new_row = conn.execute(
+                """
+                SELECT id, content, origin, confidence, verification,
+                       corrected_from, source_type, source_ref,
+                       created_at, accessed_at
+                FROM memories WHERE id = ?
+                """,
+                (new_id,),
+            ).fetchone()
+            return {
+                "id": new_row["id"],
+                "content": new_row["content"],
+                "origin": new_row["origin"],
+                "confidence": float(new_row["confidence"]),
+                "verification": new_row["verification"],
+                "corrected_from": new_row["corrected_from"],
+                "source_type": new_row["source_type"],
+                "source_ref": new_row["source_ref"],
+                "created_at": new_row["created_at"],
+                "accessed_at": new_row["accessed_at"],
+            }
+
+        result = self._writer.enqueue_and_wait(_job, timeout=5.0)
+        if result is None:
+            return json.dumps({
+                "error": (
+                    f"memory.correct_memory: no memory with id {old_id} "
+                    f"in profile {profile!r}"
+                )
+            })
+
+        return json.dumps({"ok": True, "memory": result})
 
     def _handle_verify_memory(self, args: Dict[str, Any]) -> str:
         """Mark a memory as verified (Phase 2C.8)."""

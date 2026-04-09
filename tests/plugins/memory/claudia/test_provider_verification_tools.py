@@ -101,11 +101,18 @@ class TestSchemas:
         finally:
             p.shutdown()
 
-    def test_total_tool_count(self, tmp_path):
-        """Previously 7. 2C.8 adds 3 → 10."""
+    def test_verification_tools_present(self, tmp_path):
+        """Focused check: all three verification mutation tools
+        appear. Total tool count is asserted in test_provider.py
+        as the single source of truth."""
         p = _provider(tmp_path)
         try:
-            assert len(p.get_tool_schemas()) == 10
+            names = {s["name"] for s in p.get_tool_schemas()}
+            assert {
+                "memory.verify_memory",
+                "memory.flag_memory",
+                "memory.contradicts_memory",
+            }.issubset(names)
         finally:
             p.shutdown()
 
