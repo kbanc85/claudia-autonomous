@@ -738,6 +738,137 @@ def run_doctor(args):
         check_warn("Honcho check failed", str(_e))
 
     # =========================================================================
+    # Claudia Hybrid Memory (local-first)
+    # =========================================================================
+    print()
+    print(color("◆ Claudia Memory", Colors.CYAN, Colors.BOLD))
+
+    try:
+        # Plugin discovery — the plugin should appear in the registry
+        from plugins.memory import discover_memory_providers
+
+        claudia_meta = None
+        for _name, _desc, _avail in discover_memory_providers():
+            if _name == "claudia":
+                claudia_meta = (_desc, _avail)
+                break
+
+        if claudia_meta is None:
+            check_fail(
+                "Claudia plugin not discoverable",
+                "expected at plugins/memory/claudia/",
+            )
+            issues.append("Claudia memory plugin not found")
+        else:
+            _desc, _avail = claudia_meta
+            if not _avail:
+                check_warn(
+                    "Claudia plugin loads but is_available()=False",
+                    "check logs",
+                )
+            else:
+                check_ok("Claudia plugin discoverable")
+
+            # DB path check — should live under claudia_home
+            _claudia_db_dir = CLAUDIA_HOME / "memory" / "claudia"
+            if _claudia_db_dir.exists():
+                _claudia_db = _claudia_db_dir / "claudia.db"
+                if _claudia_db.exists():
+                    _size_kb = _claudia_db.stat().st_size // 1024
+                    check_ok(
+                        "Claudia database",
+                        f"{_claudia_db} ({_size_kb} KB)",
+                    )
+                else:
+                    check_info(
+                        "Claudia database not yet created",
+                        "(will be created on first session)",
+                    )
+            else:
+                check_info(
+                    "Claudia data directory not yet created",
+                    "(will be created on first session)",
+                )
+
+            # Config file check — optional, plugin uses defaults if missing
+            _claudia_cfg = CLAUDIA_HOME / "memory" / "claudia" / "config.json"
+            if _claudia_cfg.exists():
+                try:
+                    import json as _json
+                    _cfg = _json.loads(_claudia_cfg.read_text())
+                    if isinstance(_cfg, dict) and _cfg:
+                        check_ok(
+                            "Claudia config",
+                            f"{len(_cfg)} key(s) set",
+                        )
+                    else:
+                        check_info(
+                            "Claudia config file present but empty",
+                            "(using defaults)",
+                        )
+                except Exception as _cfg_err:
+                    check_warn(
+                        "Claudia config unreadable",
+                        f"{_cfg_err} — delete to reset",
+                    )
+            else:
+                check_info(
+                    "Claudia config file not set",
+                    "(using built-in defaults)",
+                )
+
+            # Ollama probe — optional but recommended
+            try:
+                import httpx as _httpx_probe
+                with _httpx_probe.Client(timeout=2.0) as _client:
+                    _resp = _client.get("http://localhost:11434/api/tags")
+                if _resp.status_code == 200:
+                    try:
+                        _models = _resp.json().get("models", [])
+                        _names = [m.get("name", "") for m in _models]
+                        check_ok(
+                            "Ollama reachable",
+                            f"{len(_names)} model(s) available",
+                        )
+
+                        # Check for the default models
+                        _want_embed = "all-minilm:l6-v2"
+                        _want_llm = "qwen2.5:3b"
+                        if not any(
+                            n.startswith(_want_embed.split(":")[0])
+                            for n in _names
+                        ):
+                            check_warn(
+                                f"Embedding model '{_want_embed}' not pulled",
+                                f"ollama pull {_want_embed}",
+                            )
+                        if not any(
+                            n.startswith(_want_llm.split(":")[0])
+                            for n in _names
+                        ):
+                            check_warn(
+                                f"Extraction model '{_want_llm}' not pulled",
+                                f"ollama pull {_want_llm}",
+                            )
+                    except Exception:
+                        check_ok("Ollama reachable")
+                else:
+                    check_warn(
+                        "Ollama returned non-200",
+                        f"status {_resp.status_code}",
+                    )
+            except Exception:
+                check_info(
+                    "Ollama not reachable at localhost:11434",
+                    "(Claudia runs in offline mode — recall still works "
+                    "via FTS + importance; install from ollama.com/download "
+                    "to enable entity extraction and commitment detection)",
+                )
+
+    except Exception as _e:
+        check_warn("Claudia memory check failed", str(_e))
+
+    # =========================================================================
     # Profiles
     # =========================================================================
     try:
