@@ -239,6 +239,12 @@ class ClaudiaMemoryProvider(MemoryProvider):
         self._agent_context: str = "primary"
         self._claudia_home: Optional[Path] = None
 
+        # Phase 2C.3: loaded from memory/claudia/config.json on
+        # initialize(). Empty dict when the file doesn't exist.
+        # Factory methods and verify/consolidate read values from
+        # here with sensible fallbacks.
+        self._config: Dict[str, Any] = {}
+
         # Phase 2B cognitive pipeline: LLM entity extraction (2B.1) +
         # commitment detection (2B.2). One dedicated single-worker
         # executor shared by both tasks, because both have the same
@@ -291,6 +297,10 @@ class ClaudiaMemoryProvider(MemoryProvider):
         self._profile = self._resolve_profile(kwargs)
 
         self._db_path = self._claudia_home / "memory" / "claudia" / "claudia.db"
+
+        # Phase 2C.3: load user config BEFORE constructing factories
+        # so _make_extractor / _make_commitment_detector can read it.
+        self._config = self._load_config()
 
         # Apply migrations via a one-shot connection. The writer thread
         # and reader pool will each open their own connections after
@@ -352,8 +362,19 @@ class ClaudiaMemoryProvider(MemoryProvider):
         returns scripted ``ExtractedEntity`` lists without touching
         the network. Real sessions get ``OllamaLLMExtractor``, which
         probes lazily on first use per invariant #1.
+
+        Phase 2C.3: respects ``extraction_model`` and ``ollama_host``
+        from ``self._config`` if set; otherwise uses the extractor's
+        own defaults (qwen2.5:3b / http://localhost:11434).
         """
-        return OllamaLLMExtractor()
+        kwargs: Dict[str, Any] = {}
+        model = self._config.get("extraction_model")
+        if model:
+            kwargs["model"] = model
+        host = self._config.get("ollama_host")
+        if host:
+            kwargs["host"] = host
+        return OllamaLLMExtractor(**kwargs)
 
     def _make_commitment_detector(self) -> CommitmentDetector:
         """Construct the commitment detector (Phase 2B.2).
@@ -363,8 +384,147 @@ class ClaudiaMemoryProvider(MemoryProvider):
         this to inject a scripted fake. Offline sessions get pattern
         output only; sessions with a running Ollama daemon get LLM
         refinement.
+
+        Phase 2C.3: respects ``detection_model`` and ``ollama_host``
+        from ``self._config`` if set.
         """
-        return HybridCommitmentDetector()
+        kwargs: Dict[str, Any] = {}
+        model = self._config.get("detection_model")
+        if model:
+            kwargs["model"] = model
+        host = self._config.get("ollama_host")
+        if host:
+            kwargs["host"] = host
+        return HybridCommitmentDetector(**kwargs)
+
+    # ── Config (Phase 2C.3) ───────────────────────────────────────────
+
+    def get_config_schema(self) -> List[Dict[str, Any]]:
+        """Return the user-facing config fields for ``claudia memory setup``.
+
+        All fields are non-secret (Claudia is local-first; there are
+        no remote API keys to manage). Env vars are listed where
+        existing modules honor them so the user can override without
+        editing the config file.
+        """
+        return [
+            {
+                "key": "ollama_host",
+                "description": (
+                    "Ollama daemon URL. Default: http://localhost:11434. "
+                    "Override for a shared or remote Ollama instance."
+                ),
+                "default": "http://localhost:11434",
+                "env_var": "CLAUDIA_OLLAMA_HOST",
+            },
+            {
+                "key": "embedding_model",
+                "description": (
+                    "Ollama model for memory embeddings. Default: "
+                    "all-minilm:l6-v2 (384 dim, fast on CPU)."
+                ),
+                "default": "all-minilm:l6-v2",
+            },
+            {
+                "key": "extraction_model",
+                "description": (
+                    "Ollama model for entity extraction (Phase 2B.1). "
+                    "Default: qwen2.5:3b (small, fast, good enough)."
+                ),
+                "default": "qwen2.5:3b",
+            },
+            {
+                "key": "detection_model",
+                "description": (
+                    "Ollama model for commitment detection (Phase 2B.2). "
+                    "Default: qwen2.5:3b."
+                ),
+                "default": "qwen2.5:3b",
+            },
+            {
+                "key": "decay_half_life_days",
+                "description": (
+                    "Memory confidence decay half-life (Phase 2B.4). "
+                    "Memories accessed this long ago see their "
+                    "confidence halved. Default: 30."
+                ),
+                "default": 30,
+            },
+            {
+                "key": "stale_flag_days",
+                "description": (
+                    "Days of inactivity before auto-flagging pending "
+                    "memories (Phase 2B.4). Default: 60."
+                ),
+                "default": 60,
+            },
+            {
+                "key": "auto_merge_threshold",
+                "description": (
+                    "Fuzzy-match threshold for auto-merging entity "
+                    "duplicates in consolidation (Phase 2B.3). "
+                    "Higher = more conservative. Default: 0.92."
+                ),
+                "default": 0.92,
+            },
+        ]
+
+    def save_config(
+        self,
+        values: Dict[str, Any],
+        claudia_home: str,
+    ) -> None:
+        """Write non-secret config to ``{claudia_home}/memory/claudia/config.json``.
+
+        Merges with any existing file so callers can write partial
+        updates. Creates parent directories if missing. Corrupt
+        existing files are silently replaced (logged at DEBUG).
+        """
+        config_path = (
+            Path(claudia_home) / "memory" / "claudia" / "config.json"
+        )
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+
+        existing: Dict[str, Any] = {}
+        if config_path.exists():
+            try:
+                existing = json.loads(config_path.read_text())
+                if not isinstance(existing, dict):
+                    existing = {}
+            except Exception as exc:
+                logger.debug(
+                    "Overwriting corrupt config at %s: %s",
+                    config_path, exc,
+                )
+                existing = {}
+
+        existing.update(values)
+        config_path.write_text(json.dumps(existing, indent=2))
+
+    def _config_path(self) -> Optional[Path]:
+        """Return the expected config.json location for this provider."""
+        if self._claudia_home is None:
+            return None
+        return self._claudia_home / "memory" / "claudia" / "config.json"
+
+    def _load_config(self) -> Dict[str, Any]:
+        """Read and parse config.json if it exists.
+
+        Returns an empty dict on missing file, unreadable file, or
+        malformed JSON. Never raises — consumers of ``self._config``
+        should always use ``.get(key, default)`` patterns.
+        """
+        path = self._config_path()
+        if path is None or not path.exists():
+            return {}
+        try:
+            data = json.loads(path.read_text())
+        except Exception as exc:
+            logger.debug("Failed to load config %s: %s", path, exc)
+            return {}
+        if not isinstance(data, dict):
+            return {}
+        return data
 
     # ── Profile and home resolution ───────────────────────────────────
 
@@ -676,6 +836,10 @@ class ClaudiaMemoryProvider(MemoryProvider):
         flush pending cognitive work, then submit
         ``verification.run_verification`` as a single writer job.
 
+        Phase 2C.3: honors ``decay_half_life_days`` and
+        ``stale_flag_days`` from ``self._config`` when set,
+        otherwise uses verification.py defaults.
+
         Designed for scheduled invocation. Running it on every
         sync_turn would be wasteful — the decay function is driven
         by elapsed time since ``accessed_at``, so sub-day cadence
@@ -693,9 +857,22 @@ class ClaudiaMemoryProvider(MemoryProvider):
             )
 
         profile = self._profile
+        half_life_days = self._config.get(
+            "decay_half_life_days",
+            verification.DEFAULT_HALF_LIFE_DAYS,
+        )
+        stale_days = self._config.get(
+            "stale_flag_days",
+            verification.DEFAULT_STALE_DAYS,
+        )
 
         def _job(conn):
-            return verification.run_verification(conn, profile=profile)
+            return verification.run_verification(
+                conn,
+                profile=profile,
+                half_life_days=half_life_days,
+                stale_days=stale_days,
+            )
 
         result = self._writer.enqueue_and_wait(_job, timeout=timeout)
         if isinstance(result, VerificationResult):
