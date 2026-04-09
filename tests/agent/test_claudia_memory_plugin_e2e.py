@@ -41,6 +41,7 @@ from agent.builtin_memory_provider import BuiltinMemoryProvider
 from agent.memory_manager import MemoryManager
 from plugins.memory.claudia import ClaudiaMemoryProvider
 from plugins.memory.claudia.embeddings import OllamaEmbedder
+from plugins.memory.claudia.extractor import ExtractedEntity, LLMExtractor
 
 
 # ─── Fake embedder (same pattern as tests/plugins/memory/claudia/) ──────
@@ -66,11 +67,33 @@ class _FakeEmbedder(OllamaEmbedder):
         return [0.1, 0.2, 0.3]
 
 
+class _NoOpExtractor(LLMExtractor):
+    """Returns no entities. Keeps the e2e test offline and deterministic.
+
+    Without this, the provider's Phase 2B.1 extraction path would
+    construct an ``OllamaLLMExtractor`` and probe ``localhost:11434``
+    on first sync_turn. On a dev machine with Ollama running that
+    means real LLM latency inside the e2e test; without Ollama it
+    means a connection-refused probe on every test. Neither is what
+    we want. Injecting this no-op keeps the test focused on the
+    integration path (dispatch, lifecycle) without coupling to a
+    live extractor.
+    """
+
+    def extract(self, text, *, source_ref=""):  # type: ignore[override]
+        return []
+
+
 class _TestClaudiaProvider(ClaudiaMemoryProvider):
-    """ClaudiaMemoryProvider with the embedder factory swapped for a fake."""
+    """ClaudiaMemoryProvider with the embedder and extractor factories
+    swapped for offline fakes.
+    """
 
     def _make_embedder(self) -> OllamaEmbedder:  # type: ignore[override]
         return _FakeEmbedder()
+
+    def _make_extractor(self) -> LLMExtractor:  # type: ignore[override]
+        return _NoOpExtractor()
 
 
 # ─── Fixtures ───────────────────────────────────────────────────────────

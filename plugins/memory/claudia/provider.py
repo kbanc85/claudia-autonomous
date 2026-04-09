@@ -63,8 +63,11 @@ Reference: docs/decisions/memory-provider-design.md (Phase 2A.3)
 
 from __future__ import annotations
 
+import concurrent.futures
 import json
 import logging
+import threading
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -72,6 +75,11 @@ from typing import Any, Dict, List, Optional
 from agent.memory_provider import MemoryProvider
 from plugins.memory.claudia import entities, hybrid_search, schema
 from plugins.memory.claudia.embeddings import OllamaEmbedder
+from plugins.memory.claudia.extractor import (
+    ExtractedEntity,
+    LLMExtractor,
+    OllamaLLMExtractor,
+)
 from plugins.memory.claudia.offline import MemoryMode, OfflineRouter
 from plugins.memory.claudia.reader import DEFAULT_POOL_SIZE, ReaderPool
 from plugins.memory.claudia.writer import WriterQueue
@@ -209,6 +217,17 @@ class ClaudiaMemoryProvider(MemoryProvider):
         self._agent_context: str = "primary"
         self._claudia_home: Optional[Path] = None
 
+        # Phase 2B.1: LLM entity extraction. Dedicated single-worker
+        # executor keeps extraction off the caller thread (invariant
+        # #3: sync_turn non-blocking) AND off the writer thread (so
+        # slow LLM calls don't stall queued writes). Pending futures
+        # are tracked under a lock so flush()/shutdown() can drain
+        # them before closing the writer.
+        self._extractor: Optional[LLMExtractor] = None
+        self._extractor_pool: Optional[concurrent.futures.ThreadPoolExecutor] = None
+        self._pending_extraction_futures: List[concurrent.futures.Future] = []
+        self._extraction_lock = threading.Lock()
+
     # ── Required ABC members ──────────────────────────────────────────
 
     @property
@@ -255,6 +274,12 @@ class ClaudiaMemoryProvider(MemoryProvider):
 
         self._reader_pool = self._make_reader_pool()
 
+        self._extractor = self._make_extractor()
+        self._extractor_pool = concurrent.futures.ThreadPoolExecutor(
+            max_workers=1,
+            thread_name_prefix="claudia-extract",
+        )
+
         logger.info(
             "Claudia memory provider initialized: session=%s profile=%s "
             "context=%s db=%s",
@@ -286,6 +311,16 @@ class ClaudiaMemoryProvider(MemoryProvider):
         """Construct the reader pool. Tests can override pool size."""
         assert self._db_path is not None
         return ReaderPool(self._db_path, size=DEFAULT_POOL_SIZE)
+
+    def _make_extractor(self) -> LLMExtractor:
+        """Construct the LLM entity extractor (Phase 2B.1).
+
+        Tests override this to inject a deterministic fake that
+        returns scripted ``ExtractedEntity`` lists without touching
+        the network. Real sessions get ``OllamaLLMExtractor``, which
+        probes lazily on first use per invariant #1.
+        """
+        return OllamaLLMExtractor()
 
     # ── Profile and home resolution ───────────────────────────────────
 
@@ -380,15 +415,24 @@ class ClaudiaMemoryProvider(MemoryProvider):
         *,
         session_id: str = "",
     ) -> None:
-        """Store the completed turn as a memory row (async, non-blocking).
+        """Store the completed turn as a memory row + extract entities.
 
-        Skipped entirely for non-primary agent contexts (cron,
-        subagent, flush) per the ABC guidance — those contexts
-        should read but not write.
+        Two async fire-and-forget pipelines are kicked off:
 
-        Generates the embedding on the caller's thread so HTTP to
-        Ollama doesn't stall the writer, then enqueues a
-        fire-and-forget insert job.
+        1. **Memory insert.** Embedding is generated on the caller
+           thread (invariant #11) and the INSERT is enqueued on the
+           writer queue. This is the Phase 2A path, unchanged.
+        2. **Entity extraction.** The combined turn text is submitted
+           to the dedicated extraction executor (Phase 2B.1). The
+           worker thread calls ``LLMExtractor.extract()``, then
+           enqueues an ``upsert_entity`` job for each result on the
+           writer queue.
+
+        Both paths are skipped entirely for non-primary agent contexts
+        (cron, subagent, flush) per the ABC guidance. ``sync_turn``
+        itself stays non-blocking: it generates the embedding and
+        submits the extraction future, then returns. Actual LLM
+        latency lives on the extraction worker thread.
         """
         if self._writer is None:
             return
@@ -399,27 +443,89 @@ class ClaudiaMemoryProvider(MemoryProvider):
         if not combined:
             return
 
+        source_ref = session_id or self._session_id or ""
+
         self._enqueue_insert_memory(
             combined,
             origin="extracted",
             source_type="conversation",
-            source_ref=session_id or self._session_id or "",
+            source_ref=source_ref,
             importance=0.5,
         )
 
-    def flush(self, timeout: float = 5.0) -> bool:
-        """Wait for all pending writes to drain.
+        self._enqueue_extract(combined, source_ref=source_ref)
 
-        Useful for tests, for callers that need read-your-writes
-        consistency, and for the shutdown path before stopping the
-        writer. Returns True if the queue drained within the timeout.
+    def flush(self, timeout: float = 5.0) -> bool:
+        """Wait for all pending extractions and writes to drain.
+
+        Order matters: extraction produces writes (entity upserts),
+        so we must drain the extraction pool FIRST, then flush the
+        writer. If we reversed the order, an extraction that hasn't
+        yet enqueued its upserts would silently race past the flush.
+
+        Returns True if both stages drained within the timeout. The
+        ``timeout`` budget is shared across both stages; if extraction
+        consumed most of it, the writer flush gets whatever is left.
         """
+        deadline = time.monotonic() + timeout
+
+        if not self._drain_extraction_futures(deadline):
+            return False
+
         if self._writer is None:
             return True
-        return self._writer.flush(timeout=timeout)
+
+        remaining = max(0.0, deadline - time.monotonic())
+        return self._writer.flush(timeout=remaining)
+
+    def _drain_extraction_futures(self, deadline: float) -> bool:
+        """Wait for all pending extraction futures to complete.
+
+        Snapshots the pending-futures list under the lock, then waits
+        on the snapshot without holding the lock so new futures can
+        still register their completion callbacks. Returns True if
+        all snapshotted futures finished before the deadline.
+        """
+        if self._extractor_pool is None:
+            return True
+
+        with self._extraction_lock:
+            pending = list(self._pending_extraction_futures)
+
+        if not pending:
+            return True
+
+        remaining = max(0.01, deadline - time.monotonic())
+        done, not_done = concurrent.futures.wait(
+            pending,
+            timeout=remaining,
+            return_when=concurrent.futures.ALL_COMPLETED,
+        )
+        return not not_done
 
     def shutdown(self) -> None:
-        """Stop the writer (draining pending jobs) and close the reader pool."""
+        """Graceful shutdown.
+
+        Order:
+        1. Drain the extraction pool (extractions can still enqueue writes).
+        2. Stop the writer (drains remaining jobs, including entity
+           upserts submitted by the drained extractions).
+        3. Close the reader pool.
+
+        Each stage is independently wrapped so a failure in one does
+        not skip the others.
+        """
+        if self._extractor_pool is not None:
+            try:
+                # wait=True drains the executor's task queue before
+                # joining its workers. Since we submit with fire-and-
+                # forget futures, the worker processes every enqueued
+                # extraction before shutdown returns.
+                self._extractor_pool.shutdown(wait=True)
+            except Exception:  # pragma: no cover - defensive
+                logger.debug("Error shutting down claudia extraction pool")
+            self._extractor_pool = None
+
         if self._writer is not None:
             try:
                 self._writer.stop(timeout=10.0)
@@ -687,3 +793,112 @@ class ClaudiaMemoryProvider(MemoryProvider):
             return int(cur.lastrowid)
 
         return self._writer.enqueue_and_wait(_job, timeout=5.0)
+
+    # ── Extraction pipeline (Phase 2B.1) ──────────────────────────────
+
+    def _enqueue_extract(self, text: str, *, source_ref: str) -> None:
+        """Submit text to the extraction executor (fire-and-forget).
+
+        The submitted future runs ``_run_extract`` on a worker thread.
+        Its result (any ``ExtractedEntity`` objects the LLM returned)
+        are pushed to the writer queue as entity upsert jobs. The
+        caller thread returns immediately after ``submit`` — that's
+        what makes ``sync_turn`` non-blocking (invariant #3) despite
+        LLM latency.
+
+        Pending futures are tracked under ``_extraction_lock`` so
+        ``flush`` and ``shutdown`` can wait for them to drain before
+        closing the writer. A done-callback removes each future from
+        the pending list as soon as it completes.
+        """
+        if self._extractor_pool is None or self._extractor is None:
+            return
+        if not text or not text.strip():
+            return
+
+        future = self._extractor_pool.submit(
+            self._run_extract, text, source_ref
+        )
+
+        with self._extraction_lock:
+            self._pending_extraction_futures.append(future)
+
+        future.add_done_callback(self._on_extract_done)
+
+    def _on_extract_done(
+        self,
+        future: "concurrent.futures.Future",
+    ) -> None:
+        """Done-callback: drop the future from the pending list."""
+        with self._extraction_lock:
+            try:
+                self._pending_extraction_futures.remove(future)
+            except ValueError:
+                # Already removed (e.g. shutdown drained and cleared).
+                pass
+
+    def _run_extract(self, text: str, source_ref: str) -> None:
+        """Worker body: call the extractor and enqueue entity upserts.
+
+        Runs on the single-worker extraction thread. Any exception
+        is logged and swallowed — extraction is best-effort and must
+        never block the memory insert path or kill the worker.
+        """
+        if self._extractor is None:
+            return
+
+        try:
+            extracted = self._extractor.extract(text, source_ref=source_ref)
+        except Exception:  # pragma: no cover - extractor contract says no raise
+            logger.exception("claudia extractor raised (contract violation)")
+            return
+
+        if not extracted:
+            return
+
+        for ent in extracted:
+            self._enqueue_upsert_entity(ent)
+
+    def _enqueue_upsert_entity(self, ent: ExtractedEntity) -> None:
+        """Enqueue an entity upsert on the writer queue.
+
+        Runs on the extraction worker thread (caller of ``_run_extract``),
+        not on the writer thread. The writer processes the enqueued
+        job serially alongside memory inserts, so entity writes are
+        consistent with the Phase 2A single-writer design.
+
+        Uses the stored provider profile — captured at enqueue time
+        rather than read from ``self`` inside the job — so a profile
+        change between submit and execute cannot corrupt the write.
+        """
+        writer = self._writer
+        if writer is None:
+            return
+
+        profile = self._profile
+        kind = ent.kind
+        name = ent.name
+        aliases = list(ent.aliases) if ent.aliases else None
+        attributes = dict(ent.attributes) if ent.attributes else None
+        importance = ent.confidence
+
+        def _job(conn):
+            try:
+                entities.upsert_entity(
+                    conn,
+                    kind,
+                    name,
+                    aliases=aliases,
+                    attributes=attributes,
+                    importance=importance,
+                    profile=profile,
+                )
+            except ValueError as exc:
+                # Invalid kind slipped through (shouldn't happen —
+                # _coerce_json_to_entities filters invalid kinds).
+                logger.debug(
+                    "upsert_entity rejected kind=%r name=%r: %s",
+                    kind, name, exc,
+                )
+
+        writer.enqueue(_job, block=False)

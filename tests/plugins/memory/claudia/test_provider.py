@@ -40,6 +40,7 @@ from plugins.memory.claudia import (
     register,
 )
 from plugins.memory.claudia.embeddings import OllamaEmbedder
+from plugins.memory.claudia.extractor import LLMExtractor
 from plugins.memory.claudia.offline import MemoryMode
 from plugins.memory.claudia.provider import (
     MEMORY_ABOUT_SCHEMA,
@@ -81,8 +82,29 @@ class _FakeEmbedder(OllamaEmbedder):
         return result
 
 
+class _NoOpExtractor(LLMExtractor):
+    """No-op extractor. Returns no entities on every call.
+
+    The Phase 2B.1 provider wires sync_turn to trigger an LLM
+    extraction on a dedicated background worker. Without this
+    override, test_provider.py tests would instantiate a real
+    ``OllamaLLMExtractor`` and probe ``localhost:11434`` on the
+    first sync_turn — making them slow, non-deterministic, and
+    coupled to whether Ollama is running on the dev machine.
+
+    Extraction behavior itself is tested in
+    ``test_provider_extraction.py`` (integration) and
+    ``test_extractor.py`` (unit). Here we want to keep the
+    provider ABC tests focused on the write/read/tool dispatch
+    path, not extraction.
+    """
+
+    def extract(self, text, *, source_ref=""):  # type: ignore[override]
+        return []
+
+
 class _TestProvider(ClaudiaMemoryProvider):
-    """Provider subclass that injects a scripted fake embedder.
+    """Provider subclass that injects scripted fake embedder + no-op extractor.
 
     Saves the embedder instance on the class so tests can assert on
     ``provider.embedder.call_count`` after exercising the provider.
@@ -94,6 +116,9 @@ class _TestProvider(ClaudiaMemoryProvider):
 
     def _make_embedder(self) -> OllamaEmbedder:  # type: ignore[override]
         return _FakeEmbedder(script=self._script)
+
+    def _make_extractor(self) -> LLMExtractor:  # type: ignore[override]
+        return _NoOpExtractor()
 
 
 def _count_memories(p) -> int:
