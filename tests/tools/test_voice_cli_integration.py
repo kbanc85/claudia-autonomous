@@ -12,15 +12,15 @@ import pytest
 
 
 def _make_voice_cli(**overrides):
-    """Create a minimal HermesCLI with only voice-related attrs initialized.
+    """Create a minimal ClaudiaCLI with only voice-related attrs initialized.
 
     Uses ``__new__()`` to bypass ``__init__`` so no config/env/API setup is
     needed.  Only the voice state attributes (from __init__ lines 3749-3758)
     are populated.
     """
-    from cli import HermesCLI
+    from cli import ClaudiaCLI
 
-    cli = HermesCLI.__new__(HermesCLI)
+    cli = ClaudiaCLI.__new__(ClaudiaCLI)
     cli._voice_lock = threading.Lock()
     cli._voice_mode = False
     cli._voice_tts = False
@@ -591,9 +591,9 @@ class TestDisableVoiceModeStopsTTS:
     def test_disable_voice_mode_calls_stop_playback(self):
         """Source check: _disable_voice_mode must call stop_playback()."""
         import inspect
-        from cli import HermesCLI
+        from cli import ClaudiaCLI
 
-        source = inspect.getsource(HermesCLI._disable_voice_mode)
+        source = inspect.getsource(ClaudiaCLI._disable_voice_mode)
         assert "stop_playback" in source, (
             "_disable_voice_mode must call stop_playback()"
         )

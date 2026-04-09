@@ -1,6 +1,6 @@
 # Adding a New Messaging Platform
 
-Checklist for integrating a new messaging platform into the Hermes gateway.
+Checklist for integrating a new messaging platform into the Claudia gateway.
 Use this as a reference when building a new adapter — every item here is a
 real integration point that exists in the codebase. Missing any of them will
 cause broken functionality, missing features, or inconsistent behavior.
@@ -145,18 +145,18 @@ inappropriate formatting (e.g., markdown on platforms that don't render it).
 Add a named toolset for your platform:
 
 ```python
-"hermes-your-platform": {
+"claudia-your-platform": {
     "description": "Your Platform bot toolset",
     "tools": _CLAUDIA_CORE_TOOLS,
     "includes": []
 },
 ```
 
-And add it to the `hermes-gateway` composite:
+And add it to the `claudia-gateway` composite:
 
 ```python
-"hermes-gateway": {
-    "includes": [..., "hermes-your-platform"]
+"claudia-gateway": {
+    "includes": [..., "claudia-your-platform"]
 }
 ```
 

@@ -44,7 +44,7 @@ from cron.jobs import get_due_jobs, mark_job_run, save_job_output, advance_next_
 # locally for audit.
 SILENT_MARKER = "[SILENT]"
 
-# Resolve Hermes home directory (respects CLAUDIA_HOME override)
+# Resolve Claudia home directory (respects CLAUDIA_HOME override)
 _claudia_home = get_claudia_home()
 
 # File-based lock prevents concurrent ticks from gateway + daemon + systemd timer

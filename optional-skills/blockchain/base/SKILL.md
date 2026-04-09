@@ -5,7 +5,7 @@ version: 0.1.0
 author: youssefea
 license: MIT
 metadata:
-  hermes:
+  claudia:
     tags: [Base, Blockchain, Crypto, Web3, RPC, DeFi, EVM, L2, Ethereum]
     related_skills: []
 ---

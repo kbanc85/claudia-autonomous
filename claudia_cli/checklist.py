@@ -1,6 +1,6 @@
-"""Shared curses-based multi-select checklist for Hermes CLI.
+"""Shared curses-based multi-select checklist for Claudia CLI.
 
-Used by both ``hermes tools`` and ``hermes skills`` to present a
+Used by both ``claudia tools`` and ``claudia skills`` to present a
 toggleable list of items.  Falls back to a numbered text UI when
 curses is unavailable (Windows without curses, piped stdin, etc.).
 """

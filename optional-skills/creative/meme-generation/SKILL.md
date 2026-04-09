@@ -5,7 +5,7 @@ version: 2.0.0
 author: adanaleycio
 license: MIT
 metadata:
-  hermes:
+  claudia:
     tags: [creative, memes, humor, images]
     related_skills: [ascii-art, generative-widgets]
     category: creative

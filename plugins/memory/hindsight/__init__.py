@@ -7,7 +7,7 @@ Original PR #1811 by benfrank241, adapted to MemoryProvider ABC.
 
 Config via environment variables:
   HINDSIGHT_API_KEY   — API key for Hindsight Cloud
-  HINDSIGHT_BANK_ID   — memory bank identifier (default: hermes)
+  HINDSIGHT_BANK_ID   — memory bank identifier (default: claudia)
   HINDSIGHT_BUDGET    — recall budget: low/mid/high (default: mid)
   HINDSIGHT_API_URL   — API endpoint
   HINDSIGHT_MODE      — cloud or local (default: cloud)
@@ -142,8 +142,8 @@ def _load_config() -> dict:
         "mode": os.environ.get("HINDSIGHT_MODE", "cloud"),
         "apiKey": os.environ.get("HINDSIGHT_API_KEY", ""),
         "banks": {
-            "hermes": {
-                "bankId": os.environ.get("HINDSIGHT_BANK_ID", "hermes"),
+            "claudia": {
+                "bankId": os.environ.get("HINDSIGHT_BANK_ID", "claudia"),
                 "budget": os.environ.get("HINDSIGHT_BUDGET", "mid"),
                 "enabled": True,
             }
@@ -161,7 +161,7 @@ class HindsightMemoryProvider(MemoryProvider):
     def __init__(self):
         self._config = None
         self._api_key = None
-        self._bank_id = "hermes"
+        self._bank_id = "claudia"
         self._budget = "mid"
         self._mode = "cloud"
         self._prefetch_result = ""
@@ -205,7 +205,7 @@ class HindsightMemoryProvider(MemoryProvider):
         return [
             {"key": "mode", "description": "Cloud API or local embedded mode", "default": "cloud", "choices": ["cloud", "local"]},
             {"key": "api_key", "description": "Hindsight Cloud API key", "secret": True, "env_var": "HINDSIGHT_API_KEY", "url": "https://app.hindsight.vectorize.io"},
-            {"key": "bank_id", "description": "Memory bank identifier", "default": "hermes"},
+            {"key": "bank_id", "description": "Memory bank identifier", "default": "claudia"},
             {"key": "budget", "description": "Recall thoroughness", "default": "mid", "choices": ["low", "mid", "high"]},
             {"key": "llm_provider", "description": "LLM provider for local mode", "default": "anthropic", "choices": ["anthropic", "openai", "groq", "ollama"]},
             {"key": "llm_api_key", "description": "LLM API key for local mode", "secret": True, "env_var": "HINDSIGHT_LLM_API_KEY"},
@@ -218,7 +218,7 @@ class HindsightMemoryProvider(MemoryProvider):
             from hindsight import HindsightEmbedded
             embed = self._config.get("embed", {})
             return HindsightEmbedded(
-                profile=embed.get("profile", "hermes"),
+                profile=embed.get("profile", "claudia"),
                 llm_provider=embed.get("llmProvider", ""),
                 llm_api_key=embed.get("llmApiKey", ""),
                 llm_model=embed.get("llmModel", ""),
@@ -231,8 +231,8 @@ class HindsightMemoryProvider(MemoryProvider):
         self._mode = self._config.get("mode", "cloud")
         self._api_key = self._config.get("apiKey") or os.environ.get("HINDSIGHT_API_KEY", "")
 
-        banks = self._config.get("banks", {}).get("hermes", {})
-        self._bank_id = banks.get("bankId", "hermes")
+        banks = self._config.get("banks", {}).get("claudia", {})
+        self._bank_id = banks.get("bankId", "claudia")
         budget = banks.get("budget", "mid")
         self._budget = budget if budget in _VALID_BUDGETS else "mid"
 

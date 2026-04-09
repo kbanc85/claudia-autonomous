@@ -97,7 +97,7 @@ class TestEphemeralMode:
 
 
 class TestManagedPersistenceMode:
-    """With managed_persistence: stable userId derived from Hermes profile."""
+    """With managed_persistence: stable userId derived from Claudia profile."""
 
     def test_session_gets_stable_user_id(self, tmp_path, monkeypatch):
         monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path))

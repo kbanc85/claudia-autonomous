@@ -219,13 +219,13 @@ TOOLSETS = {
     },
     
     # ==========================================================================
-    # Full Hermes toolsets (CLI + messaging platforms)
+    # Full Claudia toolsets (CLI + messaging platforms)
     #
     # All platforms share the same core tools (including send_message,
     # which is gated on gateway running via its check_fn).
     # ==========================================================================
 
-    "hermes-acp": {
+    "claudia-acp": {
         "description": "Editor integration (VS Code, Zed, JetBrains) — coding-focused tools without messaging, audio, or clarify UI",
         "tools": [
             "web_search", "web_extract",
@@ -244,7 +244,7 @@ TOOLSETS = {
         "includes": []
     },
 
-    "hermes-api-server": {
+    "claudia-api-server": {
         "description": "OpenAI-compatible API server — full agent tools accessible via HTTP (no interactive UI tools like clarify or send_message)",
         "tools": [
             # Web
@@ -279,100 +279,100 @@ TOOLSETS = {
         "includes": []
     },
     
-    "hermes-cli": {
+    "claudia-cli": {
         "description": "Full interactive CLI toolset - all default tools plus cronjob management",
         "tools": _CLAUDIA_CORE_TOOLS,
         "includes": []
     },
     
-    "hermes-telegram": {
+    "claudia-telegram": {
         "description": "Telegram bot toolset - full access for personal use (terminal has safety checks)",
         "tools": _CLAUDIA_CORE_TOOLS,
         "includes": []
     },
     
-    "hermes-discord": {
+    "claudia-discord": {
         "description": "Discord bot toolset - full access (terminal has safety checks via dangerous command approval)",
         "tools": _CLAUDIA_CORE_TOOLS,
         "includes": []
     },
     
-    "hermes-whatsapp": {
+    "claudia-whatsapp": {
         "description": "WhatsApp bot toolset - similar to Telegram (personal messaging, more trusted)",
         "tools": _CLAUDIA_CORE_TOOLS,
         "includes": []
     },
     
-    "hermes-slack": {
+    "claudia-slack": {
         "description": "Slack bot toolset - full access for workspace use (terminal has safety checks)",
         "tools": _CLAUDIA_CORE_TOOLS,
         "includes": []
     },
     
-    "hermes-signal": {
+    "claudia-signal": {
         "description": "Signal bot toolset - encrypted messaging platform (full access)",
         "tools": _CLAUDIA_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-homeassistant": {
+    "claudia-homeassistant": {
         "description": "Home Assistant bot toolset - smart home event monitoring and control",
         "tools": _CLAUDIA_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-email": {
-        "description": "Email bot toolset - interact with Hermes via email (IMAP/SMTP)",
+    "claudia-email": {
+        "description": "Email bot toolset - interact with Claudia via email (IMAP/SMTP)",
         "tools": _CLAUDIA_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-mattermost": {
+    "claudia-mattermost": {
         "description": "Mattermost bot toolset - self-hosted team messaging (full access)",
         "tools": _CLAUDIA_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-matrix": {
+    "claudia-matrix": {
         "description": "Matrix bot toolset - decentralized encrypted messaging (full access)",
         "tools": _CLAUDIA_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-dingtalk": {
+    "claudia-dingtalk": {
         "description": "DingTalk bot toolset - enterprise messaging platform (full access)",
         "tools": _CLAUDIA_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-feishu": {
+    "claudia-feishu": {
         "description": "Feishu/Lark bot toolset - enterprise messaging via Feishu/Lark (full access)",
         "tools": _CLAUDIA_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-wecom": {
+    "claudia-wecom": {
         "description": "WeCom bot toolset - enterprise WeChat messaging (full access)",
         "tools": _CLAUDIA_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-sms": {
-        "description": "SMS bot toolset - interact with Hermes via SMS (Twilio)",
+    "claudia-sms": {
+        "description": "SMS bot toolset - interact with Claudia via SMS (Twilio)",
         "tools": _CLAUDIA_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-webhook": {
+    "claudia-webhook": {
         "description": "Webhook toolset - receive and process external webhook events",
         "tools": _CLAUDIA_CORE_TOOLS,
         "includes": []
     },
 
-    "hermes-gateway": {
+    "claudia-gateway": {
         "description": "Gateway toolset - union of all messaging platform tools",
         "tools": [],
-        "includes": ["hermes-telegram", "hermes-discord", "hermes-whatsapp", "hermes-slack", "hermes-signal", "hermes-homeassistant", "hermes-email", "hermes-sms", "hermes-mattermost", "hermes-matrix", "hermes-dingtalk", "hermes-feishu", "hermes-wecom", "hermes-webhook"]
+        "includes": ["claudia-telegram", "claudia-discord", "claudia-whatsapp", "claudia-slack", "claudia-signal", "claudia-homeassistant", "claudia-email", "claudia-sms", "claudia-mattermost", "claudia-matrix", "claudia-dingtalk", "claudia-feishu", "claudia-wecom", "claudia-webhook"]
     }
 }
 

@@ -14,22 +14,22 @@ def test_get_managed_system_homebrew(monkeypatch):
     monkeypatch.setenv("CLAUDIA_MANAGED", "homebrew")
 
     assert get_managed_system() == "Homebrew"
-    assert recommended_update_command() == "brew upgrade hermes-agent"
+    assert recommended_update_command() == "brew upgrade claudia-autonomous"
 
 
 def test_format_managed_message_homebrew(monkeypatch):
     monkeypatch.setenv("CLAUDIA_MANAGED", "homebrew")
 
-    message = format_managed_message("update Hermes Agent")
+    message = format_managed_message("update Claudia")
 
     assert "managed by Homebrew" in message
-    assert "brew upgrade hermes-agent" in message
+    assert "brew upgrade claudia-autonomous" in message
 
 
 def test_recommended_update_command_defaults_to_claudia_update(monkeypatch):
     monkeypatch.delenv("CLAUDIA_MANAGED", raising=False)
 
-    assert recommended_update_command() == "hermes update"
+    assert recommended_update_command() == "claudia update"
 
 
 def test_cmd_update_blocks_managed_homebrew(monkeypatch, capsys):
@@ -41,7 +41,7 @@ def test_cmd_update_blocks_managed_homebrew(monkeypatch, capsys):
     assert not mock_run.called
     captured = capsys.readouterr()
     assert "managed by Homebrew" in captured.err
-    assert "brew upgrade hermes-agent" in captured.err
+    assert "brew upgrade claudia-autonomous" in captured.err
 
 
 def test_optional_skill_source_honors_env_override(monkeypatch, tmp_path):

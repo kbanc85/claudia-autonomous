@@ -7,7 +7,7 @@ from claudia_cli.env_loader import load_claudia_dotenv
 
 
 def test_user_env_overrides_stale_shell_values(tmp_path, monkeypatch):
-    home = tmp_path / "hermes"
+    home = tmp_path / "claudia"
     home.mkdir()
     env_file = home / ".env"
     env_file.write_text("OPENAI_BASE_URL=https://new.example/v1\n", encoding="utf-8")
@@ -21,7 +21,7 @@ def test_user_env_overrides_stale_shell_values(tmp_path, monkeypatch):
 
 
 def test_project_env_overrides_stale_shell_values_when_user_env_missing(tmp_path, monkeypatch):
-    home = tmp_path / "hermes"
+    home = tmp_path / "claudia"
     project_env = tmp_path / ".env"
     project_env.write_text("OPENAI_BASE_URL=https://project.example/v1\n", encoding="utf-8")
 
@@ -34,7 +34,7 @@ def test_project_env_overrides_stale_shell_values_when_user_env_missing(tmp_path
 
 
 def test_user_env_takes_precedence_over_project_env(tmp_path, monkeypatch):
-    home = tmp_path / "hermes"
+    home = tmp_path / "claudia"
     home.mkdir()
     user_env = home / ".env"
     project_env = tmp_path / ".env"
@@ -52,7 +52,7 @@ def test_user_env_takes_precedence_over_project_env(tmp_path, monkeypatch):
 
 
 def test_main_import_applies_user_env_over_shell_values(tmp_path, monkeypatch):
-    home = tmp_path / "hermes"
+    home = tmp_path / "claudia"
     home.mkdir()
     (home / ".env").write_text(
         "OPENAI_BASE_URL=https://new.example/v1\nCLAUDIA_INFERENCE_PROVIDER=custom\n",

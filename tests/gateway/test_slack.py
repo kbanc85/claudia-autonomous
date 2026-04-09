@@ -145,7 +145,7 @@ class TestAppMentionHandler:
 
         assert "message" in registered_events
         assert "app_mention" in registered_events
-        assert "/hermes" in registered_commands
+        assert "/claudia" in registered_commands
 
 
 # ---------------------------------------------------------------------------

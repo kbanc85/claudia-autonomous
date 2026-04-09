@@ -20,7 +20,7 @@ from tools.tool_backend_helpers import (
 
 
 _DEFAULT_PLATFORM_TOOLSETS = {
-    "cli": "hermes-cli",
+    "cli": "claudia-cli",
 }
 
 
@@ -432,12 +432,12 @@ def get_nous_subscription_explainer_lines() -> list[str]:
     return [
         "Nous subscription enables managed web tools, image generation, OpenAI TTS, and browser automation by default.",
         "Those managed tools bill to your Nous subscription. Modal execution is optional and can bill to your subscription too.",
-        "Change these later with: hermes setup tools, hermes setup terminal, or hermes status.",
+        "Change these later with: claudia setup tools, claudia setup terminal, or claudia status.",
     ]
 
 
 def apply_nous_provider_defaults(config: Dict[str, object]) -> set[str]:
-    """Apply provider-level Nous defaults shared by `hermes setup` and `hermes model`."""
+    """Apply provider-level Nous defaults shared by `claudia setup` and `claudia model`."""
     if not managed_nous_tools_enabled():
         return set()
 

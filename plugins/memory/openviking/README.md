@@ -11,12 +11,12 @@ Context database by Volcengine (ByteDance) with filesystem-style knowledge hiera
 ## Setup
 
 ```bash
-hermes memory setup    # select "openviking"
+claudia memory setup    # select "openviking"
 ```
 
 Or manually:
 ```bash
-hermes config set memory.provider openviking
+claudia config set memory.provider openviking
 echo "OPENVIKING_ENDPOINT=http://localhost:1933" >> ~/.claudia/.env
 ```
 

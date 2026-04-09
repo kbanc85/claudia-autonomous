@@ -178,7 +178,7 @@ class TestFirecrawlClientConfig:
         real_home = tmp_path / "real-home"
         (real_home / ".claudia").mkdir(parents=True)
 
-        claudia_home = tmp_path / "hermes-home"
+        claudia_home = tmp_path / "claudia-home"
         claudia_home.mkdir()
         (claudia_home / "auth.json").write_text(json.dumps({
             "providers": {
@@ -293,7 +293,7 @@ class TestBackendSelection:
     """Test suite for _get_backend() backend selection logic.
 
     The backend is configured via config.yaml (web.backend), set by
-    ``hermes tools``.  Falls back to key-based detection for legacy/manual
+    ``claudia tools``.  Falls back to key-based detection for legacy/manual
     setups.
     """
 

@@ -28,7 +28,7 @@ class ManagedToolGatewayConfig:
 
 
 def auth_json_path():
-    """Return the Hermes auth store path, respecting CLAUDIA_HOME overrides."""
+    """Return the Claudia auth store path, respecting CLAUDIA_HOME overrides."""
     return get_claudia_home() / "auth.json"
 
 

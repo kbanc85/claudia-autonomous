@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
 """
-Hermes Gateway - Standalone messaging platform integration.
+Claudia Gateway - Standalone messaging platform integration.
 
 This is the proper entry point for running the gateway as a service.
 NOT tied to the CLI - runs independently.
 
 Usage:
     # Run in foreground (for testing)
-    ./scripts/hermes-gateway
+    ./scripts/claudia-gateway
     
     # Install as systemd service
-    ./scripts/hermes-gateway install
+    ./scripts/claudia-gateway install
     
     # Manage the service
-    ./scripts/hermes-gateway start
-    ./scripts/hermes-gateway stop
-    ./scripts/hermes-gateway restart
-    ./scripts/hermes-gateway status
+    ./scripts/claudia-gateway start
+    ./scripts/claudia-gateway stop
+    ./scripts/claudia-gateway restart
+    ./scripts/claudia-gateway status
     
     # Uninstall
-    ./scripts/hermes-gateway uninstall
+    ./scripts/claudia-gateway uninstall
 """
 
 import argparse
@@ -45,8 +45,8 @@ if env_path.exists():
 # Service Configuration
 # =============================================================================
 
-SERVICE_NAME = "hermes-gateway"
-SERVICE_DESCRIPTION = "Hermes Agent Gateway - Messaging Platform Integration"
+SERVICE_NAME = "claudia-gateway"
+SERVICE_DESCRIPTION = "Claudia Gateway - Messaging Platform Integration"
 
 def get_systemd_unit_path() -> Path:
     """Get the path for the systemd user service file."""
@@ -295,7 +295,7 @@ def is_windows() -> bool:
 def run_gateway():
     """Run the gateway in foreground."""
     from gateway.run import start_gateway
-    print("Starting Hermes Gateway...")
+    print("Starting Claudia Gateway...")
     print("Press Ctrl+C to stop.")
     print()
     asyncio.run(start_gateway())
@@ -307,24 +307,24 @@ def run_gateway():
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Hermes Gateway - Messaging Platform Integration",
+        description="Claudia Gateway - Messaging Platform Integration",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
     # Run in foreground (for testing)
-    ./scripts/hermes-gateway run
+    ./scripts/claudia-gateway run
     
     # Install as system service
-    ./scripts/hermes-gateway install
+    ./scripts/claudia-gateway install
     
     # Manage the service
-    ./scripts/hermes-gateway start
-    ./scripts/hermes-gateway stop
-    ./scripts/hermes-gateway restart
-    ./scripts/hermes-gateway status
+    ./scripts/claudia-gateway start
+    ./scripts/claudia-gateway stop
+    ./scripts/claudia-gateway restart
+    ./scripts/claudia-gateway status
     
     # Uninstall
-    ./scripts/hermes-gateway uninstall
+    ./scripts/claudia-gateway uninstall
 
 Configuration:
     Set environment variables in .env file or system environment:
@@ -363,7 +363,7 @@ Configuration:
             install_launchd()
         else:
             print("Service installation not supported on this platform.")
-            print("Please run manually: ./scripts/hermes-gateway run")
+            print("Please run manually: ./scripts/claudia-gateway run")
             sys.exit(1)
     
     elif args.command == "uninstall":

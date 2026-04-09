@@ -232,7 +232,7 @@ def check_env_vars():
 
 
 def check_config(groq_key, eleven_key):
-    """Check hermes config.yaml."""
+    """Check claudia config.yaml."""
     section("Configuration")
 
     config_path = CLAUDIA_HOME / "config.yaml"

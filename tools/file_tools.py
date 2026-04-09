@@ -290,7 +290,7 @@ def read_file_tool(path: str, offset: int = 1, limit: int = 500, task_id: str = 
                 ),
             })
 
-        # ── Hermes internal path guard ────────────────────────────────
+        # ── Claudia internal path guard ────────────────────────────────
         # Prevent prompt injection via catalog or hub metadata files.
         import pathlib as _pathlib
         from claudia_constants import get_claudia_home as _get_hh
@@ -305,7 +305,7 @@ def read_file_tool(path: str, offset: int = 1, limit: int = 500, task_id: str = 
                 _resolved.relative_to(_blocked)
                 return json.dumps({
                     "error": (
-                        f"Access denied: {path} is an internal Hermes cache file "
+                        f"Access denied: {path} is an internal Claudia cache file "
                         "and cannot be read directly to prevent prompt injection. "
                         "Use the skills_list or skill_view tools instead."
                     )

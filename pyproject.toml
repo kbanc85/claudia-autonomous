@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "hermes-agent"
+name = "claudia-autonomous"
 version = "0.7.0"
 description = "The self-improving AI agent — creates skills from experience, improves them during use, and runs anywhere"
 readme = "README.md"
@@ -73,33 +73,33 @@ rl = [
 ]
 yc-bench = ["yc-bench @ git+https://github.com/collinear-ai/yc-bench.git ; python_version >= '3.12'"]
 all = [
-  "hermes-agent[modal]",
-  "hermes-agent[daytona]",
-  "hermes-agent[messaging]",
+  "claudia-autonomous[modal]",
+  "claudia-autonomous[daytona]",
+  "claudia-autonomous[messaging]",
   # matrix excluded: python-olm (required by matrix-nio[e2e]) is upstream-broken
   # on modern macOS (archived libolm, C++ errors with Clang 21+). Including it
   # here causes the entire [all] install to fail, dropping all other extras.
-  # Users who need Matrix can install manually: pip install 'hermes-agent[matrix]'
-  "hermes-agent[cron]",
-  "hermes-agent[cli]",
-  "hermes-agent[dev]",
-  "hermes-agent[tts-premium]",
-  "hermes-agent[slack]",
-  "hermes-agent[pty]",
-  "hermes-agent[honcho]",
-  "hermes-agent[mcp]",
-  "hermes-agent[homeassistant]",
-  "hermes-agent[sms]",
-  "hermes-agent[acp]",
-  "hermes-agent[voice]",
-  "hermes-agent[dingtalk]",
-  "hermes-agent[feishu]",
+  # Users who need Matrix can install manually: pip install 'claudia-autonomous[matrix]'
+  "claudia-autonomous[cron]",
+  "claudia-autonomous[cli]",
+  "claudia-autonomous[dev]",
+  "claudia-autonomous[tts-premium]",
+  "claudia-autonomous[slack]",
+  "claudia-autonomous[pty]",
+  "claudia-autonomous[honcho]",
+  "claudia-autonomous[mcp]",
+  "claudia-autonomous[homeassistant]",
+  "claudia-autonomous[sms]",
+  "claudia-autonomous[acp]",
+  "claudia-autonomous[voice]",
+  "claudia-autonomous[dingtalk]",
+  "claudia-autonomous[feishu]",
 ]
 
 [project.scripts]
-hermes = "claudia_cli.main:main"
-hermes-agent = "run_agent:main"
-hermes-acp = "acp_adapter.entry:main"
+claudia = "claudia_cli.main:main"
+claudia-autonomous = "run_agent:main"
+claudia-acp = "acp_adapter.entry:main"
 
 [tool.setuptools]
 py-modules = ["run_agent", "model_tools", "toolsets", "batch_runner", "trajectory_compressor", "toolset_distributions", "cli", "claudia_constants", "claudia_state", "claudia_time", "rl_cli", "utils"]

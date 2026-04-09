@@ -14,13 +14,13 @@ def test_top_level_skills_flag_defaults_to_chat(monkeypatch):
     monkeypatch.setattr(
         sys,
         "argv",
-        ["hermes", "-s", "hermes-agent-dev,github-auth"],
+        ["claudia", "-s", "claudia-autonomous-dev,github-auth"],
     )
 
     main_mod.main()
 
     assert captured == {
-        "skills": ["hermes-agent-dev,github-auth"],
+        "skills": ["claudia-autonomous-dev,github-auth"],
         "command": None,
     }
 
@@ -38,7 +38,7 @@ def test_chat_subcommand_accepts_skills_flag(monkeypatch):
     monkeypatch.setattr(
         sys,
         "argv",
-        ["hermes", "chat", "-s", "github-auth", "-q", "hello"],
+        ["claudia", "chat", "-s", "github-auth", "-q", "hello"],
     )
 
     main_mod.main()
@@ -64,7 +64,7 @@ def test_continue_worktree_and_skills_flags_work_together(monkeypatch):
     monkeypatch.setattr(
         sys,
         "argv",
-        ["hermes", "-c", "-w", "-s", "hermes-agent-dev"],
+        ["claudia", "-c", "-w", "-s", "claudia-autonomous-dev"],
     )
 
     main_mod.main()
@@ -72,6 +72,6 @@ def test_continue_worktree_and_skills_flags_work_together(monkeypatch):
     assert captured == {
         "continue_last": True,
         "worktree": True,
-        "skills": ["hermes-agent-dev"],
+        "skills": ["claudia-autonomous-dev"],
         "command": "chat",
     }

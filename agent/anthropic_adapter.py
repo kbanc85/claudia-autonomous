@@ -1,6 +1,6 @@
-"""Anthropic Messages API adapter for Hermes Agent.
+"""Anthropic Messages API adapter for Claudia.
 
-Translates between Hermes's internal OpenAI-style message format and
+Translates between Claudia's internal OpenAI-style message format and
 Anthropic's Messages API. Follows the same pattern as the codex_responses
 adapter — all provider-specific logic is isolated here.
 
@@ -454,7 +454,7 @@ def _resolve_claude_code_token_from_credentials(creds: Optional[Dict[str, Any]] 
 def _prefer_refreshable_claude_code_token(env_token: str, creds: Optional[Dict[str, Any]]) -> Optional[str]:
     """Prefer Claude Code creds when a persisted env OAuth token would shadow refresh.
 
-    Hermes historically persisted setup tokens into ANTHROPIC_TOKEN. That makes
+    Claudia historically persisted setup tokens into ANTHROPIC_TOKEN. That makes
     later refresh impossible because the static env token wins before we ever
     inspect Claude Code's refreshable credential file. If we have a refreshable
     Claude Code credential record, prefer it over the static env OAuth token.
@@ -506,7 +506,7 @@ def resolve_anthropic_token() -> Optional[str]:
     """Resolve an Anthropic token from all available sources.
 
     Priority:
-      1. ANTHROPIC_TOKEN env var (OAuth/setup token saved by Hermes)
+      1. ANTHROPIC_TOKEN env var (OAuth/setup token saved by Claudia)
       2. CLAUDE_CODE_OAUTH_TOKEN env var
       3. Claude Code credentials (~/.claude.json or ~/.claude/.credentials.json)
          — with automatic refresh if expired and a refresh token is available
@@ -516,7 +516,7 @@ def resolve_anthropic_token() -> Optional[str]:
     """
     creds = read_claude_code_credentials()
 
-    # 1. Hermes-managed OAuth/setup token env var
+    # 1. Claudia-managed OAuth/setup token env var
     token = os.getenv("ANTHROPIC_TOKEN", "").strip()
     if token:
         preferred = _prefer_refreshable_claude_code_token(token, creds)
@@ -538,7 +538,7 @@ def resolve_anthropic_token() -> Optional[str]:
         return resolved_claude_token
 
     # 4. Regular API key, or a legacy OAuth token saved in ANTHROPIC_API_KEY.
-    # This remains as a compatibility fallback for pre-migration Hermes configs.
+    # This remains as a compatibility fallback for pre-migration Claudia configs.
     api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
     if api_key:
         return api_key
@@ -586,7 +586,7 @@ def run_oauth_setup_token() -> Optional[str]:
     return None
 
 
-# ── Hermes-native PKCE OAuth flow ────────────────────────────────────────
+# ── Claudia-native PKCE OAuth flow ────────────────────────────────────────
 # Mirrors the flow used by Claude Code, pi-ai, and OpenCode.
 # Stores credentials in ~/.claudia/.anthropic_oauth.json (our own file).
 
@@ -611,7 +611,7 @@ def _generate_pkce() -> tuple:
 
 
 def run_claudia_oauth_login_pure() -> Optional[Dict[str, Any]]:
-    """Run Hermes-native OAuth PKCE flow and return credential state."""
+    """Run Claudia-native OAuth PKCE flow and return credential state."""
     import time
     import webbrowser
 
@@ -632,7 +632,7 @@ def run_claudia_oauth_login_pure() -> Optional[Dict[str, Any]]:
     auth_url = f"https://claude.ai/oauth/authorize?{urlencode(params)}"
 
     print()
-    print("Authorize Hermes with your Claude Pro/Max subscription.")
+    print("Authorize Claudia with your Claude Pro/Max subscription.")
     print()
     print("╭─ Claude Pro/Max Authorization ────────────────────╮")
     print("│                                                   │")
@@ -709,7 +709,7 @@ def run_claudia_oauth_login_pure() -> Optional[Dict[str, Any]]:
 
 
 def run_claudia_oauth_login() -> Optional[str]:
-    """Run Hermes-native OAuth PKCE flow for Claude Pro/Max subscription.
+    """Run Claudia-native OAuth PKCE flow for Claude Pro/Max subscription.
 
     Opens a browser to claude.ai for authorization, prompts for the code,
     exchanges it for tokens, and stores them in ~/.claudia/.anthropic_oauth.json.
@@ -743,23 +743,23 @@ def _save_claudia_oauth_credentials(access_token: str, refresh_token: str, expir
         _CLAUDIA_OAUTH_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
         _CLAUDIA_OAUTH_FILE.chmod(0o600)
     except (OSError, IOError) as e:
-        logger.debug("Failed to save Hermes OAuth credentials: %s", e)
+        logger.debug("Failed to save Claudia OAuth credentials: %s", e)
 
 
 def read_claudia_oauth_credentials() -> Optional[Dict[str, Any]]:
-    """Read Hermes-managed OAuth credentials from ~/.claudia/.anthropic_oauth.json."""
+    """Read Claudia-managed OAuth credentials from ~/.claudia/.anthropic_oauth.json."""
     if _CLAUDIA_OAUTH_FILE.exists():
         try:
             data = json.loads(_CLAUDIA_OAUTH_FILE.read_text(encoding="utf-8"))
             if data.get("accessToken"):
                 return data
         except (json.JSONDecodeError, OSError, IOError) as e:
-            logger.debug("Failed to read Hermes OAuth credentials: %s", e)
+            logger.debug("Failed to read Claudia OAuth credentials: %s", e)
     return None
 
 
 def refresh_claudia_oauth_token() -> Optional[str]:
-    """Refresh the Hermes-managed OAuth token using the stored refresh token.
+    """Refresh the Claudia-managed OAuth token using the stored refresh token.
 
     Returns the new access token, or None if refresh fails.
     """
@@ -782,10 +782,10 @@ def refresh_claudia_oauth_token() -> Optional[str]:
             refreshed["refresh_token"],
             refreshed["expires_at_ms"],
         )
-        logger.debug("Successfully refreshed Hermes OAuth token")
+        logger.debug("Successfully refreshed Claudia OAuth token")
         return refreshed["access_token"]
     except Exception as e:
-        logger.debug("Failed to refresh Hermes OAuth token: %s", e)
+        logger.debug("Failed to refresh Claudia OAuth token: %s", e)
 
     return None
 
@@ -1260,9 +1260,9 @@ def build_anthropic_kwargs(
         for block in system:
             if isinstance(block, dict) and block.get("type") == "text":
                 text = block.get("text", "")
-                text = text.replace("Hermes Agent", "Claude Code")
-                text = text.replace("Hermes agent", "Claude Code")
-                text = text.replace("hermes-agent", "claude-code")
+                text = text.replace("Claudia", "Claude Code")
+                text = text.replace("Claudia", "Claude Code")
+                text = text.replace("claudia-autonomous", "claude-code")
                 text = text.replace("Nous Research", "Anthropic")
                 block["text"] = text
 

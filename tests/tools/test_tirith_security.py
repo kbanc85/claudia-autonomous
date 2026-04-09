@@ -972,7 +972,7 @@ class TestDiskFailureMarker:
 # CLAUDIA_HOME isolation
 # ---------------------------------------------------------------------------
 
-class TestHermesHomeIsolation:
+class TestClaudiaHomeIsolation:
     def test_claudia_bin_dir_respects_claudia_home(self):
         """_claudia_bin_dir must use CLAUDIA_HOME, not hardcoded ~/.claudia."""
         from tools.tirith_security import _claudia_bin_dir
@@ -986,9 +986,9 @@ class TestHermesHomeIsolation:
     def test_failure_marker_respects_claudia_home(self):
         """_failure_marker_path must use CLAUDIA_HOME, not hardcoded ~/.claudia."""
         from tools.tirith_security import _failure_marker_path
-        with patch.dict(os.environ, {"CLAUDIA_HOME": "/custom/hermes"}):
+        with patch.dict(os.environ, {"CLAUDIA_HOME": "/custom/claudia"}):
             result = _failure_marker_path()
-        assert result == "/custom/hermes/.tirith-install-failed"
+        assert result == "/custom/claudia/.tirith-install-failed"
 
     def test_conftest_isolation_prevents_real_home_writes(self):
         """The conftest autouse fixture sets CLAUDIA_HOME; verify it's active."""

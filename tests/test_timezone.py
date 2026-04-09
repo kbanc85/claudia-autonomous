@@ -24,7 +24,7 @@ import claudia_time
 # claudia_time.now() — core helper
 # =========================================================================
 
-class TestHermesTimeNow:
+class TestClaudiaTimeNow:
     """Test the timezone-aware now() helper."""
 
     def setup_method(self):
@@ -253,7 +253,7 @@ class TestCronTimezone:
         """_ensure_aware must preserve the absolute instant for naive datetimes.
 
         Regression: the old code used replace(tzinfo=claudia_tz) which shifted
-        absolute time when system-local tz != Hermes tz.  The fix interprets
+        absolute time when system-local tz != Claudia tz.  The fix interprets
         naive values as system-local wall time, then converts.
         """
         from cron.jobs import _ensure_aware
@@ -279,7 +279,7 @@ class TestCronTimezone:
         )
 
     def test_ensure_aware_normalizes_aware_to_claudia_tz(self):
-        """Already-aware datetimes should be normalized to Hermes tz."""
+        """Already-aware datetimes should be normalized to Claudia tz."""
         from cron.jobs import _ensure_aware
 
         os.environ["CLAUDIA_TIMEZONE"] = "Asia/Kolkata"
@@ -289,17 +289,17 @@ class TestCronTimezone:
         utc_dt = datetime(2026, 3, 11, 15, 0, 0, tzinfo=timezone.utc)
         result = _ensure_aware(utc_dt)
 
-        # Must be in Hermes tz (Kolkata) but same absolute instant
+        # Must be in Claudia tz (Kolkata) but same absolute instant
         kolkata = ZoneInfo("Asia/Kolkata")
         assert result.utctimetuple()[:5] == (2026, 3, 11, 15, 0)
         expected_local = utc_dt.astimezone(kolkata)
         assert result == expected_local
 
     def test_ensure_aware_due_job_not_skipped_when_system_ahead(self, tmp_path, monkeypatch):
-        """Reproduce the actual bug: system tz ahead of Hermes tz caused
+        """Reproduce the actual bug: system tz ahead of Claudia tz caused
         overdue jobs to appear as not-yet-due.
 
-        Scenario: system is Asia/Kolkata (UTC+5:30), Hermes is UTC.
+        Scenario: system is Asia/Kolkata (UTC+5:30), Claudia is UTC.
         A naive timestamp from 5 minutes ago (local time) should still
         be recognized as due after conversion.
         """
@@ -329,14 +329,14 @@ class TestCronTimezone:
         )
 
     def test_get_due_jobs_naive_cross_timezone(self, tmp_path, monkeypatch):
-        """Naive past timestamps must be detected as due even when Hermes tz
+        """Naive past timestamps must be detected as due even when Claudia tz
         is behind system local tz — the scenario that triggered #806."""
         import cron.jobs as jobs_module
         monkeypatch.setattr(jobs_module, "CRON_DIR", tmp_path / "cron")
         monkeypatch.setattr(jobs_module, "JOBS_FILE", tmp_path / "cron" / "jobs.json")
         monkeypatch.setattr(jobs_module, "OUTPUT_DIR", tmp_path / "cron" / "output")
 
-        # Use a Hermes timezone far behind UTC so that the numeric wall time
+        # Use a Claudia timezone far behind UTC so that the numeric wall time
         # of the naive timestamp exceeds _claudia_now's wall time — this would
         # have caused a false "not due" with the old replace(tzinfo=...) approach.
         os.environ["CLAUDIA_TIMEZONE"] = "Pacific/Midway"  # UTC-11
@@ -353,7 +353,7 @@ class TestCronTimezone:
 
         due = get_due_jobs()
         assert len(due) == 1, (
-            "Naive past timestamp should be due regardless of Hermes timezone"
+            "Naive past timestamp should be due regardless of Claudia timezone"
         )
 
     def test_create_job_stores_tz_aware_timestamps(self, tmp_path, monkeypatch):

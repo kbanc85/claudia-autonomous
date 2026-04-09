@@ -1,4 +1,4 @@
-"""Tests for hermes claw commands."""
+"""Tests for claudia migrate commands."""
 
 from argparse import Namespace
 from types import ModuleType
@@ -18,7 +18,7 @@ class TestFindMigrationScript:
     """Test script discovery in known locations."""
 
     def test_finds_project_root_script(self, tmp_path):
-        script = tmp_path / "openclaw_to_hermes.py"
+        script = tmp_path / "openclaw_to_claudia.py"
         script.write_text("# placeholder")
         with patch.object(claw_mod, "_OPENCLAW_SCRIPT", script):
             assert claw_mod._find_migration_script() == script
@@ -232,7 +232,7 @@ class TestCmdMigrate:
         script.write_text("# placeholder")
 
         # Build a fake migration module
-        fake_mod = ModuleType("openclaw_to_hermes")
+        fake_mod = ModuleType("openclaw_to_claudia")
         fake_mod.resolve_selected_options = MagicMock(return_value={"soul", "memory"})
         fake_migrator = MagicMock()
         fake_migrator.migrate.return_value = {
@@ -270,7 +270,7 @@ class TestCmdMigrate:
         config_path = tmp_path / "config.yaml"
         config_path.write_text("agent:\n  max_turns: 90\n")
 
-        fake_mod = ModuleType("openclaw_to_hermes")
+        fake_mod = ModuleType("openclaw_to_claudia")
         fake_mod.resolve_selected_options = MagicMock(return_value={"soul"})
         fake_migrator = MagicMock()
         fake_migrator.migrate.return_value = {
@@ -307,7 +307,7 @@ class TestCmdMigrate:
         openclaw_dir = tmp_path / ".openclaw"
         openclaw_dir.mkdir()
 
-        fake_mod = ModuleType("openclaw_to_hermes")
+        fake_mod = ModuleType("openclaw_to_claudia")
         fake_mod.resolve_selected_options = MagicMock(return_value={"soul"})
         fake_migrator = MagicMock()
         fake_migrator.migrate.return_value = {
@@ -342,7 +342,7 @@ class TestCmdMigrate:
         openclaw_dir = tmp_path / ".openclaw"
         openclaw_dir.mkdir()
 
-        fake_mod = ModuleType("openclaw_to_hermes")
+        fake_mod = ModuleType("openclaw_to_claudia")
         fake_mod.resolve_selected_options = MagicMock(return_value=set())
         fake_migrator = MagicMock()
         fake_migrator.migrate.return_value = {
@@ -399,7 +399,7 @@ class TestCmdMigrate:
         config_path = tmp_path / "config.yaml"
         config_path.write_text("")
 
-        fake_mod = ModuleType("openclaw_to_hermes")
+        fake_mod = ModuleType("openclaw_to_claudia")
         fake_mod.resolve_selected_options = MagicMock(return_value=set())
         fake_migrator = MagicMock()
         fake_migrator.migrate.return_value = {
@@ -455,7 +455,7 @@ class TestCmdMigrate:
         openclaw_dir = tmp_path / ".openclaw"
         openclaw_dir.mkdir()
 
-        fake_mod = ModuleType("openclaw_to_hermes")
+        fake_mod = ModuleType("openclaw_to_claudia")
         fake_mod.resolve_selected_options = MagicMock(return_value=set())
         fake_migrator = MagicMock()
         fake_migrator.migrate.return_value = {

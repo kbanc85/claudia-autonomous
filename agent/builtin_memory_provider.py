@@ -1,7 +1,7 @@
 """BuiltinMemoryProvider — wraps MEMORY.md / USER.md as a MemoryProvider.
 
 Always registered as the first provider. Cannot be disabled or removed.
-This is the existing Hermes memory system exposed through the provider
+This is the existing Claudia memory system exposed through the provider
 interface for compatibility with the MemoryManager.
 
 The actual storage logic lives in tools/memory_tool.py (MemoryStore).

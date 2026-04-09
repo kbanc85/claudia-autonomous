@@ -3,8 +3,8 @@
 Standalone Web Tools Module
 
 This module provides generic web tools that work with multiple backend providers.
-Backend is selected during ``hermes tools`` setup (web.backend in config.yaml).
-When available, Hermes can route Firecrawl calls through a Nous-hosted tool-gateway
+Backend is selected during ``claudia tools`` setup (web.backend in config.yaml).
+When available, Claudia can route Firecrawl calls through a Nous-hosted tool-gateway
 for Nous Subscribers only.
 
 Available tools:
@@ -83,7 +83,7 @@ def _load_web_config() -> dict:
 def _get_backend() -> str:
     """Determine which web backend to use.
 
-    Reads ``web.backend`` from config.yaml (set by ``hermes tools``).
+    Reads ``web.backend`` from config.yaml (set by ``claudia tools``).
     Falls back to whichever API key is present for users who configured
     keys manually without running setup.
     """
@@ -166,7 +166,7 @@ def _raise_web_backend_configuration_error() -> None:
     if managed_nous_tools_enabled():
         message += (
             " If you have the hidden Nous-managed tools flag enabled, you can also login to Nous "
-            "(`hermes model`) and provide FIRECRAWL_GATEWAY_URL or TOOL_GATEWAY_DOMAIN."
+            "(`claudia model`) and provide FIRECRAWL_GATEWAY_URL or TOOL_GATEWAY_DOMAIN."
         )
     raise ValueError(message)
 
@@ -206,7 +206,7 @@ def _get_firecrawl_client():
     """Get or create Firecrawl client.
 
     Direct Firecrawl takes precedence when explicitly configured. Otherwise
-    Hermes falls back to the Firecrawl tool-gateway for logged-in Nous Subscribers.
+    Claudia falls back to the Firecrawl tool-gateway for logged-in Nous Subscribers.
     """
     global _firecrawl_client, _firecrawl_client_config
 
@@ -461,7 +461,7 @@ def _resolve_web_extract_auxiliary(model: Optional[str] = None) -> tuple[Optiona
     extra_body: Dict[str, Any] = {}
     if client is not None and _is_nous_auxiliary_client(client):
         from agent.auxiliary_client import get_auxiliary_extra_body
-        extra_body = get_auxiliary_extra_body() or {"tags": ["product=hermes-agent"]}
+        extra_body = get_auxiliary_extra_body() or {"tags": ["product=claudia-autonomous"]}
 
     return client, effective_model, extra_body
 
@@ -860,7 +860,7 @@ def _get_exa_client():
                 "Get your API key at https://exa.ai"
             )
         _exa_client = Exa(api_key=api_key)
-        _exa_client.headers["x-exa-integration"] = "hermes-agent"
+        _exa_client.headers["x-exa-integration"] = "claudia-autonomous"
     return _exa_client
 
 

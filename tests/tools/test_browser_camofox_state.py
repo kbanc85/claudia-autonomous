@@ -1,4 +1,4 @@
-"""Tests for Hermes-managed Camofox state helpers."""
+"""Tests for Claudia-managed Camofox state helpers."""
 
 from unittest.mock import patch
 

@@ -148,7 +148,7 @@ class TestPersistence:
         env = make_env(get_side_effect=lambda name: existing, persistent=True,
                        task_id="mytask")
         existing.start.assert_called_once()
-        env._mock_client.get.assert_called_once_with("hermes-mytask")
+        env._mock_client.get.assert_called_once_with("claudia-mytask")
         env._mock_client.create.assert_not_called()
 
     def test_persistent_resumes_legacy_via_list(self, make_env, daytona_sdk):
@@ -174,7 +174,7 @@ class TestPersistence:
         env._mock_client.create.assert_called_once()
         # Verify the name and labels were passed to CreateSandboxFromImageParams
         # by checking get() was called with the right sandbox name
-        env._mock_client.get.assert_called_with("hermes-mytask")
+        env._mock_client.get.assert_called_with("claudia-mytask")
         env._mock_client.list.assert_called_with(
             labels={"claudia_task_id": "mytask"}, page=1, limit=1)
 

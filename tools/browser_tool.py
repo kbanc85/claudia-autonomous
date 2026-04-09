@@ -754,7 +754,7 @@ def _find_agent_browser() -> str:
     """
     Find the agent-browser CLI executable.
     
-    Checks in order: current PATH, Homebrew/common bin dirs, Hermes-managed
+    Checks in order: current PATH, Homebrew/common bin dirs, Claudia-managed
     node, local node_modules/.bin/, npx fallback.
     
     Returns:
@@ -769,7 +769,7 @@ def _find_agent_browser() -> str:
     if which_result:
         return which_result
 
-    # Build an extended search PATH including Homebrew and Hermes-managed dirs.
+    # Build an extended search PATH including Homebrew and Claudia-managed dirs.
     # This covers macOS where the process PATH may not include Homebrew paths.
     extra_dirs: list[str] = []
     for d in ["/opt/homebrew/bin", "/usr/local/bin"]:
@@ -902,7 +902,7 @@ def _run_browser_command(
         
         browser_env = {**os.environ}
 
-        # Ensure PATH includes Hermes-managed Node first, Homebrew versioned
+        # Ensure PATH includes Claudia-managed Node first, Homebrew versioned
         # node dirs (for macOS ``brew install node@24``), then standard system dirs.
         claudia_home = Path(os.environ.get("CLAUDIA_HOME", Path.home() / ".claudia"))
         claudia_node_bin = str(claudia_home / "node" / "bin")

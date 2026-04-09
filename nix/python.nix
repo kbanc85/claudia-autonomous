@@ -23,6 +23,6 @@ let
         overlay
       ]);
 in
-pythonSet.mkVirtualEnv "hermes-agent-env" {
-  hermes-agent = [ "all" ];
+pythonSet.mkVirtualEnv "claudia-autonomous-env" {
+  claudia-autonomous = [ "all" ];
 }

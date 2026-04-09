@@ -1,14 +1,14 @@
 """
-Hermes CLI - Unified command-line interface for Hermes Agent.
+Claudia CLI - Unified command-line interface for Claudia.
 
 Provides subcommands for:
-- hermes chat          - Interactive chat (same as ./hermes)
-- hermes gateway       - Run gateway in foreground
-- hermes gateway start - Start gateway service
-- hermes gateway stop  - Stop gateway service  
-- hermes setup         - Interactive setup wizard
-- hermes status        - Show status of all components
-- hermes cron          - Manage cron jobs
+- claudia chat          - Interactive chat (same as ./claudia)
+- claudia gateway       - Run gateway in foreground
+- claudia gateway start - Start gateway service
+- claudia gateway stop  - Stop gateway service  
+- claudia setup         - Interactive setup wizard
+- claudia status        - Show status of all components
+- claudia cron          - Manage cron jobs
 """
 
 __version__ = "0.7.0"

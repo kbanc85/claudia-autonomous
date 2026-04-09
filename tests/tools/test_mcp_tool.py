@@ -478,7 +478,7 @@ class TestMCPServerTask:
 
 class TestToolsetInjection:
     def test_mcp_tools_added_to_all_claudia_toolsets(self):
-        """Discovered MCP tools are dynamically injected into all hermes-* toolsets."""
+        """Discovered MCP tools are dynamically injected into all claudia-* toolsets."""
         from tools.mcp_tool import MCPServerTask
 
         mock_tools = [_make_mcp_tool("list_files", "List files")]
@@ -493,10 +493,10 @@ class TestToolsetInjection:
             return server
 
         fake_toolsets = {
-            "hermes-cli": {"tools": ["terminal"], "description": "CLI", "includes": []},
-            "hermes-telegram": {"tools": ["terminal"], "description": "TG", "includes": []},
-            "hermes-gateway": {"tools": [], "description": "GW", "includes": []},
-            "non-hermes": {"tools": [], "description": "other", "includes": []},
+            "claudia-cli": {"tools": ["terminal"], "description": "CLI", "includes": []},
+            "claudia-telegram": {"tools": ["terminal"], "description": "TG", "includes": []},
+            "claudia-gateway": {"tools": [], "description": "GW", "includes": []},
+            "non-claudia": {"tools": [], "description": "other", "includes": []},
         }
         fake_config = {"fs": {"command": "npx", "args": []}}
 
@@ -509,14 +509,14 @@ class TestToolsetInjection:
             result = discover_mcp_tools()
 
         assert "mcp_fs_list_files" in result
-        # All hermes-* toolsets get injection
-        assert "mcp_fs_list_files" in fake_toolsets["hermes-cli"]["tools"]
-        assert "mcp_fs_list_files" in fake_toolsets["hermes-telegram"]["tools"]
-        assert "mcp_fs_list_files" in fake_toolsets["hermes-gateway"]["tools"]
-        # Non-hermes toolset should NOT get injection
-        assert "mcp_fs_list_files" not in fake_toolsets["non-hermes"]["tools"]
+        # All claudia-* toolsets get injection
+        assert "mcp_fs_list_files" in fake_toolsets["claudia-cli"]["tools"]
+        assert "mcp_fs_list_files" in fake_toolsets["claudia-telegram"]["tools"]
+        assert "mcp_fs_list_files" in fake_toolsets["claudia-gateway"]["tools"]
+        # Non-claudia toolset should NOT get injection
+        assert "mcp_fs_list_files" not in fake_toolsets["non-claudia"]["tools"]
         # Original tools preserved
-        assert "terminal" in fake_toolsets["hermes-cli"]["tools"]
+        assert "terminal" in fake_toolsets["claudia-cli"]["tools"]
         # Server name becomes a standalone toolset
         assert "fs" in fake_toolsets
         assert "mcp_fs_list_files" in fake_toolsets["fs"]["tools"]
@@ -537,7 +537,7 @@ class TestToolsetInjection:
             return server
 
         fake_toolsets = {
-            "hermes-cli": {"tools": ["terminal"], "description": "CLI", "includes": []},
+            "claudia-cli": {"tools": ["terminal"], "description": "CLI", "includes": []},
             # Built-in toolset named "terminal" — must not be overwritten
             "terminal": {"tools": ["terminal"], "description": "Terminal tools", "includes": []},
         }
@@ -579,7 +579,7 @@ class TestToolsetInjection:
             "good": {"command": "npx", "args": []},
         }
         fake_toolsets = {
-            "hermes-cli": {"tools": [], "description": "CLI", "includes": []},
+            "claudia-cli": {"tools": [], "description": "CLI", "includes": []},
         }
 
         with patch("tools.mcp_tool._MCP_AVAILABLE", True), \
@@ -621,7 +621,7 @@ class TestToolsetInjection:
             "good": {"command": "npx", "args": []},
         }
         fake_toolsets = {
-            "hermes-cli": {"tools": [], "description": "CLI", "includes": []},
+            "claudia-cli": {"tools": [], "description": "CLI", "includes": []},
         }
 
         with patch("tools.mcp_tool._MCP_AVAILABLE", True), \
@@ -2738,7 +2738,7 @@ class TestMCPSelectiveToolLoading:
             }
         }
         fake_toolsets = {
-            "hermes-cli": {"tools": [], "description": "CLI", "includes": []},
+            "claudia-cli": {"tools": [], "description": "CLI", "includes": []},
         }
 
         with patch("tools.mcp_tool._MCP_AVAILABLE", True), \

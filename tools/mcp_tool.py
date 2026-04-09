@@ -3,7 +3,7 @@
 MCP (Model Context Protocol) Client Support
 
 Connects to external MCP servers via stdio or HTTP/StreamableHTTP transport,
-discovers their tools, and registers them into the hermes-agent tool registry
+discovers their tools, and registers them into the claudia-autonomous tool registry
 so the agent can call them like any built-in tool.
 
 Configuration is read from ~/.claudia/config.yaml under the ``mcp_servers`` key.
@@ -800,9 +800,9 @@ class MCPServerTask:
             tools_result = await self.session.list_tools()
             new_mcp_tools = tools_result.tools if hasattr(tools_result, "tools") else []
 
-            # 2. Remove old tools from hermes-* umbrella toolsets
+            # 2. Remove old tools from claudia-* umbrella toolsets
             for ts_name, ts in TOOLSETS.items():
-                if ts_name.startswith("hermes-"):
+                if ts_name.startswith("claudia-"):
                     ts["tools"] = [t for t in ts["tools"] if t not in self._registered_tool_names]
 
             # 3. Deregister old tools from the central registry
@@ -1156,7 +1156,7 @@ def _interpolate_env_vars(value):
 
 
 def _load_mcp_config() -> Dict[str, dict]:
-    """Read ``mcp_servers`` from the Hermes config file.
+    """Read ``mcp_servers`` from the Claudia config file.
 
     Returns a dict of ``{server_name: server_config}`` or empty dict.
     Server config can contain either ``command``/``args``/``env`` for stdio
@@ -1473,7 +1473,7 @@ def _normalize_mcp_input_schema(schema: dict | None) -> dict:
 def sanitize_mcp_name_component(value: str) -> str:
     """Return an MCP name component safe for tool and prefix generation.
 
-    Preserves Hermes's historical behavior of converting hyphens to
+    Preserves Claudia's historical behavior of converting hyphens to
     underscores, and also replaces any other character outside
     ``[A-Za-z0-9_]`` with ``_`` so generated tool names are compatible with
     provider validation rules.
@@ -1482,7 +1482,7 @@ def sanitize_mcp_name_component(value: str) -> str:
 
 
 def _convert_mcp_schema(server_name: str, mcp_tool) -> dict:
-    """Convert an MCP tool listing to the Hermes registry schema format.
+    """Convert an MCP tool listing to the Claudia registry schema format.
 
     Args:
         server_name: The logical server name for prefixing.
@@ -1503,13 +1503,13 @@ def _convert_mcp_schema(server_name: str, mcp_tool) -> dict:
 
 
 def _sync_mcp_toolsets(server_names: Optional[List[str]] = None) -> None:
-    """Expose each MCP server as a standalone toolset and inject into hermes-* sets.
+    """Expose each MCP server as a standalone toolset and inject into claudia-* sets.
 
     Creates a real toolset entry in TOOLSETS for each server name (e.g.
     TOOLSETS["github"] = {"tools": ["mcp_github_list_files", ...]}). This
     makes raw server names resolvable in platform_toolsets overrides.
 
-    Also injects all MCP tools into hermes-* umbrella toolsets for the
+    Also injects all MCP tools into claudia-* umbrella toolsets for the
     default behavior.
 
     Skips server names that collide with built-in toolsets.
@@ -1544,9 +1544,9 @@ def _sync_mcp_toolsets(server_names: Optional[List[str]] = None) -> None:
             "includes": [],
         }
 
-    # Also inject into hermes-* umbrella toolsets for default behavior.
+    # Also inject into claudia-* umbrella toolsets for default behavior.
     for ts_name, ts in TOOLSETS.items():
-        if not ts_name.startswith("hermes-"):
+        if not ts_name.startswith("claudia-"):
             continue
         for tool_name in all_mcp_tools:
             if tool_name not in ts["tools"]:
@@ -1706,7 +1706,7 @@ def _register_server_tools(name: str, server: MCPServerTask, config: dict) -> Li
     """Register tools from an already-connected server into the registry.
 
     Handles include/exclude filtering, utility tools, toolset creation,
-    and hermes-* umbrella toolset injection.
+    and claudia-* umbrella toolset injection.
 
     Used by both initial discovery and dynamic refresh (list_changed).
 
@@ -1807,9 +1807,9 @@ def _register_server_tools(name: str, server: MCPServerTask, config: dict) -> Li
             description=f"MCP tools from {name} server",
             tools=registered_names,
         )
-        # Inject into hermes-* umbrella toolsets for default behavior
+        # Inject into claudia-* umbrella toolsets for default behavior
         for ts_name, ts in TOOLSETS.items():
-            if ts_name.startswith("hermes-"):
+            if ts_name.startswith("claudia-"):
                 for tool_name in registered_names:
                     if tool_name not in ts["tools"]:
                         ts["tools"].append(tool_name)
@@ -2018,9 +2018,9 @@ def get_mcp_status() -> List[dict]:
 def probe_mcp_server_tools() -> Dict[str, List[tuple]]:
     """Temporarily connect to configured MCP servers and list their tools.
 
-    Designed for ``hermes tools`` interactive configuration — connects to each
+    Designed for ``claudia tools`` interactive configuration — connects to each
     enabled server, grabs tool names and descriptions, then disconnects.
-    Does NOT register tools in the Hermes registry.
+    Does NOT register tools in the Claudia registry.
 
     Returns:
         Dict mapping server name to list of (tool_name, description) tuples.

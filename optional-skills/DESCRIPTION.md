@@ -2,14 +2,14 @@
 
 Official skills maintained by Nous Research that are **not activated by default**.
 
-These skills ship with the hermes-agent repository but are not copied to
+These skills ship with the claudia-autonomous repository but are not copied to
 `~/.claudia/skills/` during setup. They are discoverable via the Skills Hub:
 
 ```bash
-hermes skills browse               # browse all skills, official shown first
-hermes skills browse --source official  # browse only official optional skills
-hermes skills search <query>       # finds optional skills labeled "official"
-hermes skills install <identifier> # copies to ~/.claudia/skills/ and activates
+claudia skills browse               # browse all skills, official shown first
+claudia skills browse --source official  # browse only official optional skills
+claudia skills search <query>       # finds optional skills labeled "official"
+claudia skills install <identifier> # copies to ~/.claudia/skills/ and activates
 ```
 
 ## Why optional?

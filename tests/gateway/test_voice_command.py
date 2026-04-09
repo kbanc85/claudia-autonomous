@@ -752,7 +752,7 @@ class TestVoiceChannelCommands:
         result = await runner._handle_voice_channel_join(event)
 
         assert "voice dependencies are missing" in result.lower()
-        assert "hermes-agent[messaging]" in result
+        assert "claudia-autonomous[messaging]" in result
 
     # -- _handle_voice_channel_leave --
 
@@ -1941,7 +1941,7 @@ class TestVoiceChannelAwareness:
         adapter._voice_text_channels = {}
         adapter._voice_receivers = {}
         adapter._client = MagicMock()
-        adapter._client.user = SimpleNamespace(id=99999, name="HermesBot")
+        adapter._client.user = SimpleNamespace(id=99999, name="ClaudiaBot")
         return adapter
 
     def _make_member(self, user_id, display_name, is_bot=False):
@@ -1964,7 +1964,7 @@ class TestVoiceChannelAwareness:
         adapter = self._make_adapter()
         vc = MagicMock()
         vc.is_connected.return_value = True
-        bot_member = self._make_member(99999, "HermesBot", is_bot=True)
+        bot_member = self._make_member(99999, "ClaudiaBot", is_bot=True)
         user_a = self._make_member(1001, "Alice")
         user_b = self._make_member(1002, "Bob")
         vc.channel.name = "general-voice"
@@ -1978,7 +1978,7 @@ class TestVoiceChannelAwareness:
         names = [m["display_name"] for m in info["members"]]
         assert "Alice" in names
         assert "Bob" in names
-        assert "HermesBot" not in names
+        assert "ClaudiaBot" not in names
 
     def test_speaking_detection(self):
         adapter = self._make_adapter()

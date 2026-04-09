@@ -1,5 +1,5 @@
 """
-Interactive setup wizard for Hermes Agent.
+Interactive setup wizard for Claudia.
 
 Modular wizard with independently-runnable sections:
   1. Model & Provider — choose your AI provider and model
@@ -340,7 +340,7 @@ from claudia_cli.config import (
     get_env_value,
     ensure_claudia_home,
 )
-# display_claudia_home imported lazily at call sites (stale-module safety during hermes update)
+# display_claudia_home imported lazily at call sites (stale-module safety during claudia update)
 
 from claudia_cli.colors import Colors, color
 
@@ -385,19 +385,19 @@ def is_interactive_stdin() -> bool:
 def print_noninteractive_setup_guidance(reason: str | None = None) -> None:
     """Print guidance for headless/non-interactive setup flows."""
     print()
-    print(color("⚕ Hermes Setup — Non-interactive mode", Colors.CYAN, Colors.BOLD))
+    print(color("⚕ Claudia Setup — Non-interactive mode", Colors.CYAN, Colors.BOLD))
     print()
     if reason:
         print_info(reason)
     print_info("The interactive wizard cannot be used here.")
     print()
-    print_info("Configure Hermes using environment variables or config commands:")
-    print_info("  hermes config set model.provider custom")
-    print_info("  hermes config set model.base_url http://localhost:8080/v1")
-    print_info("  hermes config set model.default your-model-name")
+    print_info("Configure Claudia using environment variables or config commands:")
+    print_info("  claudia config set model.provider custom")
+    print_info("  claudia config set model.base_url http://localhost:8080/v1")
+    print_info("  claudia config set model.default your-model-name")
     print()
     print_info("Or set OPENROUTER_API_KEY / OPENAI_API_KEY in your environment.")
-    print_info("Run 'hermes setup' in an interactive terminal to use the full wizard.")
+    print_info("Run 'claudia setup' in an interactive terminal to use the full wizard.")
     print()
 
 
@@ -607,7 +607,7 @@ def _prompt_api_key(var: dict):
         save_env_value(var["name"], value)
         print_success("  ✓ Saved")
     else:
-        print_warning("  Skipped (configure later with 'hermes setup')")
+        print_warning("  Skipped (configure later with 'claudia setup')")
 
 
 def _print_setup_summary(config: dict, claudia_home):
@@ -630,7 +630,7 @@ def _print_setup_summary(config: dict, claudia_home):
     if _vision_backends:
         tool_status.append(("Vision (image analysis)", True, None))
     else:
-        tool_status.append(("Vision (image analysis)", False, "run 'hermes setup' to configure"))
+        tool_status.append(("Vision (image analysis)", False, "run 'claudia setup' to configure"))
 
     # Mixture of Agents — requires OpenRouter specifically (calls multiple models)
     if get_env_value("OPENROUTER_API_KEY"):
@@ -704,7 +704,7 @@ def _print_setup_summary(config: dict, claudia_home):
         if neutts_ok:
             tool_status.append(("Text-to-Speech (NeuTTS local)", True, None))
         else:
-            tool_status.append(("Text-to-Speech (NeuTTS — not installed)", False, "run 'hermes setup tts'"))
+            tool_status.append(("Text-to-Speech (NeuTTS — not installed)", False, "run 'claudia setup tts'"))
     else:
         tool_status.append(("Text-to-Speech (Edge TTS)", True, None))
 
@@ -714,7 +714,7 @@ def _print_setup_summary(config: dict, claudia_home):
         if subscription_features.modal.direct_override:
             tool_status.append(("Modal Execution (direct Modal)", True, None))
         else:
-            tool_status.append(("Modal Execution", False, "run 'hermes setup terminal'"))
+            tool_status.append(("Modal Execution", False, "run 'claudia setup terminal'"))
     elif managed_nous_tools_enabled() and subscription_features.nous_auth_present:
         tool_status.append(("Modal Execution (optional via Nous subscription)", True, None))
 
@@ -765,7 +765,7 @@ def _print_setup_summary(config: dict, claudia_home):
     disabled_tools = [(name, var) for name, avail, var in tool_status if not avail]
     if disabled_tools:
         print_warning(
-            "Some tools are disabled. Run 'hermes setup tools' to configure them,"
+            "Some tools are disabled. Run 'claudia setup tools' to configure them,"
         )
         from claudia_constants import display_claudia_home as _dhh
         print_warning(f"or edit {_dhh()}/.env directly to add the missing API keys.")
@@ -805,17 +805,17 @@ def _print_setup_summary(config: dict, claudia_home):
     print()
     print(color("📝 To edit your configuration:", Colors.CYAN, Colors.BOLD))
     print()
-    print(f"   {color('hermes setup', Colors.GREEN)}          Re-run the full wizard")
-    print(f"   {color('hermes setup model', Colors.GREEN)}    Change model/provider")
-    print(f"   {color('hermes setup terminal', Colors.GREEN)} Change terminal backend")
-    print(f"   {color('hermes setup gateway', Colors.GREEN)}  Configure messaging")
-    print(f"   {color('hermes setup tools', Colors.GREEN)}    Configure tool providers")
+    print(f"   {color('claudia setup', Colors.GREEN)}          Re-run the full wizard")
+    print(f"   {color('claudia setup model', Colors.GREEN)}    Change model/provider")
+    print(f"   {color('claudia setup terminal', Colors.GREEN)} Change terminal backend")
+    print(f"   {color('claudia setup gateway', Colors.GREEN)}  Configure messaging")
+    print(f"   {color('claudia setup tools', Colors.GREEN)}    Configure tool providers")
     print()
-    print(f"   {color('hermes config', Colors.GREEN)}         View current settings")
+    print(f"   {color('claudia config', Colors.GREEN)}         View current settings")
     print(
-        f"   {color('hermes config edit', Colors.GREEN)}    Open config in your editor"
+        f"   {color('claudia config edit', Colors.GREEN)}    Open config in your editor"
     )
-    print(f"   {color('hermes config set <key> <value>', Colors.GREEN)}")
+    print(f"   {color('claudia config set <key> <value>', Colors.GREEN)}")
     print("                          Set a specific value")
     print()
     print("   Or edit the files directly:")
@@ -827,9 +827,9 @@ def _print_setup_summary(config: dict, claudia_home):
     print()
     print(color("🚀 Ready to go!", Colors.CYAN, Colors.BOLD))
     print()
-    print(f"   {color('hermes', Colors.GREEN)}              Start chatting")
-    print(f"   {color('hermes gateway', Colors.GREEN)}      Start messaging gateway")
-    print(f"   {color('hermes doctor', Colors.GREEN)}       Check for issues")
+    print(f"   {color('claudia', Colors.GREEN)}              Start chatting")
+    print(f"   {color('claudia gateway', Colors.GREEN)}      Start messaging gateway")
+    print(f"   {color('claudia doctor', Colors.GREEN)}       Check for issues")
     print()
 
 
@@ -876,7 +876,7 @@ def _prompt_container_resources(config: dict):
 
 
 # Tool categories and provider config are now in tools_config.py (shared
-# between `hermes tools` and `hermes setup tools`).
+# between `claudia tools` and `claudia setup tools`).
 
 
 # =============================================================================
@@ -888,10 +888,10 @@ def _prompt_container_resources(config: dict):
 def setup_model_provider(config: dict):
     """Configure the inference provider and default model.
 
-    Delegates to ``cmd_model()`` (the same flow used by ``hermes model``)
+    Delegates to ``cmd_model()`` (the same flow used by ``claudia model``)
     for provider selection, credential prompting, and model picking.
     This ensures a single code path for all provider setup — any new
-    provider added to ``hermes model`` is automatically available here.
+    provider added to ``claudia model`` is automatically available here.
     """
     from claudia_cli.config import load_config, save_config
 
@@ -899,7 +899,7 @@ def setup_model_provider(config: dict):
     print_info("Choose how to connect to your main chat model.")
     print()
 
-    # Delegate to the shared hermes model flow — handles provider picker,
+    # Delegate to the shared claudia model flow — handles provider picker,
     # credential prompting, model selection, and config persistence.
     from claudia_cli.main import select_provider_and_model
     try:
@@ -910,7 +910,7 @@ def setup_model_provider(config: dict):
     except Exception as exc:
         logger.debug("select_provider_and_model error during setup: %s", exc)
         print_warning(f"Provider setup encountered an error: {exc}")
-        print_info("You can try again later with: hermes model")
+        print_info("You can try again later with: claudia model")
 
     # Re-sync the wizard's config dict from what cmd_model saved to disk.
     # This is critical: cmd_model writes to disk via its own load/save cycle,
@@ -944,7 +944,7 @@ def setup_model_provider(config: dict):
             print()
             print_header("Same-Provider Fallback & Rotation")
             print_info(
-                "Hermes can keep multiple credentials for one provider and rotate between"
+                "Claudia can keep multiple credentials for one provider and rotate between"
             )
             print_info(
                 "them when a credential is exhausted or rate-limited. This preserves"
@@ -1020,7 +1020,7 @@ def setup_model_provider(config: dict):
     _vision_needs_setup = not bool(_vision_backends)
 
     if selected_provider in _vision_backends:
-        # If the user just selected a backend Hermes can already use for
+        # If the user just selected a backend Claudia can already use for
         # vision, treat it as covered. Auth/setup failure returns earlier.
         _vision_needs_setup = False
 
@@ -1042,7 +1042,7 @@ def setup_model_provider(config: dict):
         print()
         print_header("Vision & Image Analysis (optional)")
         print_info(f"Vision uses a separate multimodal backend. {_prov_display}")
-        print_info("doesn't currently provide one Hermes can auto-use for vision,")
+        print_info("doesn't currently provide one Claudia can auto-use for vision,")
         print_info("so choose a backend now or skip and configure later.")
         print()
 
@@ -1090,7 +1090,7 @@ def setup_model_provider(config: dict):
             else:
                 print_info("Skipped — vision won't be available")
         else:
-            print_info("Skipped — add later with 'hermes setup' or configure AUXILIARY_VISION_* settings")
+            print_info("Skipped — add later with 'claudia setup' or configure AUXILIARY_VISION_* settings")
 
 
     if selected_provider == "nous" and nous_subscription_selected:
@@ -1277,7 +1277,7 @@ def _setup_tts_provider(config: dict):
 
 
 def setup_tts(config: dict):
-    """Standalone TTS setup (for 'hermes setup tts')."""
+    """Standalone TTS setup (for 'claudia setup tts')."""
     _setup_tts_provider(config)
 
 
@@ -1292,7 +1292,7 @@ def setup_terminal_backend(config: dict):
     import shutil
 
     print_header("Terminal Backend")
-    print_info("Choose where Hermes runs shell commands and code.")
+    print_info("Choose where Claudia runs shell commands and code.")
     print_info("This affects tool execution, file access, and isolation.")
     print()
 
@@ -1343,7 +1343,7 @@ def setup_terminal_backend(config: dict):
         # CWD for messaging
         print()
         print_info("Working directory for messaging sessions:")
-        print_info("  When using Hermes via Telegram/Discord, this is where")
+        print_info("  When using Claudia via Telegram/Discord, this is where")
         print_info(
             "  the agent starts. CLI mode always starts in the current directory."
         )
@@ -1801,7 +1801,7 @@ def setup_agent_settings(config: dict):
 def setup_gateway(config: dict):
     """Configure messaging platform integrations."""
     print_header("Messaging Platforms")
-    print_info("Connect to messaging platforms to chat with Hermes from anywhere.")
+    print_info("Connect to messaging platforms to chat with Claudia from anywhere.")
     print()
 
     # ── Telegram ──
@@ -1849,7 +1849,7 @@ def setup_gateway(config: dict):
 
             # Home channel setup with better guidance
             print()
-            print_info("📬 Home Channel: where Hermes delivers cron job results,")
+            print_info("📬 Home Channel: where Claudia delivers cron job results,")
             print_info("   cross-platform messages, and notifications.")
             print_info("   For Telegram DMs, this is your user ID (same as above).")
 
@@ -1945,7 +1945,7 @@ def setup_gateway(config: dict):
 
             # Home channel setup with better guidance
             print()
-            print_info("📬 Home Channel: where Hermes delivers cron job results,")
+            print_info("📬 Home Channel: where Claudia delivers cron job results,")
             print_info("   cross-platform messages, and notifications.")
             print_info(
                 "   To get a channel ID: right-click a channel → Copy Channel ID"
@@ -2017,7 +2017,7 @@ def setup_gateway(config: dict):
         )
         print()
         print_info(
-            "   Full guide: https://hermes-agent.nousresearch.com/docs/user-guide/messaging/slack/"
+            "   Full guide: https://claudia-autonomous.nousresearch.com/docs/user-guide/messaging/slack/"
         )
         print()
         bot_token = prompt("Slack Bot Token (xoxb-...)", password=True)
@@ -2154,7 +2154,7 @@ def setup_gateway(config: dict):
 
             # Home room
             print()
-            print_info("📬 Home Room: where Hermes delivers cron job results and notifications.")
+            print_info("📬 Home Room: where Claudia delivers cron job results and notifications.")
             print_info("   Room IDs look like !abc123:server (shown in Element room settings)")
             print_info("   You can also set this later by typing /set-home in a Matrix room.")
             home_room = prompt("Home room ID (leave empty to set later with /set-home)")
@@ -2209,7 +2209,7 @@ def setup_gateway(config: dict):
 
             # Home channel
             print()
-            print_info("📬 Home Channel: where Hermes delivers cron job results and notifications.")
+            print_info("📬 Home Channel: where Claudia delivers cron job results and notifications.")
             print_info("   To get a channel ID: click channel name → View Info → copy the ID")
             print_info("   You can also set this later by typing /set-home in a Mattermost channel.")
             home_channel = prompt("Home channel ID (leave empty to set later with /set-home)")
@@ -2220,12 +2220,12 @@ def setup_gateway(config: dict):
     existing_whatsapp = get_env_value("WHATSAPP_ENABLED")
     if not existing_whatsapp and prompt_yes_no("Set up WhatsApp?", False):
         print_info("WhatsApp connects via a built-in bridge (Baileys).")
-        print_info("Requires Node.js. Run 'hermes whatsapp' for guided setup.")
+        print_info("Requires Node.js. Run 'claudia whatsapp' for guided setup.")
         print()
         if prompt_yes_no("Enable WhatsApp now?", True):
             save_env_value("WHATSAPP_ENABLED", "true")
             print_success("WhatsApp enabled")
-            print_info("Run 'hermes whatsapp' to choose your mode (separate bot number")
+            print_info("Run 'claudia whatsapp' to choose your mode (separate bot number")
             print_info("or personal self-chat) and pair via QR code.")
 
     # ── Webhooks ──
@@ -2248,7 +2248,7 @@ def setup_gateway(config: dict):
         )
         print()
         print_info(
-            "   Full guide: https://hermes-agent.nousresearch.com/docs/user-guide/messaging/webhooks/"
+            "   Full guide: https://claudia-autonomous.nousresearch.com/docs/user-guide/messaging/webhooks/"
         )
         print()
 
@@ -2279,10 +2279,10 @@ def setup_gateway(config: dict):
             "   Route configuration guide:"
         )
         print_info(
-            "   https://hermes-agent.nousresearch.com/docs/user-guide/messaging/webhooks/#configuring-routes"
+            "   https://claudia-autonomous.nousresearch.com/docs/user-guide/messaging/webhooks/#configuring-routes"
         )
         print()
-        print_info("   Open config in your editor:  hermes config edit")
+        print_info("   Open config in your editor:  claudia config edit")
 
     # ── Gateway Service Setup ──
     any_messaging = (
@@ -2321,7 +2321,7 @@ def setup_gateway(config: dict):
             print_info("   Set one later with /set-home in your chat, or:")
             for plat in missing_home:
                 print_info(
-                    f"     hermes config set {plat.upper()}_HOME_CHANNEL <channel_id>"
+                    f"     claudia config set {plat.upper()}_HOME_CHANNEL <channel_id>"
                 )
 
         # Offer to install the gateway as a system service
@@ -2394,15 +2394,15 @@ def setup_gateway(config: dict):
                             print_error(f"  Start failed: {e}")
                 except Exception as e:
                     print_error(f"  Install failed: {e}")
-                    print_info("  You can try manually: hermes gateway install")
+                    print_info("  You can try manually: claudia gateway install")
             else:
-                print_info("  You can install later: hermes gateway install")
+                print_info("  You can install later: claudia gateway install")
                 if _is_linux:
-                    print_info("  Or as a boot-time service: sudo hermes gateway install --system")
-                print_info("  Or run in foreground:  hermes gateway")
+                    print_info("  Or as a boot-time service: sudo claudia gateway install --system")
+                print_info("  Or run in foreground:  claudia gateway")
         else:
             print_info("Start the gateway to bring your bots online:")
-            print_info("   hermes gateway              # Run in foreground")
+            print_info("   claudia gateway              # Run in foreground")
 
         print_info("━" * 50)
 
@@ -2415,7 +2415,7 @@ def setup_gateway(config: dict):
 def setup_tools(config: dict, first_install: bool = False):
     """Configure tools — delegates to the unified tools_command() in tools_config.py.
 
-    Both `hermes setup tools` and `hermes tools` use the same flow:
+    Both `claudia setup tools` and `claudia tools` use the same flow:
     platform selection → toolset toggles → provider/API key configuration.
 
     Args:
@@ -2526,7 +2526,7 @@ _OPENCLAW_SCRIPT = (
     / "migration"
     / "openclaw-migration"
     / "scripts"
-    / "openclaw_to_hermes.py"
+    / "openclaw_to_claudia.py"
 )
 
 
@@ -2545,7 +2545,7 @@ def _offer_openclaw_migration(claudia_home: Path) -> bool:
     print()
     print_header("OpenClaw Installation Detected")
     print_info(f"Found OpenClaw data at {openclaw_dir}")
-    print_info("Hermes can import your settings, memories, skills, and API keys.")
+    print_info("Claudia can import your settings, memories, skills, and API keys.")
     print()
 
     if not prompt_yes_no("Would you like to import from OpenClaw?", default=True):
@@ -2562,7 +2562,7 @@ def _offer_openclaw_migration(claudia_home: Path) -> bool:
     # Dynamically load the migration script
     try:
         spec = importlib.util.spec_from_file_location(
-            "openclaw_to_hermes", _OPENCLAW_SCRIPT
+            "openclaw_to_claudia", _OPENCLAW_SCRIPT
         )
         if spec is None or spec.loader is None:
             print_warning("Could not load migration script.")
@@ -2609,7 +2609,7 @@ def _offer_openclaw_migration(claudia_home: Path) -> bool:
     if migrated:
         print_success(f"Imported {migrated} item(s) from OpenClaw.")
     if conflicts:
-        print_info(f"Skipped {conflicts} item(s) that already exist in Hermes.")
+        print_info(f"Skipped {conflicts} item(s) that already exist in Claudia.")
     if skipped:
         print_info(f"Skipped {skipped} item(s) (not found or unchanged).")
     if errors:
@@ -2652,12 +2652,12 @@ def run_setup_wizard(args):
     """Run the interactive setup wizard.
 
     Supports full, quick, and section-specific setup:
-      hermes setup           — full or quick (auto-detected)
-      hermes setup model     — just model/provider
-      hermes setup terminal  — just terminal backend
-      hermes setup gateway   — just messaging platforms
-      hermes setup tools     — just tool configuration
-      hermes setup agent     — just agent settings
+      claudia setup           — full or quick (auto-detected)
+      claudia setup model     — just model/provider
+      claudia setup terminal  — just terminal backend
+      claudia setup gateway   — just messaging platforms
+      claudia setup tools     — just tool configuration
+      claudia setup agent     — just agent settings
     """
     from claudia_cli.config import is_managed, managed_error
     if is_managed():
@@ -2691,7 +2691,7 @@ def run_setup_wizard(args):
                         Colors.MAGENTA,
                     )
                 )
-                print(color(f"│     ⚕ Hermes Setup — {label:<34s} │", Colors.MAGENTA))
+                print(color(f"│     ⚕ Claudia Setup — {label:<34s} │", Colors.MAGENTA))
                 print(
                     color(
                         "└─────────────────────────────────────────────────────────┘",
@@ -2727,7 +2727,7 @@ def run_setup_wizard(args):
     )
     print(
         color(
-            "│             ⚕ Hermes Agent Setup Wizard                │", Colors.MAGENTA
+            "│             ⚕ Claudia Setup Wizard                │", Colors.MAGENTA
         )
     )
     print(
@@ -2738,7 +2738,7 @@ def run_setup_wizard(args):
     )
     print(
         color(
-            "│  Let's configure your Hermes Agent installation.       │", Colors.MAGENTA
+            "│  Let's configure your Claudia installation.       │", Colors.MAGENTA
         )
     )
     print(
@@ -2759,7 +2759,7 @@ def run_setup_wizard(args):
         # ── Returning User Menu ──
         print()
         print_header("Welcome Back!")
-        print_success("You already have Hermes configured.")
+        print_success("You already have Claudia configured.")
         print()
 
         menu_choices = [
@@ -2788,10 +2788,10 @@ def run_setup_wizard(args):
             pass
         elif choice in (2, 8):
             # Separator — treat as exit
-            print_info("Exiting. Run 'hermes setup' again when ready.")
+            print_info("Exiting. Run 'claudia setup' again when ready.")
             return
         elif choice == 9:
-            print_info("Exiting. Run 'hermes setup' again when ready.")
+            print_info("Exiting. Run 'claudia setup' again when ready.")
             return
         elif 3 <= choice <= 7:
             # Individual section — map by key, not by position.
@@ -2835,7 +2835,7 @@ def run_setup_wizard(args):
     print_info(f"Data folder:  {claudia_home}")
     print_info(f"Install dir:  {PROJECT_ROOT}")
     print()
-    print_info("You can edit these files directly or use 'hermes config edit'")
+    print_info("You can edit these files directly or use 'claudia config edit'")
 
     if migration_ran:
         print()
@@ -2899,7 +2899,7 @@ def _run_quick_setup(config: dict, claudia_home):
     if not has_anything_missing:
         print_success("Everything is configured! Nothing to do.")
         print()
-        print_info("Run 'hermes setup' and choose 'Full Setup' to reconfigure,")
+        print_info("Run 'claudia setup' and choose 'Full Setup' to reconfigure,")
         print_info("or pick a specific section from the menu.")
         return
 
@@ -2961,8 +2961,8 @@ def _run_quick_setup(config: dict, claudia_home):
     if missing_messaging:
         print()
         print_header("Messaging Platforms")
-        print_info("Connect Hermes to messaging apps to chat from anywhere.")
-        print_info("You can configure these later with 'hermes setup gateway'.")
+        print_info("Connect Claudia to messaging apps to chat from anywhere.")
+        print_info("You can configure these later with 'claudia setup gateway'.")
 
         # Group by platform (preserving order)
         platform_order = []

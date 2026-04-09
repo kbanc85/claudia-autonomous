@@ -288,7 +288,7 @@ class TelegramAdapter(BasePlatformAdapter):
         # Exhausted retries — fatal
         message = (
             "Another Telegram bot poller is already using this token. "
-            "Hermes stopped Telegram polling after %d retries. "
+            "Claudia stopped Telegram polling after %d retries. "
             "Make sure only one gateway instance is running for this bot token."
             % MAX_CONFLICT_RETRIES
         )
@@ -495,7 +495,7 @@ class TelegramAdapter(BasePlatformAdapter):
             if not acquired:
                 owner_pid = existing.get("pid") if isinstance(existing, dict) else None
                 message = (
-                    "Another local Hermes gateway is already using this Telegram bot token"
+                    "Another local Claudia gateway is already using this Telegram bot token"
                     + (f" (PID {owner_pid})." if owner_pid else ".")
                     + " Stop the other gateway before starting a second Telegram poller."
                 )

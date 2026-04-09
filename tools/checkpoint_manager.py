@@ -144,8 +144,8 @@ def _init_shadow_repo(shadow_repo: Path, working_dir: str) -> Optional[str]:
     if not ok:
         return f"Shadow repo init failed: {err}"
 
-    _run_git(["config", "user.email", "hermes@local"], shadow_repo, working_dir)
-    _run_git(["config", "user.name", "Hermes Checkpoint"], shadow_repo, working_dir)
+    _run_git(["config", "user.email", "claudia@local"], shadow_repo, working_dir)
+    _run_git(["config", "user.name", "Claudia Checkpoint"], shadow_repo, working_dir)
 
     info_dir = shadow_repo / "info"
     info_dir.mkdir(exist_ok=True)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Skills Hub — Source adapters and hub state management for the Hermes Skills Hub.
+Skills Hub — Source adapters and hub state management for the Claudia Skills Hub.
 
 This is a library module (not an agent tool). It provides:
   - GitHubAuth: Shared GitHub API authentication (PAT, gh CLI, GitHub App)
@@ -385,7 +385,7 @@ class GitHubSource(SkillSource):
         tags = []
         metadata = fm.get("metadata", {})
         if isinstance(metadata, dict):
-            claudia_meta = metadata.get("hermes", {})
+            claudia_meta = metadata.get("claudia", {})
             if isinstance(claudia_meta, dict):
                 tags = claudia_meta.get("tags", [])
         if not tags:
@@ -2080,7 +2080,7 @@ class LobeHubSource(SkillSource):
             f"name: {identifier}",
             f"description: {description[:500]}",
             "metadata:",
-            "  hermes:",
+            "  claudia:",
             f"    tags: [{', '.join(str(t) for t in tag_list)}]",
             "  lobehub:",
             "    source: lobehub",
@@ -2239,7 +2239,7 @@ class OptionalSkillSource(SkillSource):
             tags = []
             meta_block = fm.get("metadata", {})
             if isinstance(meta_block, dict):
-                claudia_meta = meta_block.get("hermes", {})
+                claudia_meta = meta_block.get("claudia", {})
                 if isinstance(claudia_meta, dict):
                     tags = claudia_meta.get("tags", [])
 

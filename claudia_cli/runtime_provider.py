@@ -635,7 +635,7 @@ def resolve_runtime_provider(
             "api_mode": "codex_responses",
             "base_url": creds.get("base_url", "").rstrip("/"),
             "api_key": creds.get("api_key", ""),
-            "source": creds.get("source", "hermes-auth-store"),
+            "source": creds.get("source", "claudia-auth-store"),
             "last_refresh": creds.get("last_refresh"),
             "requested_provider": requested_provider,
         }

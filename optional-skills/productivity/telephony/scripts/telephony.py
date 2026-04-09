@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Telephony helper for the Hermes optional telephony skill.
+"""Telephony helper for the Claudia optional telephony skill.
 
 Capabilities:
 - Persist telephony provider credentials to ~/.claudia/.env
@@ -89,7 +89,7 @@ def _load_root_config() -> dict[str, Any]:
     if not path.exists():
         return {}
     try:
-        import yaml  # optional dependency; Hermes already ships PyYAML
+        import yaml  # optional dependency; Claudia already ships PyYAML
     except Exception:
         return {}
     try:
@@ -1146,7 +1146,7 @@ def save_vapi(
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Hermes telephony helper")
+    parser = argparse.ArgumentParser(description="Claudia telephony helper")
     sub = parser.add_subparsers(dest="command", required=True)
 
     sub.add_parser("diagnose", help="Show saved telephony state and provider readiness")

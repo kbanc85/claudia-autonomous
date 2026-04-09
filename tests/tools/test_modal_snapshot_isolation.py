@@ -62,7 +62,7 @@ def _install_modal_test_modules(
     claudia_cli = types.ModuleType("claudia_cli")
     claudia_cli.__path__ = []  # type: ignore[attr-defined]
     sys.modules["claudia_cli"] = claudia_cli
-    claudia_home = tmp_path / "hermes-home"
+    claudia_home = tmp_path / "claudia-home"
     os.environ["CLAUDIA_HOME"] = str(claudia_home)
     sys.modules["claudia_cli.config"] = types.SimpleNamespace(
         get_claudia_home=lambda: claudia_home,
@@ -108,7 +108,7 @@ def _install_modal_test_modules(
             return {"kind": "registry", "image": image}
 
     async def _lookup_aio(_name: str, create_if_missing: bool = False):
-        return types.SimpleNamespace(name="hermes-agent", create_if_missing=create_if_missing)
+        return types.SimpleNamespace(name="claudia-autonomous", create_if_missing=create_if_missing)
 
     class _FakeSandboxInstance:
         def __init__(self, image):

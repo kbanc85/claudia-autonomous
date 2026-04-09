@@ -163,7 +163,7 @@ ORDER BY event_count DESC
 
 ---
 
-## Accessing via Hermes
+## Accessing via Claudia
 
 **Option A: BigQuery CLI** (if `gcloud` is installed)
 ```bash

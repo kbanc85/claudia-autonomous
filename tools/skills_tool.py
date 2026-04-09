@@ -40,7 +40,7 @@ SKILL.md Format (YAML Frontmatter, agentskills.io compatible):
       commands: [curl, jq]        #   Command checks remain advisory only.
     compatibility: Requires X     # Optional (agentskills.io)
     metadata:                     # Optional, arbitrary key-value (agentskills.io)
-      hermes:
+      claudia:
         tags: [fine-tuning, llm]
         related_skills: [peft, lora]
     ---
@@ -514,7 +514,7 @@ def _find_all_skills(*, skip_disabled: bool = False) -> List[Dict[str, Any]]:
 
     Args:
         skip_disabled: If True, return ALL skills regardless of disabled
-            state (used by ``hermes skills`` config UI). Default False
+            state (used by ``claudia skills`` config UI). Default False
             filters out disabled skills.
 
     Returns:
@@ -922,7 +922,7 @@ def skill_view(name: str, file_path: str = None, task_id: str = None) -> str:
                     "success": False,
                     "error": (
                         f"Skill '{resolved_name}' is disabled. "
-                        "Enable it with `hermes skills` or inspect the files directly on disk."
+                        "Enable it with `claudia skills` or inspect the files directly on disk."
                     ),
                 },
                 ensure_ascii=False,
@@ -1092,7 +1092,7 @@ def skill_view(name: str, file_path: str = None, task_id: str = None) -> str:
         claudia_meta = {}
         metadata = frontmatter.get("metadata")
         if isinstance(metadata, dict):
-            claudia_meta = metadata.get("hermes", {}) or {}
+            claudia_meta = metadata.get("claudia", {}) or {}
 
         tags = _parse_tags(claudia_meta.get("tags") or frontmatter.get("tags", ""))
         related_skills = _parse_tags(

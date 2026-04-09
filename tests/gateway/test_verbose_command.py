@@ -48,7 +48,7 @@ class TestVerboseCommand:
     @pytest.mark.asyncio
     async def test_disabled_by_default(self, tmp_path, monkeypatch):
         """When tool_progress_command is false, /verbose returns an info message."""
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir()
         config_path = claudia_home / "config.yaml"
         config_path.write_text("display:\n  tool_progress: all\n", encoding="utf-8")
@@ -64,7 +64,7 @@ class TestVerboseCommand:
     @pytest.mark.asyncio
     async def test_enabled_cycles_mode(self, tmp_path, monkeypatch):
         """When enabled, /verbose cycles tool_progress mode."""
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir()
         config_path = claudia_home / "config.yaml"
         config_path.write_text(
@@ -87,7 +87,7 @@ class TestVerboseCommand:
     @pytest.mark.asyncio
     async def test_cycles_through_all_modes(self, tmp_path, monkeypatch):
         """Calling /verbose repeatedly cycles through all four modes."""
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir()
         config_path = claudia_home / "config.yaml"
         config_path.write_text(
@@ -109,7 +109,7 @@ class TestVerboseCommand:
     @pytest.mark.asyncio
     async def test_defaults_to_all_when_no_tool_progress_set(self, tmp_path, monkeypatch):
         """When tool_progress is not in config, defaults to 'all' then cycles to verbose."""
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir()
         config_path = claudia_home / "config.yaml"
         config_path.write_text(
@@ -130,7 +130,7 @@ class TestVerboseCommand:
     @pytest.mark.asyncio
     async def test_no_config_file_returns_disabled(self, tmp_path, monkeypatch):
         """When config.yaml doesn't exist, command reports disabled."""
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir()
         # No config.yaml
 

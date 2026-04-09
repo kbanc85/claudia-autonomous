@@ -9,7 +9,7 @@ import claudia_cli.gateway as gateway_cli
 
 class TestSystemdServiceRefresh:
     def test_systemd_install_repairs_outdated_unit_without_force(self, tmp_path, monkeypatch):
-        unit_path = tmp_path / "hermes-gateway.service"
+        unit_path = tmp_path / "claudia-gateway.service"
         unit_path.write_text("old unit\n", encoding="utf-8")
 
         monkeypatch.setattr(gateway_cli, "get_systemd_unit_path", lambda system=False: unit_path)
@@ -32,7 +32,7 @@ class TestSystemdServiceRefresh:
         ]
 
     def test_systemd_start_refreshes_outdated_unit(self, tmp_path, monkeypatch):
-        unit_path = tmp_path / "hermes-gateway.service"
+        unit_path = tmp_path / "claudia-gateway.service"
         unit_path.write_text("old unit\n", encoding="utf-8")
 
         monkeypatch.setattr(gateway_cli, "get_systemd_unit_path", lambda system=False: unit_path)
@@ -55,7 +55,7 @@ class TestSystemdServiceRefresh:
         ]
 
     def test_systemd_restart_refreshes_outdated_unit(self, tmp_path, monkeypatch):
-        unit_path = tmp_path / "hermes-gateway.service"
+        unit_path = tmp_path / "claudia-gateway.service"
         unit_path.write_text("old unit\n", encoding="utf-8")
 
         monkeypatch.setattr(gateway_cli, "get_systemd_unit_path", lambda system=False: unit_path)
@@ -104,7 +104,7 @@ class TestGeneratedSystemdUnits:
 
 class TestGatewayStopCleanup:
     def test_stop_sweeps_manual_gateway_processes_after_service_stop(self, tmp_path, monkeypatch):
-        unit_path = tmp_path / "hermes-gateway.service"
+        unit_path = tmp_path / "claudia-gateway.service"
         unit_path.write_text("unit\n", encoding="utf-8")
 
         monkeypatch.setattr(gateway_cli, "is_linux", lambda: True)
@@ -339,7 +339,7 @@ class TestDetectVenvDir:
         assert result is None
 
 
-class TestSystemUnitHermesHome:
+class TestSystemUnitClaudiaHome:
     """CLAUDIA_HOME in system units must reference the target user, not root."""
 
     def test_system_unit_uses_target_user_home_not_calling_user(self, monkeypatch):
@@ -381,7 +381,7 @@ class TestSystemUnitHermesHome:
     def test_system_unit_preserves_custom_claudia_home(self, monkeypatch):
         # Custom CLAUDIA_HOME not under any user's home — keep as-is
         monkeypatch.setattr(Path, "home", staticmethod(lambda: Path("/root")))
-        monkeypatch.setenv("CLAUDIA_HOME", "/opt/hermes-shared")
+        monkeypatch.setenv("CLAUDIA_HOME", "/opt/claudia-shared")
         monkeypatch.setattr(
             gateway_cli, "_system_service_identity",
             lambda run_as_user=None: ("alice", "alice", "/home/alice"),
@@ -393,7 +393,7 @@ class TestSystemUnitHermesHome:
 
         unit = gateway_cli.generate_systemd_unit(system=True, run_as_user="alice")
 
-        assert 'CLAUDIA_HOME=/opt/hermes-shared' in unit
+        assert 'CLAUDIA_HOME=/opt/claudia-shared' in unit
 
     def test_user_unit_unaffected_by_change(self):
         # User-scope units should still use the calling user's CLAUDIA_HOME
@@ -403,7 +403,7 @@ class TestSystemUnitHermesHome:
         assert f'CLAUDIA_HOME={claudia_home}' in unit
 
 
-class TestHermesHomeForTargetUser:
+class TestClaudiaHomeForTargetUser:
     """Unit tests for _claudia_home_for_target_user()."""
 
     def test_remaps_default_home(self, monkeypatch):
@@ -422,10 +422,10 @@ class TestHermesHomeForTargetUser:
 
     def test_keeps_custom_path(self, monkeypatch):
         monkeypatch.setattr(Path, "home", staticmethod(lambda: Path("/root")))
-        monkeypatch.setenv("CLAUDIA_HOME", "/opt/hermes")
+        monkeypatch.setenv("CLAUDIA_HOME", "/opt/claudia")
 
         result = gateway_cli._claudia_home_for_target_user("/home/alice")
-        assert result == "/opt/hermes"
+        assert result == "/opt/claudia"
 
     def test_noop_when_same_user(self, monkeypatch):
         monkeypatch.setattr(Path, "home", staticmethod(lambda: Path("/home/alice")))

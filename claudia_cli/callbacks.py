@@ -1,7 +1,7 @@
 """Interactive prompt callbacks for terminal_tool integration.
 
 These bridge terminal_tool's interactive prompts (clarify, sudo, approval)
-into prompt_toolkit's event loop. Each function takes the HermesCLI instance
+into prompt_toolkit's event loop. Each function takes the ClaudiaCLI instance
 as its first argument and uses its state (queues, app reference) to coordinate
 with the TUI.
 """

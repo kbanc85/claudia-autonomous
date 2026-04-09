@@ -124,7 +124,7 @@ class WhatsAppAdapter(BasePlatformAdapter):
     # WhatsApp message limits
     MAX_MESSAGE_LENGTH = 65536  # WhatsApp allows longer messages
     
-    # Default bridge location relative to the hermes-agent install
+    # Default bridge location relative to the claudia-autonomous install
     _DEFAULT_BRIDGE_DIR = Path(__file__).resolve().parents[2] / "scripts" / "whatsapp-bridge"
 
     def __init__(self, config: PlatformConfig):
@@ -302,7 +302,7 @@ class WhatsAppAdapter(BasePlatformAdapter):
             if not acquired:
                 owner_pid = existing.get("pid") if isinstance(existing, dict) else None
                 message = (
-                    "Another local Hermes gateway is already using this WhatsApp session"
+                    "Another local Claudia gateway is already using this WhatsApp session"
                     + (f" (PID {owner_pid})." if owner_pid else ".")
                     + " Stop the other gateway before starting a second WhatsApp bridge."
                 )
@@ -456,7 +456,7 @@ class WhatsAppAdapter(BasePlatformAdapter):
                     # auto-reconnect later, e.g. after a code 515 restart).
                     print(f"[{self.name}] ⚠ WhatsApp not connected after 30s")
                     print(f"[{self.name}]   Bridge log: {self._bridge_log}")
-                    print(f"[{self.name}]   If session expired, re-pair: hermes whatsapp")
+                    print(f"[{self.name}]   If session expired, re-pair: claudia whatsapp")
             
             # Create a persistent HTTP session for all bridge communication
             self._http_session = aiohttp.ClientSession()

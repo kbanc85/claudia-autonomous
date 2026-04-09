@@ -1,11 +1,11 @@
 ---
 name: plan
-description: Plan mode for Hermes — inspect context, write a markdown plan into the active workspace's `.claudia/plans/` directory, and do not execute the work.
+description: Plan mode for Claudia — inspect context, write a markdown plan into the active workspace's `.claudia/plans/` directory, and do not execute the work.
 version: 1.0.0
-author: Hermes Agent
+author: Claudia
 license: MIT
 metadata:
-  hermes:
+  claudia:
     tags: [planning, plan-mode, implementation, workflow]
     related_skills: [writing-plans, subagent-driven-development]
 ---
@@ -44,7 +44,7 @@ If the task is code-related, include exact file paths, likely test targets, and 
 Save the plan with `write_file` under:
 - `.claudia/plans/YYYY-MM-DD_HHMMSS-<slug>.md`
 
-Treat that as relative to the active working directory / backend workspace. Hermes file tools are backend-aware, so using this relative path keeps the plan with the workspace on local, docker, ssh, modal, and daytona backends.
+Treat that as relative to the active working directory / backend workspace. Claudia file tools are backend-aware, so using this relative path keeps the plan with the workspace on local, docker, ssh, modal, and daytona backends.
 
 If the runtime provides a specific target path, use that exact path.
 If not, create a sensible timestamped filename yourself under `.claudia/plans/`.

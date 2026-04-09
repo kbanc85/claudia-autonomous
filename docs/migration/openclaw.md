@@ -1,20 +1,20 @@
-# Migrating from OpenClaw to Hermes Agent
+# Migrating from OpenClaw to Claudia
 
-This guide covers how to import your OpenClaw settings, memories, skills, and API keys into Hermes Agent.
+This guide covers how to import your OpenClaw settings, memories, skills, and API keys into Claudia.
 
 ## Three Ways to Migrate
 
 ### 1. Automatic (during first-time setup)
 
-When you run `hermes setup` for the first time and Hermes detects `~/.openclaw`, it automatically offers to import your OpenClaw data before configuration begins. Just accept the prompt and everything is handled for you.
+When you run `claudia setup` for the first time and Claudia detects `~/.openclaw`, it automatically offers to import your OpenClaw data before configuration begins. Just accept the prompt and everything is handled for you.
 
 ### 2. CLI Command (quick, scriptable)
 
 ```bash
-hermes claw migrate                      # Full migration with confirmation prompt
-hermes claw migrate --dry-run            # Preview what would happen
-hermes claw migrate --preset user-data   # Migrate without API keys/secrets
-hermes claw migrate --yes                # Skip confirmation prompt
+claudia migrate migrate                      # Full migration with confirmation prompt
+claudia migrate migrate --dry-run            # Preview what would happen
+claudia migrate migrate --preset user-data   # Migrate without API keys/secrets
+claudia migrate migrate --yes                # Skip confirmation prompt
 ```
 
 **All options:**
@@ -35,7 +35,7 @@ hermes claw migrate --yes                # Skip confirmation prompt
 Ask the agent to run the migration for you:
 
 ```
-> Migrate my OpenClaw setup to Hermes
+> Migrate my OpenClaw setup to Claudia
 ```
 
 The agent will use the `openclaw-migration` skill to:
@@ -71,7 +71,7 @@ Only these 6 allowlisted secrets are ever imported. Other credentials are skippe
 
 ## Conflict Handling
 
-By default, the migration **will not overwrite** existing Hermes data:
+By default, the migration **will not overwrite** existing Claudia data:
 
 - **SOUL.md** — skipped if one already exists in `~/.claudia/`
 - **Memory entries** — skipped if memories already exist (to avoid duplicates)
@@ -97,14 +97,14 @@ For execute runs, the full report is saved to `~/.claudia/migration/openclaw/<ti
 ### "OpenClaw directory not found"
 The migration looks for `~/.openclaw` by default. If your OpenClaw is installed elsewhere, use `--source`:
 ```bash
-hermes claw migrate --source /path/to/.openclaw
+claudia migrate migrate --source /path/to/.openclaw
 ```
 
 ### "Migration script not found"
-The migration script ships with Hermes Agent. If you installed via pip (not git clone), the `optional-skills/` directory may not be present. Install the skill from the Skills Hub:
+The migration script ships with Claudia. If you installed via pip (not git clone), the `optional-skills/` directory may not be present. Install the skill from the Skills Hub:
 ```bash
-hermes skills install openclaw-migration
+claudia skills install openclaw-migration
 ```
 
 ### Memory overflow
-If your OpenClaw MEMORY.md or USER.md exceeds Hermes' character limits, excess entries are exported to an overflow file in the migration report directory. You can manually review and add the most important ones.
+If your OpenClaw MEMORY.md or USER.md exceeds Claudia' character limits, excess entries are exported to an overflow file in the migration report directory. You can manually review and add the most important ones.

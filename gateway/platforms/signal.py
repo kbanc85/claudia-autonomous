@@ -213,7 +213,7 @@ class SignalAdapter(BasePlatformAdapter):
             if not acquired:
                 owner_pid = existing.get("pid") if isinstance(existing, dict) else None
                 message = (
-                    "Another local Hermes gateway is already using this Signal account"
+                    "Another local Claudia gateway is already using this Signal account"
                     + (f" (PID {owner_pid})." if owner_pid else ".")
                     + " Stop the other gateway before starting a second Signal listener."
                 )

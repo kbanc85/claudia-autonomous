@@ -76,7 +76,7 @@ _ensure_ssl_certs()
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# Resolve Hermes home directory (respects CLAUDIA_HOME override)
+# Resolve Claudia home directory (respects CLAUDIA_HOME override)
 from claudia_constants import get_claudia_home
 from utils import atomic_yaml_write
 _claudia_home = get_claudia_home()
@@ -360,7 +360,7 @@ def _check_unavailable_skill(command_name: str) -> str | None:
             if name == normalized and name in disabled:
                 return (
                     f"The **{command_name}** skill is installed but disabled.\n"
-                    f"Enable it with: `hermes skills config`"
+                    f"Enable it with: `claudia skills config`"
                 )
 
         # Check optional skills (shipped with repo but not installed)
@@ -377,7 +377,7 @@ def _check_unavailable_skill(command_name: str) -> str | None:
                     install_path = f"official/{'/'.join(parts)}"
                     return (
                         f"The **{command_name}** skill is available but not installed.\n"
-                        f"Install it with: `hermes skills install {install_path}`"
+                        f"Install it with: `claudia skills install {install_path}`"
                     )
     except Exception:
         pass
@@ -419,18 +419,18 @@ def _resolve_gateway_model(config: dict | None = None) -> str:
 
 
 def _resolve_claudia_bin() -> Optional[list[str]]:
-    """Resolve the Hermes update command as argv parts.
+    """Resolve the Claudia update command as argv parts.
 
     Tries in order:
-    1. ``shutil.which("hermes")`` — standard PATH lookup
-    2. ``sys.executable -m claudia_cli.main`` — fallback when Hermes is running
-       from a venv/module invocation and the ``hermes`` shim is not on PATH
+    1. ``shutil.which("claudia")`` — standard PATH lookup
+    2. ``sys.executable -m claudia_cli.main`` — fallback when Claudia is running
+       from a venv/module invocation and the ``claudia`` shim is not on PATH
 
     Returns argv parts ready for quoting/joining, or ``None`` if neither works.
     """
     import shutil
 
-    claudia_bin = shutil.which("hermes")
+    claudia_bin = shutil.which("claudia")
     if claudia_bin:
         return [claudia_bin]
 
@@ -554,10 +554,10 @@ class GatewayRunner:
     # -- Setup skill availability ----------------------------------------
 
     def _has_setup_skill(self) -> bool:
-        """Check if the hermes-agent-setup skill is installed."""
+        """Check if the claudia-autonomous-setup skill is installed."""
         try:
             from tools.skill_manager_tool import _find_skill
-            return _find_skill("hermes-agent-setup") is not None
+            return _find_skill("claudia-autonomous-setup") is not None
         except Exception:
             return False
 
@@ -1028,7 +1028,7 @@ class GatewayRunner:
         
         Returns True if at least one adapter connected successfully.
         """
-        logger.info("Starting Hermes Gateway...")
+        logger.info("Starting Claudia Gateway...")
         logger.info("Session storage: %s", self.config.sessions_dir)
         try:
             from claudia_cli.profiles import get_active_profile_name
@@ -1488,7 +1488,7 @@ class GatewayRunner:
         elif platform == Platform.SLACK:
             from gateway.platforms.slack import SlackAdapter, check_slack_requirements
             if not check_slack_requirements():
-                logger.warning("Slack: slack-bolt not installed. Run: pip install 'hermes-agent[slack]'")
+                logger.warning("Slack: slack-bolt not installed. Run: pip install 'claudia-autonomous[slack]'")
                 return None
             return SlackAdapter(config)
 
@@ -1718,7 +1718,7 @@ class GatewayRunner:
                             f"Hi~ I don't recognize you yet!\n\n"
                             f"Here's your pairing code: `{code}`\n\n"
                             f"Ask the bot owner to run:\n"
-                            f"`hermes pairing approve {platform_name} {code}`"
+                            f"`claudia pairing approve {platform_name} {code}`"
                         )
                 else:
                     adapter = self.adapters.get(source.platform)
@@ -2071,7 +2071,7 @@ class GatewayRunner:
                         if _skill_name in _get_plat_disabled(platform=_plat):
                             return (
                                 f"The **{_skill_name}** skill is disabled for {_plat}.\n"
-                                f"Enable it with: `hermes skills config`"
+                                f"Enable it with: `claudia skills config`"
                             )
                     user_instruction = event.get_command_args().strip()
                     msg = build_skill_invocation_message(
@@ -2498,7 +2498,7 @@ class GatewayRunner:
                     await adapter.send(
                         source.chat_id,
                         f"📬 No home channel is set for {platform_name.title()}. "
-                        f"A home channel is where Hermes delivers cron job results "
+                        f"A home channel is where Claudia delivers cron job results "
                         f"and cross-platform messages.\n\n"
                         f"Type /sethome to make this chat your home channel, "
                         f"or ignore to skip."
@@ -2581,13 +2581,13 @@ class GatewayRunner:
                                 "🎤 I received your voice message but can't transcribe it — "
                                 "no speech-to-text provider is configured.\n\n"
                                 "To enable voice: install faster-whisper "
-                                "(`pip install faster-whisper` in the Hermes venv) "
+                                "(`pip install faster-whisper` in the Claudia venv) "
                                 "and set `stt.enabled: true` in config.yaml, "
                                 "then /restart the gateway."
                             )
                             # Point to setup skill if it's installed
                             if self._has_setup_skill():
-                                _stt_msg += "\n\nFor full setup instructions, type: `/skill hermes-agent-setup`"
+                                _stt_msg += "\n\nFor full setup instructions, type: `/skill claudia-autonomous-setup`"
                             await _stt_adapter.send(
                                 source.chat_id, _stt_msg,
                                 metadata=_stt_meta,
@@ -3109,7 +3109,7 @@ class GatewayRunner:
         is_running = session_key in self._running_agents
         
         lines = [
-            "📊 **Hermes Gateway Status**",
+            "📊 **Claudia Gateway Status**",
             "",
             f"**Session ID:** `{session_entry.session_id[:12]}...`",
             f"**Created:** {session_entry.created_at.strftime('%Y-%m-%d %H:%M')}",
@@ -3156,7 +3156,7 @@ class GatewayRunner:
         """Handle /help command - list available commands."""
         from claudia_cli.commands import gateway_help_lines
         lines = [
-            "📖 **Hermes Commands**\n",
+            "📖 **Claudia Commands**\n",
             *gateway_help_lines(),
         ]
         try:
@@ -3280,7 +3280,7 @@ class GatewayRunner:
 
         lines.append("")
         lines.append("Switch: `/model provider:model-name`")
-        lines.append("Setup: `hermes setup`")
+        lines.append("Setup: `claudia setup`")
         return "\n".join(lines)
     
     async def _handle_personality_command(self, event: MessageEvent) -> str:
@@ -3567,8 +3567,8 @@ class GatewayRunner:
             if "pynacl" in err_lower or "nacl" in err_lower or "davey" in err_lower:
                 return (
                     "Voice dependencies are missing (PyNaCl / davey). "
-                    "Install or reinstall Hermes with the messaging extra, e.g. "
-                    "`pip install hermes-agent[messaging]`."
+                    "Install or reinstall Claudia with the messaging extra, e.g. "
+                    "`pip install claudia-autonomous[messaging]`."
                 )
             return f"Failed to join voice channel: {e}"
 
@@ -4831,10 +4831,10 @@ class GatewayRunner:
         return f"❌ Command{'s' if count > 1 else ''} denied{count_msg}."
 
     async def _handle_update_command(self, event: MessageEvent) -> str:
-        """Handle /update command — update Hermes Agent to the latest version.
+        """Handle /update command — update Claudia to the latest version.
 
-        Spawns ``hermes update`` in a detached session (via ``setsid``) so it
-        survives the gateway restart that ``hermes update`` may trigger. Marker
+        Spawns ``claudia update`` in a detached session (via ``setsid``) so it
+        survives the gateway restart that ``claudia update`` may trigger. Marker
         files are written so either the current gateway process or the next one
         can notify the user when the update finishes.
         """
@@ -4845,7 +4845,7 @@ class GatewayRunner:
         from claudia_cli.config import is_managed, format_managed_message
 
         if is_managed():
-            return f"✗ {format_managed_message('update Hermes Agent')}"
+            return f"✗ {format_managed_message('update Claudia')}"
 
         project_root = Path(__file__).parent.parent.resolve()
         git_dir = project_root / '.git'
@@ -4856,10 +4856,10 @@ class GatewayRunner:
         claudia_cmd = _resolve_claudia_bin()
         if not claudia_cmd:
             return (
-                "✗ Could not locate the `hermes` command. "
-                "Hermes is running, but the update command could not find the "
+                "✗ Could not locate the `claudia` command. "
+                "Claudia is running, but the update command could not find the "
                 "executable on PATH or via the current Python interpreter. "
-                "Try running `hermes update` manually in your terminal."
+                "Try running `claudia update` manually in your terminal."
             )
 
         pending_path = _claudia_home / ".update_pending.json"
@@ -4874,7 +4874,7 @@ class GatewayRunner:
         pending_path.write_text(json.dumps(pending))
         exit_code_path.unlink(missing_ok=True)
 
-        # Spawn `hermes update` detached so it survives gateway restart.
+        # Spawn `claudia update` detached so it survives gateway restart.
         # Use setsid for portable session detach (works under system services
         # where systemd-run --user fails due to missing D-Bus session).
         claudia_cmd_str = " ".join(shlex.quote(part) for part in claudia_cmd)
@@ -4906,7 +4906,7 @@ class GatewayRunner:
             return f"✗ Failed to start update: {e}"
 
         self._schedule_update_notification_watch()
-        return "⚕ Starting Hermes update… I'll notify you when it's done."
+        return "⚕ Starting Claudia update… I'll notify you when it's done."
 
     def _schedule_update_notification_watch(self) -> None:
         """Ensure a background task is watching for update completion."""
@@ -4926,7 +4926,7 @@ class GatewayRunner:
         poll_interval: float = 2.0,
         timeout: float = 1800.0,
     ) -> None:
-        """Wait for ``hermes update`` to finish, then send its notification."""
+        """Wait for ``claudia update`` to finish, then send its notification."""
         pending_path = _claudia_home / ".update_pending.json"
         claimed_path = _claudia_home / ".update_pending.claimed.json"
         exit_code_path = _claudia_home / ".update_exit_code"
@@ -5003,14 +5003,14 @@ class GatewayRunner:
                     if len(output) > 3500:
                         output = "…" + output[-3500:]
                     if exit_code == 0:
-                        msg = f"✅ Hermes update finished.\n\n```\n{output}\n```"
+                        msg = f"✅ Claudia update finished.\n\n```\n{output}\n```"
                     else:
-                        msg = f"❌ Hermes update failed.\n\n```\n{output}\n```"
+                        msg = f"❌ Claudia update failed.\n\n```\n{output}\n```"
                 else:
                     if exit_code == 0:
-                        msg = "✅ Hermes update finished successfully."
+                        msg = "✅ Claudia update finished successfully."
                     else:
-                        msg = "❌ Hermes update failed. Check the gateway logs or run `hermes update` manually for details."
+                        msg = "❌ Claudia update failed. Check the gateway logs or run `claudia update` manually for details."
                 await adapter.send(chat_id, msg)
                 logger.info(
                     "Sent post-update notification to %s:%s (exit=%s)",
@@ -5132,8 +5132,8 @@ class GatewayRunner:
             disabled_note = "[The user sent voice message(s), but transcription is disabled in config."
             if self._has_setup_skill():
                 disabled_note += (
-                    " You have a skill called hermes-agent-setup that can help "
-                    "users configure Hermes features including voice, tools, and more."
+                    " You have a skill called claudia-autonomous-setup that can help "
+                    "users configure Claudia features including voice, tools, and more."
                 )
             disabled_note += "]"
             if user_text:
@@ -5170,8 +5170,8 @@ class GatewayRunner:
                         )
                         if self._has_setup_skill():
                             _no_stt_note += (
-                                " You have a skill called hermes-agent-setup "
-                                "that can help users configure Hermes features "
+                                " You have a skill called claudia-autonomous-setup "
+                                "that can help users configure Claudia features "
                                 "including voice, tools, and more."
                             )
                         _no_stt_note += "]"
@@ -6252,7 +6252,7 @@ def _start_cron_ticker(stop_event: threading.Event, adapters=None, interval: int
     Background thread that ticks the cron scheduler at a regular interval.
     
     Runs inside the gateway process so cronjobs fire automatically without
-    needing a separate `hermes cron daemon` or system cron entry.
+    needing a separate `claudia cron daemon` or system cron entry.
 
     Also refreshes the channel directory every 5 minutes and prunes the
     image/audio/document cache once per hour.
@@ -6369,14 +6369,14 @@ async def start_gateway(config: Optional[GatewayConfig] = None, replace: bool = 
             claudia_home = str(get_claudia_home())
             logger.error(
                 "Another gateway instance is already running (PID %d, CLAUDIA_HOME=%s). "
-                "Use 'hermes gateway restart' to replace it, or 'hermes gateway stop' first.",
+                "Use 'claudia gateway restart' to replace it, or 'claudia gateway stop' first.",
                 existing_pid, claudia_home,
             )
             print(
                 f"\n❌ Gateway already running (PID {existing_pid}).\n"
-                f"   Use 'hermes gateway restart' to replace it,\n"
-                f"   or 'hermes gateway stop' to kill it first.\n"
-                f"   Or use 'hermes gateway run --replace' to auto-replace.\n"
+                f"   Use 'claudia gateway restart' to replace it,\n"
+                f"   or 'claudia gateway stop' to kill it first.\n"
+                f"   Or use 'claudia gateway run --replace' to auto-replace.\n"
             )
             return False
 
@@ -6490,7 +6490,7 @@ def main():
     """CLI entry point for the gateway."""
     import argparse
     
-    parser = argparse.ArgumentParser(description="Hermes Gateway - Multi-platform messaging")
+    parser = argparse.ArgumentParser(description="Claudia Gateway - Multi-platform messaging")
     parser.add_argument("--config", "-c", help="Path to gateway config file")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     

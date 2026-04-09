@@ -1,6 +1,6 @@
 """Tests for cmd_update gateway auto-restart — systemd + launchd coverage.
 
-Ensures ``hermes update`` correctly detects running gateways managed by
+Ensures ``claudia update`` correctly detects running gateways managed by
 systemd (Linux) or launchd (macOS) and restarts/informs the user properly,
 rather than leaving zombie processes or telling users to manually restart
 when launchd will auto-respawn.
@@ -288,7 +288,7 @@ class TestCmdUpdateLaunchdRestart:
         self, mock_run, _mock_which, mock_args, capsys, tmp_path, monkeypatch,
     ):
         """When launchd is running the gateway, update should print
-        'auto-restart via launchd' instead of 'Restart it with: hermes gateway run'."""
+        'auto-restart via launchd' instead of 'Restart it with: claudia gateway run'."""
         # Create a fake launchd plist so is_macos + plist.exists() passes
         plist_path = tmp_path / "ai.claudia.gateway.plist"
         plist_path.write_text("<plist/>")
@@ -313,7 +313,7 @@ class TestCmdUpdateLaunchdRestart:
 
         captured = capsys.readouterr().out
         assert "Restarting gateway service" in captured
-        assert "Restart it with: hermes gateway run" not in captured
+        assert "Restart it with: claudia gateway run" not in captured
         mock_launchd_restart.assert_called_once_with()
 
     @patch("shutil.which", return_value=None)
@@ -342,7 +342,7 @@ class TestCmdUpdateLaunchdRestart:
             cmd_update(mock_args)
 
         captured = capsys.readouterr().out
-        assert "Restart it with: hermes gateway run" in captured
+        assert "Restart it with: claudia gateway run" in captured
         assert "Gateway restarted via launchd" not in captured
 
     @patch("shutil.which", return_value=None)

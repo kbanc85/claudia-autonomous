@@ -1,11 +1,11 @@
-"""hermes claw — OpenClaw migration commands.
+"""claudia migrate — OpenClaw migration commands.
 
 Usage:
-    hermes claw migrate              # Interactive migration from ~/.openclaw
-    hermes claw migrate --dry-run    # Preview what would be migrated
-    hermes claw migrate --preset full --overwrite  # Full migration, overwrite conflicts
-    hermes claw cleanup              # Archive leftover OpenClaw directories
-    hermes claw cleanup --dry-run    # Preview what would be archived
+    claudia migrate migrate              # Interactive migration from ~/.openclaw
+    claudia migrate migrate --dry-run    # Preview what would be migrated
+    claudia migrate migrate --preset full --overwrite  # Full migration, overwrite conflicts
+    claudia migrate cleanup              # Archive leftover OpenClaw directories
+    claudia migrate cleanup --dry-run    # Preview what would be archived
 """
 
 import importlib.util
@@ -37,7 +37,7 @@ _OPENCLAW_SCRIPT = (
     / "migration"
     / "openclaw-migration"
     / "scripts"
-    / "openclaw_to_hermes.py"
+    / "openclaw_to_claudia.py"
 )
 
 # Fallback: user may have installed the skill from the Hub
@@ -47,7 +47,7 @@ _OPENCLAW_SCRIPT_INSTALLED = (
     / "migration"
     / "openclaw-migration"
     / "scripts"
-    / "openclaw_to_hermes.py"
+    / "openclaw_to_claudia.py"
 )
 
 # Known OpenClaw directory names (current + legacy)
@@ -64,7 +64,7 @@ _WORKSPACE_STATE_GLOBS = (
 
 
 def _find_migration_script() -> Path | None:
-    """Find the openclaw_to_hermes.py script in known locations."""
+    """Find the openclaw_to_claudia.py script in known locations."""
     for candidate in [_OPENCLAW_SCRIPT, _OPENCLAW_SCRIPT_INSTALLED]:
         if candidate.exists():
             return candidate
@@ -73,7 +73,7 @@ def _find_migration_script() -> Path | None:
 
 def _load_migration_module(script_path: Path):
     """Dynamically load the migration script as a module."""
-    spec = importlib.util.spec_from_file_location("openclaw_to_hermes", script_path)
+    spec = importlib.util.spec_from_file_location("openclaw_to_claudia", script_path)
     if spec is None or spec.loader is None:
         return None
     mod = importlib.util.module_from_spec(spec)
@@ -155,7 +155,7 @@ def _archive_directory(source_dir: Path, dry_run: bool = False) -> Path:
 
 
 def claw_command(args):
-    """Route hermes claw subcommands."""
+    """Route claudia migrate subcommands."""
     action = getattr(args, "claw_action", None)
 
     if action == "migrate":
@@ -163,17 +163,17 @@ def claw_command(args):
     elif action in ("cleanup", "clean"):
         _cmd_cleanup(args)
     else:
-        print("Usage: hermes claw <command> [options]")
+        print("Usage: claudia migrate <command> [options]")
         print()
         print("Commands:")
-        print("  migrate          Migrate settings from OpenClaw to Hermes")
+        print("  migrate          Migrate settings from OpenClaw to Claudia")
         print("  cleanup          Archive leftover OpenClaw directories after migration")
         print()
-        print("Run 'hermes claw <command> --help' for options.")
+        print("Run 'claudia migrate <command> --help' for options.")
 
 
 def _cmd_migrate(args):
-    """Run the OpenClaw → Hermes migration."""
+    """Run the OpenClaw → Claudia migration."""
     # Check current and legacy OpenClaw directories
     explicit_source = getattr(args, "source", None)
     if explicit_source:
@@ -207,7 +207,7 @@ def _cmd_migrate(args):
     )
     print(
         color(
-            "│          ⚕ Hermes — OpenClaw Migration                 │",
+            "│          ⚕ Claudia — OpenClaw Migration                 │",
             Colors.MAGENTA,
         )
     )
@@ -223,7 +223,7 @@ def _cmd_migrate(args):
         print()
         print_error(f"OpenClaw directory not found: {source_dir}")
         print_info("Make sure your OpenClaw installation is at the expected path.")
-        print_info("You can specify a custom path: hermes claw migrate --source /path/to/.openclaw")
+        print_info("You can specify a custom path: claudia migrate migrate --source /path/to/.openclaw")
         return
 
     # Find the migration script
@@ -342,7 +342,7 @@ def _offer_source_archival(source_dir: Path, auto_yes: bool = False):
             print_error(f"Could not archive: {e}")
             print_info(f"You can do it manually: mv {source_dir} {source_dir}.pre-migration")
     else:
-        print_info("Skipped. You can archive later with: hermes claw cleanup")
+        print_info("Skipped. You can archive later with: claudia migrate cleanup")
 
 
 def _cmd_cleanup(args):
@@ -364,7 +364,7 @@ def _cmd_cleanup(args):
     )
     print(
         color(
-            "│          ⚕ Hermes — OpenClaw Cleanup                   │",
+            "│          ⚕ Claudia — OpenClaw Cleanup                   │",
             Colors.MAGENTA,
         )
     )
@@ -547,7 +547,7 @@ def _print_migration_report(report: dict, dry_run: bool):
     if dry_run:
         print()
         print_info("To execute the migration, run without --dry-run:")
-        print_info(f"  hermes claw migrate --preset {report.get('preset', 'full')}")
+        print_info(f"  claudia migrate migrate --preset {report.get('preset', 'full')}")
     elif migrated:
         print()
         print_success("Migration complete!")
@@ -562,7 +562,7 @@ def _print_migration_report(report: dict, dry_run: bool):
             print(color("  Your OPENROUTER_API_KEY and other provider keys must be added manually.", Colors.YELLOW))
             print()
             print_info("To migrate API keys, re-run with:")
-            print_info("  hermes claw migrate --migrate-secrets")
+            print_info("  claudia migrate migrate --migrate-secrets")
             print()
             print_info("Or add your key manually:")
-            print_info("  hermes config set OPENROUTER_API_KEY sk-or-v1-...")
+            print_info("  claudia config set OPENROUTER_API_KEY sk-or-v1-...")

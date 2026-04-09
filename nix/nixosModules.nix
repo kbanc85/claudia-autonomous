@@ -1,16 +1,16 @@
-# nix/nixosModules.nix — NixOS module for hermes-agent
+# nix/nixosModules.nix — NixOS module for claudia-autonomous
 #
 # Two modes:
 #   container.enable = false (default) → native systemd service
 #   container.enable = true            → OCI container (persistent writable layer)
 #
-# Container mode: hermes runs from /nix/store bind-mounted read-only into a
+# Container mode: claudia runs from /nix/store bind-mounted read-only into a
 # plain Ubuntu container. The writable layer (apt/pip/npm installs) persists
 # across restarts and agent updates. Only image/volume/options changes trigger
 # container recreation. Environment variables are written to $CLAUDIA_HOME/.env
-# and read by hermes at startup — no container recreation needed for env changes.
+# and read by claudia at startup — no container recreation needed for env changes.
 #
-# Tool resolution: the hermes wrapper uses --suffix PATH for nix store tools,
+# Tool resolution: the claudia wrapper uses --suffix PATH for nix store tools,
 # so apt/uv-installed versions take priority. The container entrypoint provisions
 # extensible tools on first boot: nodejs/npm via apt, uv via curl, and a Python
 # 3.11 venv (bootstrapped entirely by uv) at ~/.venv with pip seeded. Agents get
@@ -20,7 +20,7 @@
 #   services.claudia-agent = {
 #     enable = true;
 #     settings.model = "anthropic/claude-sonnet-4";
-#     environmentFiles = [ config.sops.secrets."hermes/env".path ];
+#     environmentFiles = [ config.sops.secrets."claudia/env".path ];
 #   };
 #
 { inputs, ... }: {
@@ -28,19 +28,19 @@
 
   let
     cfg = config.services.claudia-agent;
-    hermes-agent = inputs.self.packages.${pkgs.system}.default;
+    claudia-autonomous = inputs.self.packages.${pkgs.system}.default;
 
-    # Deep-merge config type (from 0xrsydn/nix-hermes-agent)
+    # Deep-merge config type (from 0xrsydn/nix-claudia-autonomous)
     deepConfigType = lib.types.mkOptionType {
-      name = "hermes-config-attrs";
-      description = "Hermes YAML config (attrset), merged deeply via lib.recursiveUpdate.";
+      name = "claudia-config-attrs";
+      description = "Claudia YAML config (attrset), merged deeply via lib.recursiveUpdate.";
       check = builtins.isAttrs;
       merge = _loc: defs: lib.foldl' lib.recursiveUpdate { } (map (d: d.value) defs);
     };
 
     # Generate config.yaml from Nix attrset (YAML is a superset of JSON)
     configJson = builtins.toJSON cfg.settings;
-    generatedConfigFile = pkgs.writeText "hermes-config.yaml" configJson;
+    generatedConfigFile = pkgs.writeText "claudia-config.yaml" configJson;
     configFile = if cfg.configFile != null then cfg.configFile else generatedConfigFile;
 
     configMergeScript = pkgs.callPackage ./configMergeScript.nix { };
@@ -50,7 +50,7 @@
       lib.mapAttrsToList (k: v: "${k}=${v}") cfg.environment
     );
     # Build documents derivation (from 0xrsydn)
-    documentDerivation = pkgs.runCommand "hermes-documents" { } (
+    documentDerivation = pkgs.runCommand "claudia-documents" { } (
       ''
         mkdir -p $out
       '' + lib.concatStringsSep "\n" (
@@ -62,9 +62,9 @@
       )
     );
 
-    containerName = "hermes-agent";
+    containerName = "claudia-autonomous";
     containerDataDir = "/data";     # stateDir mount point inside container
-    containerHomeDir = "/home/hermes";
+    containerHomeDir = "/home/claudia";
 
     # ── Container mode helpers ──────────────────────────────────────────
     containerBin = if cfg.container.backend == "docker"
@@ -72,9 +72,9 @@
       else "${pkgs.podman}/bin/podman";
 
     # Runs as root inside the container on every start. Provisions the
-    # hermes user + sudo on first boot (writable layer persists), then
+    # claudia user + sudo on first boot (writable layer persists), then
     # drops privileges. Supports arbitrary base images (Debian, Alpine, etc).
-    containerEntrypoint = pkgs.writeShellScript "hermes-container-entrypoint" ''
+    containerEntrypoint = pkgs.writeShellScript "claudia-container-entrypoint" ''
       set -eu
 
       CLAUDIA_UID="''${CLAUDIA_UID:?CLAUDIA_UID must be set}"
@@ -87,7 +87,7 @@
       if [ -n "$EXISTING_GROUP" ]; then
         GROUP_NAME="$EXISTING_GROUP"
       else
-        GROUP_NAME="hermes"
+        GROUP_NAME="claudia"
         if command -v groupadd >/dev/null 2>&1; then
           groupadd -g "$CLAUDIA_GID" "$GROUP_NAME"
         elif command -v addgroup >/dev/null 2>&1; then
@@ -101,8 +101,8 @@
         TARGET_USER=$(echo "$PASSWD_ENTRY" | cut -d: -f1)
         TARGET_HOME=$(echo "$PASSWD_ENTRY" | cut -d: -f6)
       else
-        TARGET_USER="hermes"
-        TARGET_HOME="/home/hermes"
+        TARGET_USER="claudia"
+        TARGET_HOME="/home/claudia"
         if command -v useradd >/dev/null 2>&1; then
           useradd -u "$CLAUDIA_UID" -g "$CLAUDIA_GID" -m -d "$TARGET_HOME" -s /bin/bash "$TARGET_USER"
         elif command -v adduser >/dev/null 2>&1; then
@@ -122,17 +122,17 @@
       # sudo: agent self-modification
       # nodejs/npm: writable node so npm i -g works (nix store copies are read-only)
       # curl: needed for uv installer
-      if [ ! -f /var/lib/hermes-tools-provisioned ] && command -v apt-get >/dev/null 2>&1; then
+      if [ ! -f /var/lib/claudia-tools-provisioned ] && command -v apt-get >/dev/null 2>&1; then
         echo "First boot: provisioning agent tools..."
         apt-get update -qq
         apt-get install -y -qq sudo nodejs npm curl
-        touch /var/lib/hermes-tools-provisioned
+        touch /var/lib/claudia-tools-provisioned
       fi
 
-      if command -v sudo >/dev/null 2>&1 && [ ! -f /etc/sudoers.d/hermes ]; then
+      if command -v sudo >/dev/null 2>&1 && [ ! -f /etc/sudoers.d/claudia ]; then
         mkdir -p /etc/sudoers.d
-        echo "$TARGET_USER ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/hermes
-        chmod 0440 /etc/sudoers.d/hermes
+        echo "$TARGET_USER ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/claudia
+        chmod 0440 /etc/sudoers.d/claudia
       fi
 
       # uv (Python manager) — not in Ubuntu repos, retry-safe outside the sentinel
@@ -179,7 +179,7 @@
 
     identityFile = "${cfg.stateDir}/.container-identity";
 
-    # Default: /var/lib/hermes/workspace → /data/workspace.
+    # Default: /var/lib/claudia/workspace → /data/workspace.
     # Custom paths outside stateDir pass through unchanged (user must add extraVolumes).
     containerWorkDir =
       if lib.hasPrefix "${cfg.stateDir}/" cfg.workingDirectory
@@ -188,25 +188,25 @@
 
   in {
     options.services.claudia-agent = with lib; {
-      enable = mkEnableOption "Hermes Agent gateway service";
+      enable = mkEnableOption "Claudia gateway service";
 
       # ── Package ──────────────────────────────────────────────────────────
       package = mkOption {
         type = types.package;
-        default = hermes-agent;
-        description = "The hermes-agent package to use.";
+        default = claudia-autonomous;
+        description = "The claudia-autonomous package to use.";
       };
 
       # ── Service identity ─────────────────────────────────────────────────
       user = mkOption {
         type = types.str;
-        default = "hermes";
+        default = "claudia";
         description = "System user running the gateway.";
       };
 
       group = mkOption {
         type = types.str;
-        default = "hermes";
+        default = "claudia";
         description = "System group running the gateway.";
       };
 
@@ -219,7 +219,7 @@
       # ── Directories ──────────────────────────────────────────────────────
       stateDir = mkOption {
         type = types.str;
-        default = "/var/lib/hermes";
+        default = "/var/lib/claudia";
         description = "State directory. Contains .claudia/ subdir (CLAUDIA_HOME).";
       };
 
@@ -244,7 +244,7 @@
         type = deepConfigType;
         default = { };
         description = ''
-          Declarative Hermes config (attrset). Deep-merged across module
+          Declarative Claudia config (attrset). Deep-merged across module
           definitions and rendered as config.yaml.
         '';
         example = literalExpression ''
@@ -264,7 +264,7 @@
         description = ''
           Paths to environment files containing secrets (API keys, tokens).
           Contents are merged into $CLAUDIA_HOME/.env at activation time.
-          Hermes reads this file on every startup via load_claudia_dotenv().
+          Claudia reads this file on every startup via load_claudia_dotenv().
         '';
       };
 
@@ -440,7 +440,7 @@
       extraArgs = mkOption {
         type = types.listOf types.str;
         default = [ ];
-        description = "Extra command-line arguments for `hermes gateway`.";
+        description = "Extra command-line arguments for `claudia gateway`.";
       };
 
       extraPackages = mkOption {
@@ -464,7 +464,7 @@
       addToSystemPackages = mkOption {
         type = types.bool;
         default = false;
-        description = "Add hermes CLI to environment.systemPackages.";
+        description = "Add claudia CLI to environment.systemPackages.";
       };
 
       # ── OCI Container (opt-in) ──────────────────────────────────────────
@@ -561,7 +561,7 @@
 
       # ── Activation: link config + auth + documents ────────────────────
       {
-        system.activationScripts."hermes-agent-setup" = lib.stringAfter [ "users" ] ''
+        system.activationScripts."claudia-autonomous-setup" = lib.stringAfter [ "users" ] ''
           # Ensure directories exist (activation runs before tmpfiles)
           mkdir -p ${cfg.stateDir}/.claudia
           mkdir -p ${cfg.stateDir}/home
@@ -597,7 +597,7 @@
           ''}
 
           # Seed .env from Nix-declared environment + environmentFiles.
-          # Hermes reads $CLAUDIA_HOME/.env at startup via load_claudia_dotenv(),
+          # Claudia reads $CLAUDIA_HOME/.env at startup via load_claudia_dotenv(),
           # so this is the single source of truth for both native and container mode.
           ${lib.optionalString (cfg.environment != {} || cfg.environmentFiles != []) ''
             ENV_FILE="${cfg.stateDir}/.claudia/.env"
@@ -625,7 +625,7 @@ CLAUDIA_NIX_ENV_EOF
       # ══════════════════════════════════════════════════════════════════
       (lib.mkIf (!cfg.container.enable) {
         systemd.services.claudia-agent = {
-          description = "Hermes Agent Gateway";
+          description = "Claudia Gateway";
           wantedBy = [ "multi-user.target" ];
           after = [ "network-online.target" ];
           wants = [ "network-online.target" ];
@@ -647,7 +647,7 @@ CLAUDIA_NIX_ENV_EOF
             # reads them at Python startup — no systemd EnvironmentFile needed.
 
             ExecStart = lib.concatStringsSep " " ([
-              "${cfg.package}/bin/hermes"
+              "${cfg.package}/bin/claudia"
               "gateway"
             ] ++ cfg.extraArgs);
 
@@ -679,7 +679,7 @@ CLAUDIA_NIX_ENV_EOF
         virtualisation.docker.enable = lib.mkDefault (cfg.container.backend == "docker");
 
         systemd.services.claudia-agent = {
-          description = "Hermes Agent Gateway (container)";
+          description = "Claudia Gateway (container)";
           wantedBy = [ "multi-user.target" ];
           after = [ "network-online.target" ]
             ++ lib.optional (cfg.container.backend == "docker") "docker.service";
@@ -727,7 +727,7 @@ CLAUDIA_NIX_ENV_EOF
                 --env MESSAGING_CWD=${containerWorkDir} \
                 ${lib.concatStringsSep " " cfg.container.extraOptions} \
                 ${cfg.container.image} \
-                ${containerDataDir}/current-package/bin/hermes gateway run --replace ${lib.concatStringsSep " " cfg.extraArgs}
+                ${containerDataDir}/current-package/bin/claudia gateway run --replace ${lib.concatStringsSep " " cfg.extraArgs}
 
               echo "${containerIdentity}" > ${identityFile}
             fi

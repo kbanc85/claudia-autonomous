@@ -1,9 +1,9 @@
-"""OpenAI-compatible shim that forwards Hermes requests to `copilot --acp`.
+"""OpenAI-compatible shim that forwards Claudia requests to `copilot --acp`.
 
-This adapter lets Hermes treat the GitHub Copilot ACP server as a chat-style
+This adapter lets Claudia treat the GitHub Copilot ACP server as a chat-style
 backend. Each request starts a short-lived ACP session, sends the formatted
 conversation as a single prompt, collects text chunks, and converts the result
-back into the minimal shape Hermes expects from an OpenAI client.
+back into the minimal shape Claudia expects from an OpenAI client.
 """
 
 from __future__ import annotations
@@ -52,12 +52,12 @@ def _jsonrpc_error(message_id: Any, code: int, message: str) -> dict[str, Any]:
 
 def _format_messages_as_prompt(messages: list[dict[str, Any]], model: str | None = None) -> str:
     sections: list[str] = [
-        "You are being used as the active ACP agent backend for Hermes.",
+        "You are being used as the active ACP agent backend for Claudia.",
         "Use your own ACP capabilities and respond directly in natural language.",
         "Do not emit OpenAI tool-call JSON.",
     ]
     if model:
-        sections.append(f"Hermes requested model hint: {model}")
+        sections.append(f"Claudia requested model hint: {model}")
 
     transcript: list[str] = []
     for message in messages:
@@ -323,8 +323,8 @@ class CopilotACPClient:
                         }
                     },
                     "clientInfo": {
-                        "name": "hermes-agent",
-                        "title": "Hermes Agent",
+                        "name": "claudia-autonomous",
+                        "title": "Claudia",
                         "version": "0.0.0",
                     },
                 },
@@ -439,7 +439,7 @@ class CopilotACPClient:
             response = _jsonrpc_error(
                 message_id,
                 -32601,
-                f"ACP client method '{method}' is not supported by Hermes yet.",
+                f"ACP client method '{method}' is not supported by Claudia yet.",
             )
 
         process.stdin.write(json.dumps(response) + "\n")

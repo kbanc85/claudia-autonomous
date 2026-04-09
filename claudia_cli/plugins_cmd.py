@@ -1,4 +1,4 @@
-"""``hermes plugins`` CLI subcommand — install, update, remove, and list plugins.
+"""``claudia plugins`` CLI subcommand — install, update, remove, and list plugins.
 
 Plugins are installed from Git repositories into ``~/.claudia/plugins/``.
 Supports full URLs and ``owner/repo`` shorthand (resolves to GitHub).
@@ -278,7 +278,7 @@ def cmd_install(identifier: str, force: bool = False) -> None:
                 console.print(
                     f"[red]Error:[/red] Plugin '{plugin_name}' already exists at {target}.\n"
                     f"Use [bold]--force[/bold] to remove and reinstall, or "
-                    f"[bold]hermes plugins update {plugin_name}[/bold] to pull latest."
+                    f"[bold]claudia plugins update {plugin_name}[/bold] to pull latest."
                 )
                 sys.exit(1)
             console.print(f"[dim]  Removing existing {plugin_name}...[/dim]")
@@ -291,7 +291,7 @@ def cmd_install(identifier: str, force: bool = False) -> None:
     if not (target / "plugin.yaml").exists() and not (target / "__init__.py").exists():
         console.print(
             f"[yellow]Warning:[/yellow] {plugin_name} doesn't contain plugin.yaml "
-            f"or __init__.py. It may not be a valid Hermes plugin."
+            f"or __init__.py. It may not be a valid Claudia plugin."
         )
 
     # Copy .example files to their real names (e.g. config.yaml.example → config.yaml)
@@ -300,7 +300,7 @@ def cmd_install(identifier: str, force: bool = False) -> None:
     _display_after_install(target, identifier)
 
     console.print("[dim]Restart the gateway for the plugin to take effect:[/dim]")
-    console.print("[dim]  hermes gateway restart[/dim]")
+    console.print("[dim]  claudia gateway restart[/dim]")
     console.print()
 
 
@@ -458,7 +458,7 @@ def cmd_list() -> None:
     dirs = sorted(d for d in plugins_dir.iterdir() if d.is_dir())
     if not dirs:
         console.print("[dim]No plugins installed.[/dim]")
-        console.print("[dim]Install with:[/dim] hermes plugins install owner/repo")
+        console.print("[dim]Install with:[/dim] claudia plugins install owner/repo")
         return
 
     disabled = _get_disabled_set()
@@ -487,7 +487,7 @@ def cmd_list() -> None:
             except Exception:
                 pass
 
-        # Check if it's a git repo (installed via hermes plugins install)
+        # Check if it's a git repo (installed via claudia plugins install)
         if (d / ".git").exists():
             source = "git"
 
@@ -498,8 +498,8 @@ def cmd_list() -> None:
     console.print()
     console.print(table)
     console.print()
-    console.print("[dim]Interactive toggle:[/dim] hermes plugins")
-    console.print("[dim]Enable/disable:[/dim] hermes plugins enable/disable <name>")
+    console.print("[dim]Interactive toggle:[/dim] claudia plugins")
+    console.print("[dim]Enable/disable:[/dim] claudia plugins enable/disable <name>")
 
 
 def cmd_toggle() -> None:
@@ -517,7 +517,7 @@ def cmd_toggle() -> None:
     dirs = sorted(d for d in plugins_dir.iterdir() if d.is_dir())
     if not dirs:
         console.print("[dim]No plugins installed.[/dim]")
-        console.print("[dim]Install with:[/dim] hermes plugins install owner/repo")
+        console.print("[dim]Install with:[/dim] claudia plugins install owner/repo")
         return
 
     disabled = _get_disabled_set()
@@ -574,7 +574,7 @@ def cmd_toggle() -> None:
 
 
 def plugins_command(args) -> None:
-    """Dispatch hermes plugins subcommands."""
+    """Dispatch claudia plugins subcommands."""
     action = getattr(args, "plugins_action", None)
 
     if action == "install":

@@ -68,15 +68,15 @@ _API_KEY_PROVIDER_AUX_MODELS: Dict[str, str] = {
 
 # OpenRouter app attribution headers
 _OR_HEADERS = {
-    "HTTP-Referer": "https://hermes-agent.nousresearch.com",
-    "X-OpenRouter-Title": "Hermes Agent",
+    "HTTP-Referer": "https://claudia-autonomous.nousresearch.com",
+    "X-OpenRouter-Title": "Claudia",
     "X-OpenRouter-Categories": "productivity,cli-agent",
 }
 
 # Nous Portal extra_body for product attribution.
 # Callers should pass this as extra_body in chat.completions.create()
 # when the auxiliary client is backed by Nous Portal.
-NOUS_EXTRA_BODY = {"tags": ["product=hermes-agent"]}
+NOUS_EXTRA_BODY = {"tags": ["product=claudia-autonomous"]}
 
 # Set at resolve time — True if the auxiliary client points to Nous Portal
 auxiliary_is_nous: bool = False
@@ -522,7 +522,7 @@ def _nous_base_url() -> str:
 
 
 def _read_codex_access_token() -> Optional[str]:
-    """Read a valid, non-expired Codex OAuth access token from Hermes auth store."""
+    """Read a valid, non-expired Codex OAuth access token from Claudia auth store."""
     pool_present, entry = _select_pool_entry("openai-codex")
     if pool_present:
         token = _pool_runtime_api_key(entry)
@@ -823,13 +823,13 @@ def _resolve_forced_provider(forced: str) -> Tuple[Optional[OpenAI], Optional[st
     if forced == "nous":
         client, model = _try_nous()
         if client is None:
-            logger.warning("auxiliary.provider=nous but Nous Portal not configured (run: hermes login)")
+            logger.warning("auxiliary.provider=nous but Nous Portal not configured (run: claudia login)")
         return client, model
 
     if forced == "codex":
         client, model = _try_codex()
         if client is None:
-            logger.warning("auxiliary.provider=codex but no Codex OAuth token found (run: hermes model)")
+            logger.warning("auxiliary.provider=codex but no Codex OAuth token found (run: claudia model)")
         return client, model
 
     if forced == "main":
@@ -991,7 +991,7 @@ def resolve_provider_client(
         client, default = _try_nous()
         if client is None:
             logger.warning("resolve_provider_client: nous requested "
-                           "but Nous Portal not configured (run: hermes login)")
+                           "but Nous Portal not configured (run: claudia login)")
             return None, None
         final_model = model or default
         return (_to_async_client(client, final_model) if async_mode
@@ -1005,7 +1005,7 @@ def resolve_provider_client(
             codex_token = _read_codex_access_token()
             if not codex_token:
                 logger.warning("resolve_provider_client: openai-codex requested "
-                               "but no Codex OAuth token found (run: hermes model)")
+                               "but no Codex OAuth token found (run: claudia model)")
                 return None, None
             final_model = model or _CODEX_AUX_MODEL
             raw_client = OpenAI(api_key=codex_token, base_url=_CODEX_AUX_BASE_URL)
@@ -1014,7 +1014,7 @@ def resolve_provider_client(
         client, default = _try_codex()
         if client is None:
             logger.warning("resolve_provider_client: openai-codex requested "
-                           "but no Codex OAuth token found (run: hermes model)")
+                           "but no Codex OAuth token found (run: claudia model)")
             return None, None
         final_model = model or default
         return (_to_async_client(client, final_model) if async_mode
@@ -1215,7 +1215,7 @@ def get_available_vision_backends() -> List[str]:
 
     This is the single source of truth for setup, tool gating, and runtime
     auto-routing of vision tasks. The selected main provider is preferred when
-    it is also a known-good vision backend; otherwise Hermes falls back through
+    it is also a known-good vision backend; otherwise Claudia falls back through
     the standard conservative order.
     """
     ordered = list(_VISION_AUTO_PROVIDER_ORDER)
@@ -1651,7 +1651,7 @@ def _build_call_kwargs(
     # Provider-specific extra_body
     merged_extra = dict(extra_body or {})
     if provider == "nous" or auxiliary_is_nous:
-        merged_extra.setdefault("tags", []).extend(["product=hermes-agent"])
+        merged_extra.setdefault("tags", []).extend(["product=claudia-autonomous"])
     if merged_extra:
         kwargs["extra_body"] = merged_extra
 
@@ -1720,7 +1720,7 @@ def call_llm(
         if client is None:
             raise RuntimeError(
                 f"No LLM provider configured for task={task} provider={resolved_provider}. "
-                f"Run: hermes setup"
+                f"Run: claudia setup"
             )
         resolved_provider = effective_provider or resolved_provider
     else:
@@ -1739,7 +1739,7 @@ def call_llm(
                 raise RuntimeError(
                     f"Provider '{_explicit}' is set in config.yaml but no API key "
                     f"was found. Set the {_explicit.upper()}_API_KEY environment "
-                    f"variable, or switch to a different provider with `hermes model`."
+                    f"variable, or switch to a different provider with `claudia model`."
                 )
             # For auto/custom, fall back to OpenRouter
             if not resolved_base_url:
@@ -1750,7 +1750,7 @@ def call_llm(
         if client is None:
             raise RuntimeError(
                 f"No LLM provider configured for task={task} provider={resolved_provider}. "
-                f"Run: hermes setup")
+                f"Run: claudia setup")
 
     effective_timeout = timeout if timeout is not None else _get_task_timeout(task)
 
@@ -1877,7 +1877,7 @@ async def async_call_llm(
         if client is None:
             raise RuntimeError(
                 f"No LLM provider configured for task={task} provider={resolved_provider}. "
-                f"Run: hermes setup"
+                f"Run: claudia setup"
             )
         resolved_provider = effective_provider or resolved_provider
     else:
@@ -1894,7 +1894,7 @@ async def async_call_llm(
                 raise RuntimeError(
                     f"Provider '{_explicit}' is set in config.yaml but no API key "
                     f"was found. Set the {_explicit.upper()}_API_KEY environment "
-                    f"variable, or switch to a different provider with `hermes model`."
+                    f"variable, or switch to a different provider with `claudia model`."
                 )
             if not resolved_base_url:
                 logger.warning("Provider %s unavailable, falling back to openrouter",
@@ -1905,7 +1905,7 @@ async def async_call_llm(
         if client is None:
             raise RuntimeError(
                 f"No LLM provider configured for task={task} provider={resolved_provider}. "
-                f"Run: hermes setup")
+                f"Run: claudia setup")
 
     effective_timeout = timeout if timeout is not None else _get_task_timeout(task)
 

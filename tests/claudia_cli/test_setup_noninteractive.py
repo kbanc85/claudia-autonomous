@@ -50,7 +50,7 @@ class TestNonInteractiveSetup:
             run_setup_wizard(args)
 
         out = capsys.readouterr().out
-        assert "hermes config set model.provider custom" in out
+        assert "claudia config set model.provider custom" in out
 
     def test_no_tty_skips_wizard(self, capsys):
         """When stdin has no TTY, the setup wizard should print guidance and return."""
@@ -70,10 +70,10 @@ class TestNonInteractiveSetup:
             run_setup_wizard(args)
 
         out = capsys.readouterr().out
-        assert "hermes config set model.provider custom" in out
+        assert "claudia config set model.provider custom" in out
 
     def test_chat_first_run_headless_skips_setup_prompt(self, capsys):
-        """Bare `hermes` should not prompt for input when no provider exists and stdin is headless."""
+        """Bare `claudia` should not prompt for input when no provider exists and stdin is headless."""
         from claudia_cli.main import cmd_chat
 
         args = _make_chat_args()
@@ -91,7 +91,7 @@ class TestNonInteractiveSetup:
         assert exc.value.code == 1
         mock_setup.assert_not_called()
         out = capsys.readouterr().out
-        assert "hermes config set model.provider custom" in out
+        assert "claudia config set model.provider custom" in out
 
     def test_returning_user_terminal_menu_choice_dispatches_terminal_section(self, tmp_path):
         """Returning-user menu should map Terminal Backend to the terminal setup, not TTS."""

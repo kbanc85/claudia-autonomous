@@ -1,4 +1,4 @@
-# Streaming LLM Response Support for Hermes Agent
+# Streaming LLM Response Support for Claudia
 
 ## Overview
 

@@ -8,7 +8,7 @@ Original PR #2732 by Alinxus, adapted to MemoryProvider ABC.
 Config via environment variables:
   RETAINDB_API_KEY    — API key (required)
   RETAINDB_BASE_URL   — API endpoint (default: https://api.retaindb.com)
-  RETAINDB_PROJECT    — Project identifier (default: hermes)
+  RETAINDB_PROJECT    — Project identifier (default: claudia)
 """
 
 from __future__ import annotations
@@ -108,7 +108,7 @@ class RetainDBMemoryProvider(MemoryProvider):
     def __init__(self):
         self._api_key = ""
         self._base_url = _DEFAULT_BASE_URL
-        self._project = "hermes"
+        self._project = "claudia"
         self._user_id = ""
         self._prefetch_result = ""
         self._prefetch_lock = threading.Lock()
@@ -126,7 +126,7 @@ class RetainDBMemoryProvider(MemoryProvider):
         return [
             {"key": "api_key", "description": "RetainDB API key", "secret": True, "required": True, "env_var": "RETAINDB_API_KEY", "url": "https://retaindb.com"},
             {"key": "base_url", "description": "API endpoint", "default": "https://api.retaindb.com"},
-            {"key": "project", "description": "Project identifier", "default": "hermes"},
+            {"key": "project", "description": "Project identifier", "default": "claudia"},
         ]
 
     def _headers(self) -> dict:
@@ -157,11 +157,11 @@ class RetainDBMemoryProvider(MemoryProvider):
         else:
             claudia_home = kwargs.get("claudia_home", "")
             profile_name = os.path.basename(claudia_home) if claudia_home else ""
-            # Default profile (~/.claudia) → "hermes"; named profiles → "hermes-<name>"
+            # Default profile (~/.claudia) → "claudia"; named profiles → "claudia-<name>"
             if profile_name and profile_name != ".claudia":
-                self._project = f"hermes-{profile_name}"
+                self._project = f"claudia-{profile_name}"
             else:
-                self._project = "hermes"
+                self._project = "claudia"
 
     def system_prompt_block(self) -> str:
         return (

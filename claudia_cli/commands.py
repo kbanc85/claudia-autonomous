@@ -1,4 +1,4 @@
-"""Slash command definitions and autocomplete for the Hermes CLI.
+"""Slash command definitions and autocomplete for the Claudia CLI.
 
 Central registry for all slash commands. Every consumer -- CLI help, gateway
 dispatch, Telegram BotCommands, Slack subcommand mapping, autocomplete --
@@ -133,7 +133,7 @@ COMMAND_REGISTRY: list[CommandDef] = [
                cli_only=True, aliases=("gateway",)),
     CommandDef("paste", "Check clipboard for an image and attach it", "Info",
                cli_only=True),
-    CommandDef("update", "Update Hermes Agent to the latest version", "Info",
+    CommandDef("update", "Update Claudia to the latest version", "Info",
                gateway_only=True),
 
     # Exit
@@ -414,7 +414,7 @@ def telegram_menu_commands(max_commands: int = 100) -> tuple[list[tuple[str, str
 
     Skills are the only tier that gets trimmed when the cap is hit.
     User-installed hub skills are excluded — accessible via /skills.
-    Skills disabled for the ``"telegram"`` platform (via ``hermes skills
+    Skills disabled for the ``"telegram"`` platform (via ``claudia skills
     config``) are excluded from the menu entirely.
 
     Returns:
@@ -497,10 +497,10 @@ def telegram_menu_commands(max_commands: int = 100) -> tuple[list[tuple[str, str
 
 
 def slack_subcommand_map() -> dict[str, str]:
-    """Return subcommand -> /command mapping for Slack /hermes handler.
+    """Return subcommand -> /command mapping for Slack /claudia handler.
 
-    Maps both canonical names and aliases so /hermes bg do stuff works
-    the same as /hermes background do stuff.
+    Maps both canonical names and aliases so /claudia bg do stuff works
+    the same as /claudia background do stuff.
     """
     overrides = _resolve_config_gates()
     mapping: dict[str, str] = {}

@@ -30,7 +30,7 @@ COMMON_CLAUDIA_TOOLS = ["read_file", "search_files", "terminal", "patch", "write
 
 class TestToolKindMap:
     def test_all_claudia_tools_have_kind(self):
-        """Every common hermes tool should appear in TOOL_KIND_MAP."""
+        """Every common claudia tool should appear in TOOL_KIND_MAP."""
         for tool in COMMON_CLAUDIA_TOOLS:
             assert tool in TOOL_KIND_MAP, f"{tool} missing from TOOL_KIND_MAP"
 

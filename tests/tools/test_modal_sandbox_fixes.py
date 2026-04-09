@@ -25,7 +25,7 @@ try:
     import tools.terminal_tool  # noqa: F401
     _tt_mod = sys.modules["tools.terminal_tool"]
 except ImportError:
-    pytest.skip("hermes-agent tools not importable (missing deps)", allow_module_level=True)
+    pytest.skip("claudia-autonomous tools not importable (missing deps)", allow_module_level=True)
 
 
 # =========================================================================
@@ -68,7 +68,7 @@ class TestCwdHandling:
         """TERMINAL_CWD=/home/user/... should be replaced with /root for modal."""
         with patch.dict(os.environ, {
             "TERMINAL_ENV": "modal",
-            "TERMINAL_CWD": "/home/dakota/github/hermes-agent",
+            "TERMINAL_CWD": "/home/dakota/github/claudia-autonomous",
         }):
             config = _tt_mod._get_env_config()
             assert config["cwd"] == "/root", (

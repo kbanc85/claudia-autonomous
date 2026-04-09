@@ -52,7 +52,7 @@ def _install_fake_tools_package(*, credential_mounts=None):
     claudia_cli.__path__ = []  # type: ignore[attr-defined]
     sys.modules["claudia_cli"] = claudia_cli
     sys.modules["claudia_cli.config"] = types.SimpleNamespace(
-        get_claudia_home=lambda: Path(tempfile.gettempdir()) / "hermes-home",
+        get_claudia_home=lambda: Path(tempfile.gettempdir()) / "claudia-home",
     )
 
     tools_package = types.ModuleType("tools")

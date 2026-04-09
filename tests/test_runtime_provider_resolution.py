@@ -107,7 +107,7 @@ def test_resolve_runtime_provider_falls_back_when_pool_empty(monkeypatch):
             "provider": "openai-codex",
             "base_url": "https://chatgpt.com/backend-api/codex",
             "api_key": "codex-token",
-            "source": "hermes-auth-store",
+            "source": "claudia-auth-store",
             "last_refresh": "2026-02-26T00:00:00Z",
         },
     )

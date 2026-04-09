@@ -9,7 +9,7 @@ and a trust-aware install policy that determines whether a skill is allowed
 based on both the scan verdict and the source's trust level.
 
 Trust levels:
-  - builtin:   Ships with Hermes. Never scanned, always trusted.
+  - builtin:   Ships with Claudia. Never scanned, always trusted.
   - trusted:   openai/skills and anthropics/skills only. Caution verdicts allowed.
   - community: Everything else. Any findings = blocked unless --force.
 
@@ -118,7 +118,7 @@ THREAT_PATTERNS = [
      "references Docker config (may contain registry creds)"),
     (r'\$HOME/\.claudia/\.env|\~/\.claudia/\.env',
      "claudia_env_access", "critical", "exfiltration",
-     "directly references Hermes secrets file"),
+     "directly references Claudia secrets file"),
     (r'cat\s+[^\n]*(\.env|credentials|\.netrc|\.pgpass|\.npmrc|\.pypirc)',
      "read_secrets_file", "critical", "exfiltration",
      "reads known secrets file"),
@@ -426,7 +426,7 @@ THREAT_PATTERNS = [
      "references agent config files (could persist malicious instructions across sessions)"),
     (r'\.claudia/config\.yaml|\.claudia/SOUL\.md',
      "claudia_config_mod", "critical", "persistence",
-     "references Hermes configuration files directly"),
+     "references Claudia configuration files directly"),
     (r'\.claude/settings|\.codex/config',
      "other_agent_config", "high", "persistence",
      "references other agent configuration files"),

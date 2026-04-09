@@ -1,12 +1,12 @@
 #!/bin/bash
 # ============================================================================
-# Hermes Agent Installer
+# Claudia Installer
 # ============================================================================
 # Installation script for Linux and macOS.
 # Uses uv for fast Python provisioning and package management.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/NousResearch/claudia-autonomous/main/scripts/install.sh | bash
 #
 # Or with options:
 #   curl -fsSL ... | bash -s -- --no-venv --skip-setup
@@ -26,10 +26,10 @@ NC='\033[0m' # No Color
 BOLD='\033[1m'
 
 # Configuration
-REPO_URL_SSH="git@github.com:NousResearch/hermes-agent.git"
-REPO_URL_HTTPS="https://github.com/NousResearch/hermes-agent.git"
+REPO_URL_SSH="git@github.com:NousResearch/claudia-autonomous.git"
+REPO_URL_HTTPS="https://github.com/NousResearch/claudia-autonomous.git"
 CLAUDIA_HOME="$HOME/.claudia"
-INSTALL_DIR="${CLAUDIA_INSTALL_DIR:-$CLAUDIA_HOME/hermes-agent}"
+INSTALL_DIR="${CLAUDIA_INSTALL_DIR:-$CLAUDIA_HOME/claudia-autonomous}"
 PYTHON_VERSION="3.11"
 NODE_VERSION="22"
 
@@ -67,7 +67,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         -h|--help)
-            echo "Hermes Agent Installer"
+            echo "Claudia Installer"
             echo ""
             echo "Usage: install.sh [OPTIONS]"
             echo ""
@@ -75,7 +75,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --no-venv      Don't create virtual environment"
             echo "  --skip-setup   Skip interactive setup wizard"
             echo "  --branch NAME  Git branch to install (default: main)"
-            echo "  --dir PATH     Installation directory (default: ~/.claudia/hermes-agent)"
+            echo "  --dir PATH     Installation directory (default: ~/.claudia/claudia-autonomous)"
             echo "  -h, --help     Show this help"
             exit 0
             ;;
@@ -94,7 +94,7 @@ print_banner() {
     echo ""
     echo -e "${MAGENTA}${BOLD}"
     echo "┌─────────────────────────────────────────────────────────┐"
-    echo "│             ⚕ Hermes Agent Installer                    │"
+    echo "│             ⚕ Claudia Installer                    │"
     echo "├─────────────────────────────────────────────────────────┤"
     echo "│  An open source AI agent by Nous Research.              │"
     echo "└─────────────────────────────────────────────────────────┘"
@@ -140,7 +140,7 @@ detect_os() {
             OS="windows"
             DISTRO="windows"
             log_error "Windows detected. Please use the PowerShell installer:"
-            log_info "  irm https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.ps1 | iex"
+            log_info "  irm https://raw.githubusercontent.com/NousResearch/claudia-autonomous/main/scripts/install.ps1 | iex"
             exit 1
             ;;
         *)
@@ -285,7 +285,7 @@ check_node() {
     if [ -x "$CLAUDIA_HOME/node/bin/node" ]; then
         export PATH="$CLAUDIA_HOME/node/bin:$PATH"
         local found_ver=$("$CLAUDIA_HOME/node/bin/node" --version)
-        log_success "Node.js $found_ver found (Hermes-managed)"
+        log_success "Node.js $found_ver found (Claudia-managed)"
         HAS_NODE=true
         return 0
     fi
@@ -484,7 +484,7 @@ install_system_packages() {
             if [ "$IS_INTERACTIVE" = true ]; then
                 echo ""
                 log_info "sudo is needed ONLY to install optional system packages (${pkgs[*]}) via your package manager."
-                log_info "Hermes Agent itself does not require or retain root access."
+                log_info "Claudia itself does not require or retain root access."
                 read -p "Install ${description}? (requires sudo) [y/N] " -n 1 -r
                 echo
                 if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -499,7 +499,7 @@ install_system_packages() {
                 # Read the prompt from /dev/tty (same approach the setup wizard uses).
                 echo ""
                 log_info "sudo is needed ONLY to install optional system packages (${pkgs[*]}) via your package manager."
-                log_info "Hermes Agent itself does not require or retain root access."
+                log_info "Claudia itself does not require or retain root access."
                 read -p "Install ${description}? [Y/n] " -n 1 -r < /dev/tty
                 echo
                 if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
@@ -569,7 +569,7 @@ clone_repo() {
             local autostash_ref=""
             if [ -n "$(git status --porcelain)" ]; then
                 local stash_name
-                stash_name="hermes-install-autostash-$(date -u +%Y%m%d-%H%M%S)"
+                stash_name="claudia-install-autostash-$(date -u +%Y%m%d-%H%M%S)"
                 log_info "Local changes detected, stashing before update..."
                 git stash push --include-untracked -m "$stash_name"
                 autostash_ref="$(git rev-parse --verify refs/stash)"
@@ -598,7 +598,7 @@ clone_repo() {
                     if git stash apply "$autostash_ref"; then
                         git stash drop "$autostash_ref" >/dev/null
                         log_warn "Local changes were restored on top of the updated codebase."
-                        log_warn "Review git diff / git status if Hermes behaves unexpectedly."
+                        log_warn "Review git diff / git status if Claudia behaves unexpectedly."
                     else
                         log_error "Update succeeded, but restoring local changes failed. Your changes are still preserved in git stash."
                         log_info "Resolve manually with: git stash apply $autostash_ref"
@@ -685,7 +685,7 @@ install_deps() {
                     log_success "Build tools installed"
                 else
                     log_info "sudo is needed ONLY to install build tools (build-essential, python3-dev, libffi-dev) via apt."
-                    log_info "Hermes Agent itself does not require or retain root access."
+                    log_info "Claudia itself does not require or retain root access."
                     read -p "Install build tools? [Y/n] " -n 1 -r < /dev/tty
                     echo
                     if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
@@ -727,21 +727,21 @@ install_deps() {
 }
 
 setup_path() {
-    log_info "Setting up hermes command..."
+    log_info "Setting up claudia command..."
 
     if [ "$USE_VENV" = true ]; then
-        CLAUDIA_BIN="$INSTALL_DIR/venv/bin/hermes"
+        CLAUDIA_BIN="$INSTALL_DIR/venv/bin/claudia"
     else
-        CLAUDIA_BIN="$(which hermes 2>/dev/null || echo "")"
+        CLAUDIA_BIN="$(which claudia 2>/dev/null || echo "")"
         if [ -z "$CLAUDIA_BIN" ]; then
-            log_warn "hermes not found on PATH after install"
+            log_warn "claudia not found on PATH after install"
             return 0
         fi
     fi
 
     # Verify the entry point script was actually generated
     if [ ! -x "$CLAUDIA_BIN" ]; then
-        log_warn "hermes entry point not found at $CLAUDIA_BIN"
+        log_warn "claudia entry point not found at $CLAUDIA_BIN"
         log_info "This usually means the pip install didn't complete successfully."
         log_info "Try: cd $INSTALL_DIR && uv pip install -e '.[all]'"
         return 0
@@ -749,8 +749,8 @@ setup_path() {
 
     # Create symlink in ~/.local/bin (standard user binary location, usually on PATH)
     mkdir -p "$HOME/.local/bin"
-    ln -sf "$CLAUDIA_BIN" "$HOME/.local/bin/hermes"
-    log_success "Symlinked hermes → ~/.local/bin/hermes"
+    ln -sf "$CLAUDIA_BIN" "$HOME/.local/bin/claudia"
+    log_success "Symlinked claudia → ~/.local/bin/claudia"
 
     # Check if ~/.local/bin is on PATH; if not, add it to shell config.
     # Detect the user's actual login shell (not the shell running this script,
@@ -786,7 +786,7 @@ setup_path() {
         for SHELL_CONFIG in "${SHELL_CONFIGS[@]}"; do
             if ! grep -v '^[[:space:]]*#' "$SHELL_CONFIG" 2>/dev/null | grep -qE 'PATH=.*\.local/bin'; then
                 echo "" >> "$SHELL_CONFIG"
-                echo "# Hermes Agent — ensure ~/.local/bin is on PATH" >> "$SHELL_CONFIG"
+                echo "# Claudia — ensure ~/.local/bin is on PATH" >> "$SHELL_CONFIG"
                 echo "$PATH_LINE" >> "$SHELL_CONFIG"
                 log_success "Added ~/.local/bin to PATH in $SHELL_CONFIG"
             fi
@@ -800,10 +800,10 @@ setup_path() {
         log_info "~/.local/bin already on PATH"
     fi
 
-    # Export for current session so hermes works immediately
+    # Export for current session so claudia works immediately
     export PATH="$HOME/.local/bin:$PATH"
 
-    log_success "hermes command ready"
+    log_success "claudia command ready"
 }
 
 copy_config_templates() {
@@ -838,12 +838,12 @@ copy_config_templates() {
     # Create SOUL.md if it doesn't exist (global persona file)
     if [ ! -f "$CLAUDIA_HOME/SOUL.md" ]; then
         cat > "$CLAUDIA_HOME/SOUL.md" << 'SOUL_EOF'
-# Hermes Agent Persona
+# Claudia Persona
 
 <!--
 This file defines the agent's personality and tone.
 The agent will embody whatever you write here.
-Edit this to customize how Hermes communicates with you.
+Edit this to customize how Claudia communicates with you.
 
 Examples:
   - "You are a warm, playful assistant who uses kaomoji occasionally."
@@ -909,7 +909,7 @@ install_node_deps() {
                 ;;
             *)
                 log_info "Playwright may request sudo to install browser system dependencies (shared libraries)."
-                log_info "This is standard Playwright setup — Hermes itself does not require root access."
+                log_info "This is standard Playwright setup — Claudia itself does not require root access."
                 cd "$INSTALL_DIR" && npx playwright install --with-deps chromium 2>/dev/null || true
                 ;;
         esac
@@ -937,7 +937,7 @@ run_setup_wizard() {
     # install script itself is piped (curl | bash). Only skip if no
     # terminal is available at all (e.g. Docker build, CI).
     if ! [ -e /dev/tty ]; then
-        log_info "Setup wizard skipped (no terminal available). Run 'hermes setup' after install."
+        log_info "Setup wizard skipped (no terminal available). Run 'claudia setup' after install."
         return 0
     fi
 
@@ -947,7 +947,7 @@ run_setup_wizard() {
 
     cd "$INSTALL_DIR"
 
-    # Run hermes setup using the venv Python directly (no activation needed).
+    # Run claudia setup using the venv Python directly (no activation needed).
     # Redirect stdin from /dev/tty so interactive prompts work when piped from curl.
     if [ "$USE_VENV" = true ]; then
         "$INSTALL_DIR/venv/bin/python" -m claudia_cli.main setup < /dev/tty
@@ -978,7 +978,7 @@ maybe_start_gateway() {
 
     echo ""
     log_info "Messaging platform token detected!"
-    log_info "The gateway needs to be running for Hermes to send/receive messages."
+    log_info "The gateway needs to be running for Claudia to send/receive messages."
 
     # If WhatsApp is enabled and no session exists yet, run foreground first for QR scan
     WHATSAPP_VAL=$(grep "^WHATSAPP_ENABLED=" "$ENV_FILE" 2>/dev/null | cut -d'=' -f2-)
@@ -987,22 +987,22 @@ maybe_start_gateway() {
         if [ "$IS_INTERACTIVE" = true ]; then
             echo ""
             log_info "WhatsApp is enabled but not yet paired."
-            log_info "Running 'hermes whatsapp' to pair via QR code..."
+            log_info "Running 'claudia whatsapp' to pair via QR code..."
             echo ""
             read -p "Pair WhatsApp now? [Y/n] " -n 1 -r
             echo
             if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
-                CLAUDIA_CMD="$HOME/.local/bin/hermes"
-                [ ! -x "$CLAUDIA_CMD" ] && CLAUDIA_CMD="hermes"
+                CLAUDIA_CMD="$HOME/.local/bin/claudia"
+                [ ! -x "$CLAUDIA_CMD" ] && CLAUDIA_CMD="claudia"
                 $CLAUDIA_CMD whatsapp || true
             fi
         else
-            log_info "WhatsApp pairing skipped (non-interactive). Run 'hermes whatsapp' to pair."
+            log_info "WhatsApp pairing skipped (non-interactive). Run 'claudia whatsapp' to pair."
         fi
     fi
 
     if ! [ -e /dev/tty ]; then
-        log_info "Gateway setup skipped (no terminal available). Run 'hermes gateway install' later."
+        log_info "Gateway setup skipped (no terminal available). Run 'claudia gateway install' later."
         return 0
     fi
 
@@ -1011,9 +1011,9 @@ maybe_start_gateway() {
     echo
 
     if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
-        CLAUDIA_CMD="$HOME/.local/bin/hermes"
+        CLAUDIA_CMD="$HOME/.local/bin/claudia"
         if [ ! -x "$CLAUDIA_CMD" ]; then
-            CLAUDIA_CMD="hermes"
+            CLAUDIA_CMD="claudia"
         fi
 
         if command -v systemctl &> /dev/null; then
@@ -1023,10 +1023,10 @@ maybe_start_gateway() {
                 if $CLAUDIA_CMD gateway start 2>/dev/null; then
                     log_success "Gateway started! Your bot is now online."
                 else
-                    log_warn "Service installed but failed to start. Try: hermes gateway start"
+                    log_warn "Service installed but failed to start. Try: claudia gateway start"
                 fi
             else
-                log_warn "Systemd install failed. You can start manually: hermes gateway"
+                log_warn "Systemd install failed. You can start manually: claudia gateway"
             fi
         else
             log_info "systemd not available — starting gateway in background..."
@@ -1034,10 +1034,10 @@ maybe_start_gateway() {
             GATEWAY_PID=$!
             log_success "Gateway started (PID $GATEWAY_PID). Logs: ~/.claudia/logs/gateway.log"
             log_info "To stop: kill $GATEWAY_PID"
-            log_info "To restart later: hermes gateway"
+            log_info "To restart later: claudia gateway"
         fi
     else
-        log_info "Skipped. Start the gateway later with: hermes gateway"
+        log_info "Skipped. Start the gateway later with: claudia gateway"
     fi
 }
 
@@ -1056,24 +1056,24 @@ print_success() {
     echo -e "   ${YELLOW}Config:${NC}    ~/.claudia/config.yaml"
     echo -e "   ${YELLOW}API Keys:${NC}  ~/.claudia/.env"
     echo -e "   ${YELLOW}Data:${NC}      ~/.claudia/cron/, sessions/, logs/"
-    echo -e "   ${YELLOW}Code:${NC}      ~/.claudia/hermes-agent/"
+    echo -e "   ${YELLOW}Code:${NC}      ~/.claudia/claudia-autonomous/"
     echo ""
 
     echo -e "${CYAN}─────────────────────────────────────────────────────────${NC}"
     echo ""
     echo -e "${CYAN}${BOLD}🚀 Commands:${NC}"
     echo ""
-    echo -e "   ${GREEN}hermes${NC}              Start chatting"
-    echo -e "   ${GREEN}hermes setup${NC}        Configure API keys & settings"
-    echo -e "   ${GREEN}hermes config${NC}       View/edit configuration"
-    echo -e "   ${GREEN}hermes config edit${NC}  Open config in editor"
-    echo -e "   ${GREEN}hermes gateway install${NC} Install gateway service (messaging + cron)"
-    echo -e "   ${GREEN}hermes update${NC}       Update to latest version"
+    echo -e "   ${GREEN}claudia${NC}              Start chatting"
+    echo -e "   ${GREEN}claudia setup${NC}        Configure API keys & settings"
+    echo -e "   ${GREEN}claudia config${NC}       View/edit configuration"
+    echo -e "   ${GREEN}claudia config edit${NC}  Open config in editor"
+    echo -e "   ${GREEN}claudia gateway install${NC} Install gateway service (messaging + cron)"
+    echo -e "   ${GREEN}claudia update${NC}       Update to latest version"
     echo ""
 
     echo -e "${CYAN}─────────────────────────────────────────────────────────${NC}"
     echo ""
-    echo -e "${YELLOW}⚡ Reload your shell to use 'hermes' command:${NC}"
+    echo -e "${YELLOW}⚡ Reload your shell to use 'claudia' command:${NC}"
     echo ""
     LOGIN_SHELL="$(basename "${SHELL:-/bin/bash}")"
     if [ "$LOGIN_SHELL" = "zsh" ]; then

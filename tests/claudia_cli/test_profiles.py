@@ -343,7 +343,7 @@ class TestAliasCollision:
         assert result is None
 
     def test_reserved_name_returns_message(self, profile_env):
-        result = check_alias_collision("hermes")
+        result = check_alias_collision("claudia")
         assert result is not None
         assert "reserved" in result.lower()
 
@@ -532,7 +532,7 @@ class TestExportImport:
         (default_dir / "config.yaml").write_text("ok")
 
         # Create dirs/files that should be excluded
-        for d in ("hermes-agent", ".worktrees", "profiles", "bin",
+        for d in ("claudia-autonomous", ".worktrees", "profiles", "bin",
                   "image_cache", "logs", "sandboxes", "checkpoints"):
             sub = default_dir / d
             sub.mkdir(exist_ok=True)
@@ -555,7 +555,7 @@ class TestExportImport:
 
         # Infrastructure excluded
         excluded_prefixes = [
-            "default/hermes-agent", "default/.worktrees", "default/profiles",
+            "default/claudia-autonomous", "default/.worktrees", "default/profiles",
             "default/bin", "default/image_cache", "default/logs",
             "default/sandboxes", "default/checkpoints",
         ]
@@ -686,11 +686,11 @@ class TestCompletion:
 
     def test_zsh_completion_has_claudia_function(self):
         script = generate_zsh_completion()
-        assert "_hermes" in script
+        assert "_claudia" in script
 
 
 # ===================================================================
-# TestGetProfilesRoot / TestGetDefaultHermesHome (internal helpers)
+# TestGetProfilesRoot / TestGetDefaultClaudiaHome (internal helpers)
 # ===================================================================
 
 class TestInternalHelpers:

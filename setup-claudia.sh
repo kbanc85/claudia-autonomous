@@ -1,19 +1,19 @@
 #!/bin/bash
 # ============================================================================
-# Hermes Agent Setup Script
+# Claudia Setup Script
 # ============================================================================
 # Quick setup for developers who cloned the repo manually.
 # Uses uv for fast Python provisioning and package management.
 #
 # Usage:
-#   ./setup-hermes.sh
+#   ./setup-claudia.sh
 #
 # This script:
 # 1. Installs uv if not present
 # 2. Creates a virtual environment with Python 3.11 via uv
 # 3. Installs all dependencies (main package + submodules)
 # 4. Creates .env from template (if not exists)
-# 5. Symlinks the 'hermes' CLI command into ~/.local/bin
+# 5. Symlinks the 'claudia' CLI command into ~/.local/bin
 # 6. Runs the setup wizard (optional)
 # ============================================================================
 
@@ -32,7 +32,7 @@ cd "$SCRIPT_DIR"
 PYTHON_VERSION="3.11"
 
 echo ""
-echo -e "${CYAN}⚕ Hermes Agent Setup${NC}"
+echo -e "${CYAN}⚕ Claudia Setup${NC}"
 echo ""
 
 # ============================================================================
@@ -207,15 +207,15 @@ else
 fi
 
 # ============================================================================
-# PATH setup — symlink hermes into ~/.local/bin
+# PATH setup — symlink claudia into ~/.local/bin
 # ============================================================================
 
-echo -e "${CYAN}→${NC} Setting up hermes command..."
+echo -e "${CYAN}→${NC} Setting up claudia command..."
 
-CLAUDIA_BIN="$SCRIPT_DIR/venv/bin/hermes"
+CLAUDIA_BIN="$SCRIPT_DIR/venv/bin/claudia"
 mkdir -p "$HOME/.local/bin"
-ln -sf "$CLAUDIA_BIN" "$HOME/.local/bin/hermes"
-echo -e "${GREEN}✓${NC} Symlinked hermes → ~/.local/bin/hermes"
+ln -sf "$CLAUDIA_BIN" "$HOME/.local/bin/claudia"
+echo -e "${GREEN}✓${NC} Symlinked claudia → ~/.local/bin/claudia"
 
 # Determine the appropriate shell config file
 SHELL_CONFIG=""
@@ -242,7 +242,7 @@ if [ -n "$SHELL_CONFIG" ]; then
     if ! echo "$PATH" | tr ':' '\n' | grep -q "^$HOME/.local/bin$"; then
         if ! grep -q '\.local/bin' "$SHELL_CONFIG" 2>/dev/null; then
             echo "" >> "$SHELL_CONFIG"
-            echo "# Hermes Agent — ensure ~/.local/bin is on PATH" >> "$SHELL_CONFIG"
+            echo "# Claudia — ensure ~/.local/bin is on PATH" >> "$SHELL_CONFIG"
             echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_CONFIG"
             echo -e "${GREEN}✓${NC} Added ~/.local/bin to PATH in $SHELL_CONFIG"
         else
@@ -285,16 +285,16 @@ echo "  1. Reload your shell:"
 echo "     source $SHELL_CONFIG"
 echo ""
 echo "  2. Run the setup wizard to configure API keys:"
-echo "     hermes setup"
+echo "     claudia setup"
 echo ""
 echo "  3. Start chatting:"
-echo "     hermes"
+echo "     claudia"
 echo ""
 echo "Other commands:"
-echo "  hermes status        # Check configuration"
-echo "  hermes gateway install # Install gateway service (messaging + cron)"
-echo "  hermes cron list     # View scheduled jobs"
-echo "  hermes doctor        # Diagnose issues"
+echo "  claudia status        # Check configuration"
+echo "  claudia gateway install # Install gateway service (messaging + cron)"
+echo "  claudia cron list     # View scheduled jobs"
+echo "  claudia doctor        # Diagnose issues"
 echo ""
 
 # Ask if they want to run setup wizard now

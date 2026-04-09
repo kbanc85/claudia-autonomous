@@ -24,7 +24,7 @@ def _setup_nous_auth(
             "nous": {
                 "portal_base_url": "https://portal.example.com",
                 "inference_base_url": "https://inference.example.com/v1",
-                "client_id": "hermes-cli",
+                "client_id": "claudia-cli",
                 "token_type": "Bearer",
                 "scope": "inference:mint_agent_key",
                 "access_token": access_token,
@@ -55,7 +55,7 @@ def _mint_payload(api_key: str = "agent-key") -> dict:
 
 
 def test_refresh_token_persisted_when_mint_returns_insufficient_credits(tmp_path, monkeypatch):
-    claudia_home = tmp_path / "hermes"
+    claudia_home = tmp_path / "claudia"
     _setup_nous_auth(claudia_home, refresh_token="refresh-old")
     monkeypatch.setenv("CLAUDIA_HOME", str(claudia_home))
 
@@ -96,7 +96,7 @@ def test_refresh_token_persisted_when_mint_returns_insufficient_credits(tmp_path
 
 
 def test_refresh_token_persisted_when_mint_times_out(tmp_path, monkeypatch):
-    claudia_home = tmp_path / "hermes"
+    claudia_home = tmp_path / "claudia"
     _setup_nous_auth(claudia_home, refresh_token="refresh-old")
     monkeypatch.setenv("CLAUDIA_HOME", str(claudia_home))
 
@@ -124,7 +124,7 @@ def test_refresh_token_persisted_when_mint_times_out(tmp_path, monkeypatch):
 
 
 def test_mint_retry_uses_latest_rotated_refresh_token(tmp_path, monkeypatch):
-    claudia_home = tmp_path / "hermes"
+    claudia_home = tmp_path / "claudia"
     _setup_nous_auth(claudia_home, refresh_token="refresh-old")
     monkeypatch.setenv("CLAUDIA_HOME", str(claudia_home))
 

@@ -1,4 +1,4 @@
-"""hermes-memory-store — holographic memory plugin using MemoryProvider interface.
+"""claudia-memory-store — holographic memory plugin using MemoryProvider interface.
 
 Registers as a MemoryProvider plugin, giving the agent structured fact storage
 with entity resolution, trust scoring, and HRR-based compositional retrieval.
@@ -7,7 +7,7 @@ Original plugin by dusterbloom (PR #2351), adapted to the MemoryProvider ABC.
 
 Config in $CLAUDIA_HOME/config.yaml (profile-scoped):
   plugins:
-    hermes-memory-store:
+    claudia-memory-store:
       db_path: $CLAUDIA_HOME/memory_store.db
       auto_extract: false
       default_trust: 0.5
@@ -102,7 +102,7 @@ def _load_plugin_config() -> dict:
         import yaml
         with open(config_path) as f:
             all_config = yaml.safe_load(f) or {}
-        return all_config.get("plugins", {}).get("hermes-memory-store", {}) or {}
+        return all_config.get("plugins", {}).get("claudia-memory-store", {}) or {}
     except Exception:
         return {}
 
@@ -138,7 +138,7 @@ class HolographicMemoryProvider(MemoryProvider):
                 with open(config_path) as f:
                     existing = yaml.safe_load(f) or {}
             existing.setdefault("plugins", {})
-            existing["plugins"]["hermes-memory-store"] = values
+            existing["plugins"]["claudia-memory-store"] = values
             with open(config_path, "w") as f:
                 yaml.dump(existing, f, default_flow_style=False)
         except Exception:

@@ -34,7 +34,7 @@ class TestOfferOpenclawMigration:
         """Should return False when user declines the migration prompt."""
         openclaw_dir = tmp_path / ".openclaw"
         openclaw_dir.mkdir()
-        script = tmp_path / "openclaw_to_hermes.py"
+        script = tmp_path / "openclaw_to_claudia.py"
         script.write_text("# placeholder")
         with (
             patch("claudia_cli.setup.Path.home", return_value=tmp_path),
@@ -48,14 +48,14 @@ class TestOfferOpenclawMigration:
         openclaw_dir = tmp_path / ".openclaw"
         openclaw_dir.mkdir()
 
-        # Create a fake hermes home with config
+        # Create a fake claudia home with config
         claudia_home = tmp_path / ".claudia"
         claudia_home.mkdir()
         config_path = claudia_home / "config.yaml"
         config_path.write_text("agent:\n  max_turns: 90\n")
 
         # Build a fake migration module
-        fake_mod = ModuleType("openclaw_to_hermes")
+        fake_mod = ModuleType("openclaw_to_claudia")
         fake_mod.resolve_selected_options = MagicMock(return_value={"soul", "memory"})
         fake_migrator = MagicMock()
         fake_migrator.migrate.return_value = {
@@ -64,7 +64,7 @@ class TestOfferOpenclawMigration:
         }
         fake_mod.Migrator = MagicMock(return_value=fake_migrator)
 
-        script = tmp_path / "openclaw_to_hermes.py"
+        script = tmp_path / "openclaw_to_claudia.py"
         script.write_text("# placeholder")
 
         with (
@@ -108,7 +108,7 @@ class TestOfferOpenclawMigration:
         config_path = claudia_home / "config.yaml"
         config_path.write_text("")
 
-        script = tmp_path / "openclaw_to_hermes.py"
+        script = tmp_path / "openclaw_to_claudia.py"
         script.write_text("# placeholder")
 
         with (
@@ -134,7 +134,7 @@ class TestOfferOpenclawMigration:
         config_path = claudia_home / "config.yaml"
         # config does NOT exist yet
 
-        script = tmp_path / "openclaw_to_hermes.py"
+        script = tmp_path / "openclaw_to_claudia.py"
         script.write_text("# placeholder")
 
         with (

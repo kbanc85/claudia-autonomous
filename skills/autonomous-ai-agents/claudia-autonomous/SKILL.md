@@ -1,55 +1,55 @@
 ---
-name: hermes-agent
-description: Complete guide to using and extending Hermes Agent — CLI usage, setup, configuration, spawning additional agents, gateway platforms, skills, voice, tools, profiles, and a concise contributor reference. Load this skill when helping users configure Hermes, troubleshoot issues, spawn agent instances, or make code contributions.
+name: claudia-autonomous
+description: Complete guide to using and extending Claudia — CLI usage, setup, configuration, spawning additional agents, gateway platforms, skills, voice, tools, profiles, and a concise contributor reference. Load this skill when helping users configure Claudia, troubleshoot issues, spawn agent instances, or make code contributions.
 version: 2.0.0
-author: Hermes Agent + Teknium
+author: Claudia + Teknium
 license: MIT
 metadata:
-  hermes:
-    tags: [hermes, setup, configuration, multi-agent, spawning, cli, gateway, development]
-    homepage: https://github.com/NousResearch/hermes-agent
+  claudia:
+    tags: [claudia, setup, configuration, multi-agent, spawning, cli, gateway, development]
+    homepage: https://github.com/NousResearch/claudia-autonomous
     related_skills: [claude-code, codex, opencode]
 ---
 
-# Hermes Agent
+# Claudia
 
-Hermes Agent is an open-source AI agent framework by Nous Research that runs in your terminal, messaging platforms, and IDEs. It belongs to the same category as Claude Code (Anthropic), Codex (OpenAI), and OpenClaw — autonomous coding and task-execution agents that use tool calling to interact with your system. Hermes works with any LLM provider (OpenRouter, Anthropic, OpenAI, DeepSeek, local models, and 15+ others) and runs on Linux, macOS, and WSL.
+Claudia is an open-source AI agent framework by Nous Research that runs in your terminal, messaging platforms, and IDEs. It belongs to the same category as Claude Code (Anthropic), Codex (OpenAI), and OpenClaw — autonomous coding and task-execution agents that use tool calling to interact with your system. Claudia works with any LLM provider (OpenRouter, Anthropic, OpenAI, DeepSeek, local models, and 15+ others) and runs on Linux, macOS, and WSL.
 
-What makes Hermes different:
+What makes Claudia different:
 
-- **Self-improving through skills** — Hermes learns from experience by saving reusable procedures as skills. When it solves a complex problem, discovers a workflow, or gets corrected, it can persist that knowledge as a skill document that loads into future sessions. Skills accumulate over time, making the agent better at your specific tasks and environment.
+- **Self-improving through skills** — Claudia learns from experience by saving reusable procedures as skills. When it solves a complex problem, discovers a workflow, or gets corrected, it can persist that knowledge as a skill document that loads into future sessions. Skills accumulate over time, making the agent better at your specific tasks and environment.
 - **Persistent memory across sessions** — remembers who you are, your preferences, environment details, and lessons learned. Pluggable memory backends (built-in, Honcho, Mem0, and more) let you choose how memory works.
 - **Multi-platform gateway** — the same agent runs on Telegram, Discord, Slack, WhatsApp, Signal, Matrix, Email, and 8+ other platforms with full tool access, not just chat.
 - **Provider-agnostic** — swap models and providers mid-workflow without changing anything else. Credential pools rotate across multiple API keys automatically.
-- **Profiles** — run multiple independent Hermes instances with isolated configs, sessions, skills, and memory.
+- **Profiles** — run multiple independent Claudia instances with isolated configs, sessions, skills, and memory.
 - **Extensible** — plugins, MCP servers, custom tools, webhook triggers, cron scheduling, and the full Python ecosystem.
 
-People use Hermes for software development, research, system administration, data analysis, content creation, home automation, and anything else that benefits from an AI agent with persistent context and full system access.
+People use Claudia for software development, research, system administration, data analysis, content creation, home automation, and anything else that benefits from an AI agent with persistent context and full system access.
 
-**This skill helps you work with Hermes Agent effectively** — setting it up, configuring features, spawning additional agent instances, troubleshooting issues, finding the right commands and settings, and understanding how the system works when you need to extend or contribute to it.
+**This skill helps you work with Claudia effectively** — setting it up, configuring features, spawning additional agent instances, troubleshooting issues, finding the right commands and settings, and understanding how the system works when you need to extend or contribute to it.
 
-**Docs:** https://hermes-agent.nousresearch.com/docs/
+**Docs:** https://claudia-autonomous.nousresearch.com/docs/
 
 ## Quick Start
 
 ```bash
 # Install
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/NousResearch/claudia-autonomous/main/scripts/install.sh | bash
 
 # Interactive chat (default)
-hermes
+claudia
 
 # Single query
-hermes chat -q "What is the capital of France?"
+claudia chat -q "What is the capital of France?"
 
 # Setup wizard
-hermes setup
+claudia setup
 
 # Change model/provider
-hermes model
+claudia model
 
 # Check health
-hermes doctor
+claudia doctor
 ```
 
 ---
@@ -59,7 +59,7 @@ hermes doctor
 ### Global Flags
 
 ```
-hermes [flags] [command]
+claudia [flags] [command]
 
   --version, -V             Show version
   --resume, -r SESSION      Resume session by ID or title
@@ -76,7 +76,7 @@ No subcommand defaults to `chat`.
 ### Chat
 
 ```
-hermes chat [flags]
+claudia chat [flags]
   -q, --query TEXT          Single query, non-interactive
   -m, --model MODEL         Model (e.g. anthropic/claude-sonnet-4)
   -t, --toolsets LIST       Comma-separated toolsets
@@ -90,137 +90,137 @@ hermes chat [flags]
 ### Configuration
 
 ```
-hermes setup [section]      Interactive wizard (model|terminal|gateway|tools|agent)
-hermes model                Interactive model/provider picker
-hermes config               View current config
-hermes config edit          Open config.yaml in $EDITOR
-hermes config set KEY VAL   Set a config value
-hermes config path          Print config.yaml path
-hermes config env-path      Print .env path
-hermes config check         Check for missing/outdated config
-hermes config migrate       Update config with new options
-hermes login [--provider P] OAuth login (nous, openai-codex)
-hermes logout               Clear stored auth
-hermes doctor [--fix]       Check dependencies and config
-hermes status [--all]       Show component status
+claudia setup [section]      Interactive wizard (model|terminal|gateway|tools|agent)
+claudia model                Interactive model/provider picker
+claudia config               View current config
+claudia config edit          Open config.yaml in $EDITOR
+claudia config set KEY VAL   Set a config value
+claudia config path          Print config.yaml path
+claudia config env-path      Print .env path
+claudia config check         Check for missing/outdated config
+claudia config migrate       Update config with new options
+claudia login [--provider P] OAuth login (nous, openai-codex)
+claudia logout               Clear stored auth
+claudia doctor [--fix]       Check dependencies and config
+claudia status [--all]       Show component status
 ```
 
 ### Tools & Skills
 
 ```
-hermes tools                Interactive tool enable/disable (curses UI)
-hermes tools list           Show all tools and status
-hermes tools enable NAME    Enable a toolset
-hermes tools disable NAME   Disable a toolset
+claudia tools                Interactive tool enable/disable (curses UI)
+claudia tools list           Show all tools and status
+claudia tools enable NAME    Enable a toolset
+claudia tools disable NAME   Disable a toolset
 
-hermes skills list          List installed skills
-hermes skills search QUERY  Search the skills hub
-hermes skills install ID    Install a skill
-hermes skills inspect ID    Preview without installing
-hermes skills config        Enable/disable skills per platform
-hermes skills check         Check for updates
-hermes skills update        Update outdated skills
-hermes skills uninstall N   Remove a hub skill
-hermes skills publish PATH  Publish to registry
-hermes skills browse        Browse all available skills
-hermes skills tap add REPO  Add a GitHub repo as skill source
+claudia skills list          List installed skills
+claudia skills search QUERY  Search the skills hub
+claudia skills install ID    Install a skill
+claudia skills inspect ID    Preview without installing
+claudia skills config        Enable/disable skills per platform
+claudia skills check         Check for updates
+claudia skills update        Update outdated skills
+claudia skills uninstall N   Remove a hub skill
+claudia skills publish PATH  Publish to registry
+claudia skills browse        Browse all available skills
+claudia skills tap add REPO  Add a GitHub repo as skill source
 ```
 
 ### MCP Servers
 
 ```
-hermes mcp serve            Run Hermes as an MCP server
-hermes mcp add NAME         Add an MCP server (--url or --command)
-hermes mcp remove NAME      Remove an MCP server
-hermes mcp list             List configured servers
-hermes mcp test NAME        Test connection
-hermes mcp configure NAME   Toggle tool selection
+claudia mcp serve            Run Claudia as an MCP server
+claudia mcp add NAME         Add an MCP server (--url or --command)
+claudia mcp remove NAME      Remove an MCP server
+claudia mcp list             List configured servers
+claudia mcp test NAME        Test connection
+claudia mcp configure NAME   Toggle tool selection
 ```
 
 ### Gateway (Messaging Platforms)
 
 ```
-hermes gateway run          Start gateway foreground
-hermes gateway install      Install as background service
-hermes gateway start/stop   Control the service
-hermes gateway restart      Restart the service
-hermes gateway status       Check status
-hermes gateway setup        Configure platforms
+claudia gateway run          Start gateway foreground
+claudia gateway install      Install as background service
+claudia gateway start/stop   Control the service
+claudia gateway restart      Restart the service
+claudia gateway status       Check status
+claudia gateway setup        Configure platforms
 ```
 
 Supported platforms: Telegram, Discord, Slack, WhatsApp, Signal, Email, SMS, Matrix, Mattermost, Home Assistant, DingTalk, Feishu, WeCom, API Server, Webhooks, Open WebUI.
 
-Platform docs: https://hermes-agent.nousresearch.com/docs/user-guide/messaging/
+Platform docs: https://claudia-autonomous.nousresearch.com/docs/user-guide/messaging/
 
 ### Sessions
 
 ```
-hermes sessions list        List recent sessions
-hermes sessions browse      Interactive picker
-hermes sessions export OUT  Export to JSONL
-hermes sessions rename ID T Rename a session
-hermes sessions delete ID   Delete a session
-hermes sessions prune       Clean up old sessions (--older-than N days)
-hermes sessions stats       Session store statistics
+claudia sessions list        List recent sessions
+claudia sessions browse      Interactive picker
+claudia sessions export OUT  Export to JSONL
+claudia sessions rename ID T Rename a session
+claudia sessions delete ID   Delete a session
+claudia sessions prune       Clean up old sessions (--older-than N days)
+claudia sessions stats       Session store statistics
 ```
 
 ### Cron Jobs
 
 ```
-hermes cron list            List jobs (--all for disabled)
-hermes cron create SCHED    Create: '30m', 'every 2h', '0 9 * * *'
-hermes cron edit ID         Edit schedule, prompt, delivery
-hermes cron pause/resume ID Control job state
-hermes cron run ID          Trigger on next tick
-hermes cron remove ID       Delete a job
-hermes cron status          Scheduler status
+claudia cron list            List jobs (--all for disabled)
+claudia cron create SCHED    Create: '30m', 'every 2h', '0 9 * * *'
+claudia cron edit ID         Edit schedule, prompt, delivery
+claudia cron pause/resume ID Control job state
+claudia cron run ID          Trigger on next tick
+claudia cron remove ID       Delete a job
+claudia cron status          Scheduler status
 ```
 
 ### Webhooks
 
 ```
-hermes webhook subscribe N  Create route at /webhooks/<name>
-hermes webhook list         List subscriptions
-hermes webhook remove NAME  Remove a subscription
-hermes webhook test NAME    Send a test POST
+claudia webhook subscribe N  Create route at /webhooks/<name>
+claudia webhook list         List subscriptions
+claudia webhook remove NAME  Remove a subscription
+claudia webhook test NAME    Send a test POST
 ```
 
 ### Profiles
 
 ```
-hermes profile list         List all profiles
-hermes profile create NAME  Create (--clone, --clone-all, --clone-from)
-hermes profile use NAME     Set sticky default
-hermes profile delete NAME  Delete a profile
-hermes profile show NAME    Show details
-hermes profile alias NAME   Manage wrapper scripts
-hermes profile rename A B   Rename a profile
-hermes profile export NAME  Export to tar.gz
-hermes profile import FILE  Import from archive
+claudia profile list         List all profiles
+claudia profile create NAME  Create (--clone, --clone-all, --clone-from)
+claudia profile use NAME     Set sticky default
+claudia profile delete NAME  Delete a profile
+claudia profile show NAME    Show details
+claudia profile alias NAME   Manage wrapper scripts
+claudia profile rename A B   Rename a profile
+claudia profile export NAME  Export to tar.gz
+claudia profile import FILE  Import from archive
 ```
 
 ### Credential Pools
 
 ```
-hermes auth add             Interactive credential wizard
-hermes auth list [PROVIDER] List pooled credentials
-hermes auth remove P INDEX  Remove by provider + index
-hermes auth reset PROVIDER  Clear exhaustion status
+claudia auth add             Interactive credential wizard
+claudia auth list [PROVIDER] List pooled credentials
+claudia auth remove P INDEX  Remove by provider + index
+claudia auth reset PROVIDER  Clear exhaustion status
 ```
 
 ### Other
 
 ```
-hermes insights [--days N]  Usage analytics
-hermes update               Update to latest version
-hermes pairing list/approve/revoke  DM authorization
-hermes plugins list/install/remove  Plugin management
-hermes honcho setup/status  Honcho memory integration
-hermes memory setup/status/off  Memory provider config
-hermes completion bash|zsh  Shell completions
-hermes acp                  ACP server (IDE integration)
-hermes claw migrate         Migrate from OpenClaw
-hermes uninstall            Uninstall Hermes
+claudia insights [--days N]  Usage analytics
+claudia update               Update to latest version
+claudia pairing list/approve/revoke  DM authorization
+claudia plugins list/install/remove  Plugin management
+claudia honcho setup/status  Honcho memory integration
+claudia memory setup/status/off  Memory provider config
+claudia completion bash|zsh  Shell completions
+claudia acp                  ACP server (IDE integration)
+claudia migrate migrate         Migrate from OpenClaw
+claudia uninstall            Uninstall Claudia
 ```
 
 ---
@@ -296,14 +296,14 @@ Type these during an interactive chat session.
 ~/.claudia/sessions/         Session transcripts
 ~/.claudia/logs/             Gateway and error logs
 ~/.claudia/auth.json         OAuth tokens and credential pools
-~/.claudia/hermes-agent/     Source code (if git-installed)
+~/.claudia/claudia-autonomous/     Source code (if git-installed)
 ```
 
 Profiles use `~/.claudia/profiles/<name>/` with the same layout.
 
 ### Config Sections
 
-Edit with `hermes config edit` or `hermes config set section.key value`.
+Edit with `claudia config edit` or `claudia config set section.key value`.
 
 | Section | Key options |
 |---------|-------------|
@@ -320,18 +320,18 @@ Edit with `hermes config edit` or `hermes config set section.key value`.
 | `smart_model_routing` | `enabled`, `cheap_model` |
 | `checkpoints` | `enabled`, `max_snapshots` (50) |
 
-Full config reference: https://hermes-agent.nousresearch.com/docs/user-guide/configuration
+Full config reference: https://claudia-autonomous.nousresearch.com/docs/user-guide/configuration
 
 ### Providers
 
-18 providers supported. Set via `hermes model` or `hermes setup`.
+18 providers supported. Set via `claudia model` or `claudia setup`.
 
 | Provider | Auth | Key env var |
 |----------|------|-------------|
 | OpenRouter | API key | `OPENROUTER_API_KEY` |
 | Anthropic | API key | `ANTHROPIC_API_KEY` |
-| Nous Portal | OAuth | `hermes login --provider nous` |
-| OpenAI Codex | OAuth | `hermes login --provider openai-codex` |
+| Nous Portal | OAuth | `claudia login --provider nous` |
+| OpenAI Codex | OAuth | `claudia login --provider openai-codex` |
 | GitHub Copilot | Token | `COPILOT_GITHUB_TOKEN` |
 | DeepSeek | API key | `DEEPSEEK_API_KEY` |
 | Hugging Face | Token | `HF_TOKEN` |
@@ -344,11 +344,11 @@ Full config reference: https://hermes-agent.nousresearch.com/docs/user-guide/con
 
 Plus: AI Gateway, OpenCode Zen, OpenCode Go, MiniMax CN, GitHub Copilot ACP.
 
-Full provider docs: https://hermes-agent.nousresearch.com/docs/integrations/providers
+Full provider docs: https://claudia-autonomous.nousresearch.com/docs/integrations/providers
 
 ### Toolsets
 
-Enable/disable via `hermes tools` (interactive) or `hermes tools enable/disable NAME`.
+Enable/disable via `claudia tools` (interactive) or `claudia tools enable/disable NAME`.
 
 | Toolset | What it provides |
 |---------|-----------------|
@@ -407,13 +407,13 @@ Voice commands: `/voice on` (voice-to-voice), `/voice tts` (always voice), `/voi
 
 ---
 
-## Spawning Additional Hermes Instances
+## Spawning Additional Claudia Instances
 
-Run additional Hermes processes as fully independent subprocesses — separate sessions, tools, and environments.
+Run additional Claudia processes as fully independent subprocesses — separate sessions, tools, and environments.
 
 ### When to Use This vs delegate_task
 
-| | `delegate_task` | Spawning `hermes` process |
+| | `delegate_task` | Spawning `claudia` process |
 |-|-----------------|--------------------------|
 | Isolation | Separate conversation, shared process | Fully independent process |
 | Duration | Minutes (bounded by parent loop) | Hours/days |
@@ -424,19 +424,19 @@ Run additional Hermes processes as fully independent subprocesses — separate s
 ### One-Shot Mode
 
 ```
-terminal(command="hermes chat -q 'Research GRPO papers and write summary to ~/research/grpo.md'", timeout=300)
+terminal(command="claudia chat -q 'Research GRPO papers and write summary to ~/research/grpo.md'", timeout=300)
 
 # Background for long tasks:
-terminal(command="hermes chat -q 'Set up CI/CD for ~/myapp'", background=true)
+terminal(command="claudia chat -q 'Set up CI/CD for ~/myapp'", background=true)
 ```
 
 ### Interactive PTY Mode (via tmux)
 
-Hermes uses prompt_toolkit, which requires a real terminal. Use tmux for interactive spawning:
+Claudia uses prompt_toolkit, which requires a real terminal. Use tmux for interactive spawning:
 
 ```
 # Start
-terminal(command="tmux new-session -d -s agent1 -x 120 -y 40 'hermes'", timeout=10)
+terminal(command="tmux new-session -d -s agent1 -x 120 -y 40 'claudia'", timeout=10)
 
 # Wait for startup, then send a message
 terminal(command="sleep 8 && tmux send-keys -t agent1 'Build a FastAPI auth service' Enter", timeout=15)
@@ -455,11 +455,11 @@ terminal(command="tmux send-keys -t agent1 '/exit' Enter && sleep 2 && tmux kill
 
 ```
 # Agent A: backend
-terminal(command="tmux new-session -d -s backend -x 120 -y 40 'hermes -w'", timeout=10)
+terminal(command="tmux new-session -d -s backend -x 120 -y 40 'claudia -w'", timeout=10)
 terminal(command="sleep 8 && tmux send-keys -t backend 'Build REST API for user management' Enter", timeout=15)
 
 # Agent B: frontend
-terminal(command="tmux new-session -d -s frontend -x 120 -y 40 'hermes -w'", timeout=10)
+terminal(command="tmux new-session -d -s frontend -x 120 -y 40 'claudia -w'", timeout=10)
 terminal(command="sleep 8 && tmux send-keys -t frontend 'Build React dashboard for user management' Enter", timeout=15)
 
 # Check progress, relay context between them
@@ -471,10 +471,10 @@ terminal(command="tmux send-keys -t frontend 'Here is the API schema from the ba
 
 ```
 # Resume most recent session
-terminal(command="tmux new-session -d -s resumed 'hermes --continue'", timeout=10)
+terminal(command="tmux new-session -d -s resumed 'claudia --continue'", timeout=10)
 
 # Resume specific session
-terminal(command="tmux new-session -d -s resumed 'hermes --resume 20260225_143052_a1b2c3'", timeout=10)
+terminal(command="tmux new-session -d -s resumed 'claudia --resume 20260225_143052_a1b2c3'", timeout=10)
 ```
 
 ### Tips
@@ -482,7 +482,7 @@ terminal(command="tmux new-session -d -s resumed 'hermes --resume 20260225_14305
 - **Prefer `delegate_task` for quick subtasks** — less overhead than spawning a full process
 - **Use `-w` (worktree mode)** when spawning agents that edit code — prevents git conflicts
 - **Set timeouts** for one-shot mode — complex tasks can take 5-10 minutes
-- **Use `hermes chat -q` for fire-and-forget** — no PTY needed
+- **Use `claudia chat -q` for fire-and-forget** — no PTY needed
 - **Use tmux for interactive sessions** — raw PTY mode has `\r` vs `\n` issues with prompt_toolkit
 - **For scheduled tasks**, use the `cronjob` tool instead of spawning — handles delivery and retry
 
@@ -496,13 +496,13 @@ terminal(command="tmux new-session -d -s resumed 'hermes --resume 20260225_14305
 3. Restart gateway: `/restart`
 
 ### Tool not available
-1. `hermes tools` — check if toolset is enabled for your platform
+1. `claudia tools` — check if toolset is enabled for your platform
 2. Some tools need env vars (check `.env`)
 3. `/reset` after enabling tools
 
 ### Model/provider issues
-1. `hermes doctor` — check config and dependencies
-2. `hermes login` — re-authenticate OAuth providers
+1. `claudia doctor` — check config and dependencies
+2. `claudia login` — re-authenticate OAuth providers
 3. Check `.env` has the right API key
 
 ### Changes not taking effect
@@ -511,9 +511,9 @@ terminal(command="tmux new-session -d -s resumed 'hermes --resume 20260225_14305
 - **Code changes:** Restart the CLI or gateway process
 
 ### Skills not showing
-1. `hermes skills list` — verify installed
-2. `hermes skills config` — check platform enablement
-3. Load explicitly: `/skill name` or `hermes -s name`
+1. `claudia skills list` — verify installed
+2. `claudia skills config` — check platform enablement
+3. Load explicitly: `/skill name` or `claudia -s name`
 
 ### Gateway issues
 Check logs first:
@@ -527,36 +527,36 @@ grep -i "failed to send\|error" ~/.claudia/logs/gateway.log | tail -20
 
 | Looking for... | Location |
 |----------------|----------|
-| Config options | `hermes config edit` or [Configuration docs](https://hermes-agent.nousresearch.com/docs/user-guide/configuration) |
-| Available tools | `hermes tools list` or [Tools reference](https://hermes-agent.nousresearch.com/docs/reference/tools-reference) |
-| Slash commands | `/help` in session or [Slash commands reference](https://hermes-agent.nousresearch.com/docs/reference/slash-commands) |
-| Skills catalog | `hermes skills browse` or [Skills catalog](https://hermes-agent.nousresearch.com/docs/reference/skills-catalog) |
-| Provider setup | `hermes model` or [Providers guide](https://hermes-agent.nousresearch.com/docs/integrations/providers) |
-| Platform setup | `hermes gateway setup` or [Messaging docs](https://hermes-agent.nousresearch.com/docs/user-guide/messaging/) |
-| MCP servers | `hermes mcp list` or [MCP guide](https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp) |
-| Profiles | `hermes profile list` or [Profiles docs](https://hermes-agent.nousresearch.com/docs/user-guide/profiles) |
-| Cron jobs | `hermes cron list` or [Cron docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/cron) |
-| Memory | `hermes memory status` or [Memory docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/memory) |
-| Env variables | `hermes config env-path` or [Env vars reference](https://hermes-agent.nousresearch.com/docs/reference/environment-variables) |
-| CLI commands | `hermes --help` or [CLI reference](https://hermes-agent.nousresearch.com/docs/reference/cli-commands) |
+| Config options | `claudia config edit` or [Configuration docs](https://claudia-autonomous.nousresearch.com/docs/user-guide/configuration) |
+| Available tools | `claudia tools list` or [Tools reference](https://claudia-autonomous.nousresearch.com/docs/reference/tools-reference) |
+| Slash commands | `/help` in session or [Slash commands reference](https://claudia-autonomous.nousresearch.com/docs/reference/slash-commands) |
+| Skills catalog | `claudia skills browse` or [Skills catalog](https://claudia-autonomous.nousresearch.com/docs/reference/skills-catalog) |
+| Provider setup | `claudia model` or [Providers guide](https://claudia-autonomous.nousresearch.com/docs/integrations/providers) |
+| Platform setup | `claudia gateway setup` or [Messaging docs](https://claudia-autonomous.nousresearch.com/docs/user-guide/messaging/) |
+| MCP servers | `claudia mcp list` or [MCP guide](https://claudia-autonomous.nousresearch.com/docs/user-guide/features/mcp) |
+| Profiles | `claudia profile list` or [Profiles docs](https://claudia-autonomous.nousresearch.com/docs/user-guide/profiles) |
+| Cron jobs | `claudia cron list` or [Cron docs](https://claudia-autonomous.nousresearch.com/docs/user-guide/features/cron) |
+| Memory | `claudia memory status` or [Memory docs](https://claudia-autonomous.nousresearch.com/docs/user-guide/features/memory) |
+| Env variables | `claudia config env-path` or [Env vars reference](https://claudia-autonomous.nousresearch.com/docs/reference/environment-variables) |
+| CLI commands | `claudia --help` or [CLI reference](https://claudia-autonomous.nousresearch.com/docs/reference/cli-commands) |
 | Gateway logs | `~/.claudia/logs/gateway.log` |
-| Session files | `~/.claudia/sessions/` or `hermes sessions browse` |
-| Source code | `~/.claudia/hermes-agent/` |
+| Session files | `~/.claudia/sessions/` or `claudia sessions browse` |
+| Source code | `~/.claudia/claudia-autonomous/` |
 
 ---
 
 ## Contributor Quick Reference
 
-For occasional contributors and PR authors. Full developer docs: https://hermes-agent.nousresearch.com/docs/developer-guide/
+For occasional contributors and PR authors. Full developer docs: https://claudia-autonomous.nousresearch.com/docs/developer-guide/
 
 ### Project Layout
 
 ```
-hermes-agent/
+claudia-autonomous/
 ├── run_agent.py          # AIAgent — core conversation loop
 ├── model_tools.py        # Tool discovery and dispatch
 ├── toolsets.py           # Toolset definitions
-├── cli.py                # Interactive CLI (HermesCLI)
+├── cli.py                # Interactive CLI (ClaudiaCLI)
 ├── claudia_state.py       # SQLite session store
 ├── agent/                # Prompt builder, compression, display, adapters
 ├── claudia_cli/           # CLI subcommands, config, setup, commands

@@ -6,7 +6,7 @@ author: Orchestra Research
 license: MIT
 dependencies: [accelerate, torch, transformers]
 metadata:
-  hermes:
+  claudia:
     tags: [Distributed Training, HuggingFace, Accelerate, DeepSpeed, FSDP, Mixed Precision, PyTorch, DDP, Unified API, Simple]
 
 ---

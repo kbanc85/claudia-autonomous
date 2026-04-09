@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""OpenClaw -> Hermes migration helper.
+"""OpenClaw -> Claudia migration helper.
 
 This script migrates the parts of an OpenClaw user footprint that map cleanly
-into Hermes Agent, archives selected unmapped docs for manual review, and
+into Claudia, archives selected unmapped docs for manual review, and
 reports exactly what was skipped and why.
 """
 
@@ -45,7 +45,7 @@ WORKSPACE_INSTRUCTIONS_FILENAME = "AGENTS" + ".md"
 MIGRATION_OPTION_METADATA: Dict[str, Dict[str, str]] = {
     "soul": {
         "label": "SOUL.md",
-        "description": "Import the OpenClaw persona file into Hermes.",
+        "description": "Import the OpenClaw persona file into Claudia.",
     },
     "workspace-agents": {
         "label": "Workspace instructions",
@@ -53,23 +53,23 @@ MIGRATION_OPTION_METADATA: Dict[str, Dict[str, str]] = {
     },
     "memory": {
         "label": "MEMORY.md",
-        "description": "Import long-term memory entries into Hermes memories.",
+        "description": "Import long-term memory entries into Claudia memories.",
     },
     "user-profile": {
         "label": "USER.md",
-        "description": "Import user profile entries into Hermes memories.",
+        "description": "Import user profile entries into Claudia memories.",
     },
     "messaging-settings": {
         "label": "Messaging settings",
-        "description": "Import Hermes-compatible messaging settings such as allowlists and working directory.",
+        "description": "Import Claudia-compatible messaging settings such as allowlists and working directory.",
     },
     "secret-settings": {
         "label": "Allowlisted secrets",
-        "description": "Import the small allowlist of Hermes-compatible secrets when explicitly enabled.",
+        "description": "Import the small allowlist of Claudia-compatible secrets when explicitly enabled.",
     },
     "command-allowlist": {
         "label": "Command allowlist",
-        "description": "Merge OpenClaw exec approval patterns into Hermes command_allowlist.",
+        "description": "Merge OpenClaw exec approval patterns into Claudia command_allowlist.",
     },
     "skills": {
         "label": "User skills",
@@ -81,39 +81,39 @@ MIGRATION_OPTION_METADATA: Dict[str, Dict[str, str]] = {
     },
     "discord-settings": {
         "label": "Discord settings",
-        "description": "Import Discord bot token and allowlist into Hermes .env.",
+        "description": "Import Discord bot token and allowlist into Claudia .env.",
     },
     "slack-settings": {
         "label": "Slack settings",
-        "description": "Import Slack bot/app tokens and allowlist into Hermes .env.",
+        "description": "Import Slack bot/app tokens and allowlist into Claudia .env.",
     },
     "whatsapp-settings": {
         "label": "WhatsApp settings",
-        "description": "Import WhatsApp allowlist into Hermes .env.",
+        "description": "Import WhatsApp allowlist into Claudia .env.",
     },
     "signal-settings": {
         "label": "Signal settings",
-        "description": "Import Signal account, HTTP URL, and allowlist into Hermes .env.",
+        "description": "Import Signal account, HTTP URL, and allowlist into Claudia .env.",
     },
     "provider-keys": {
         "label": "Provider API keys",
-        "description": "Import model provider API keys into Hermes .env (requires --migrate-secrets).",
+        "description": "Import model provider API keys into Claudia .env (requires --migrate-secrets).",
     },
     "model-config": {
         "label": "Default model",
-        "description": "Import the default model setting into Hermes config.yaml.",
+        "description": "Import the default model setting into Claudia config.yaml.",
     },
     "tts-config": {
         "label": "TTS configuration",
-        "description": "Import TTS provider and voice settings into Hermes config.yaml.",
+        "description": "Import TTS provider and voice settings into Claudia config.yaml.",
     },
     "shared-skills": {
         "label": "Shared skills",
-        "description": "Copy shared OpenClaw skills from ~/.openclaw/skills/ into Hermes.",
+        "description": "Copy shared OpenClaw skills from ~/.openclaw/skills/ into Claudia.",
     },
     "daily-memory": {
         "label": "Daily memory files",
-        "description": "Merge daily memory entries from workspace/memory/ into Hermes MEMORY.md.",
+        "description": "Merge daily memory entries from workspace/memory/ into Claudia MEMORY.md.",
     },
     "archive": {
         "label": "Archive unmapped docs",
@@ -121,7 +121,7 @@ MIGRATION_OPTION_METADATA: Dict[str, Dict[str, str]] = {
     },
     "mcp-servers": {
         "label": "MCP servers",
-        "description": "Import MCP server definitions from OpenClaw into Hermes config.yaml.",
+        "description": "Import MCP server definitions from OpenClaw into Claudia config.yaml.",
     },
     "plugins-config": {
         "label": "Plugins configuration",
@@ -129,7 +129,7 @@ MIGRATION_OPTION_METADATA: Dict[str, Dict[str, str]] = {
     },
     "cron-jobs": {
         "label": "Cron / scheduled tasks",
-        "description": "Import cron job definitions. Archive for manual recreation via 'hermes cron'.",
+        "description": "Import cron job definitions. Archive for manual recreation via 'claudia cron'.",
     },
     "hooks-config": {
         "label": "Hooks and webhooks",
@@ -137,7 +137,7 @@ MIGRATION_OPTION_METADATA: Dict[str, Dict[str, str]] = {
     },
     "agent-config": {
         "label": "Agent defaults and multi-agent setup",
-        "description": "Import agent defaults (compaction, context, thinking) into Hermes config. Archive multi-agent list.",
+        "description": "Import agent defaults (compaction, context, thinking) into Claudia config. Archive multi-agent list.",
     },
     "gateway-config": {
         "label": "Gateway configuration",
@@ -145,11 +145,11 @@ MIGRATION_OPTION_METADATA: Dict[str, Dict[str, str]] = {
     },
     "session-config": {
         "label": "Session configuration",
-        "description": "Import session reset policies (daily/idle) into Hermes session_reset config.",
+        "description": "Import session reset policies (daily/idle) into Claudia session_reset config.",
     },
     "full-providers": {
         "label": "Full model provider definitions",
-        "description": "Import custom model providers (baseUrl, apiType, headers) into Hermes custom_providers.",
+        "description": "Import custom model providers (baseUrl, apiType, headers) into Claudia custom_providers.",
     },
     "deep-channels": {
         "label": "Deep channel configuration",
@@ -157,15 +157,15 @@ MIGRATION_OPTION_METADATA: Dict[str, Dict[str, str]] = {
     },
     "browser-config": {
         "label": "Browser configuration",
-        "description": "Import browser automation settings into Hermes config.yaml.",
+        "description": "Import browser automation settings into Claudia config.yaml.",
     },
     "tools-config": {
         "label": "Tools configuration",
-        "description": "Import tool settings (exec timeout, sandbox, web search) into Hermes config.yaml.",
+        "description": "Import tool settings (exec timeout, sandbox, web search) into Claudia config.yaml.",
     },
     "approvals-config": {
         "label": "Approval rules",
-        "description": "Import approval mode and rules into Hermes config.yaml approvals section.",
+        "description": "Import approval mode and rules into Claudia config.yaml approvals section.",
     },
     "memory-backend": {
         "label": "Memory backend configuration",
@@ -336,7 +336,7 @@ def load_yaml_file(path: Path) -> Dict[str, Any]:
 
 def dump_yaml_file(path: Path, data: Dict[str, Any]) -> None:
     if yaml is None:
-        raise RuntimeError("PyYAML is required to update Hermes config.yaml")
+        raise RuntimeError("PyYAML is required to update Claudia config.yaml")
     ensure_parent(path)
     path.write_text(
         yaml.safe_dump(data, sort_keys=False, allow_unicode=False),
@@ -516,7 +516,7 @@ def write_report(output_dir: Path, report: Dict[str, Any]) -> None:
         grouped.setdefault(item["status"], []).append(item)
 
     lines = [
-        "# OpenClaw -> Hermes Migration Report",
+        "# OpenClaw -> Claudia Migration Report",
         "",
         f"- Timestamp: {report['timestamp']}",
         f"- Mode: {report['mode']}",
@@ -884,7 +884,7 @@ class Migrator:
             self.record("command-allowlist", source, destination, "skipped", "No allowlist patterns found")
             return
         if not destination.exists():
-            self.record("command-allowlist", source, destination, "skipped", "Hermes config.yaml does not exist yet")
+            self.record("command-allowlist", source, destination, "skipped", "Claudia config.yaml does not exist yet")
             return
 
         config = load_yaml_file(destination)
@@ -1002,7 +1002,7 @@ class Migrator:
         if additions:
             self.merge_env_values(additions, "messaging-settings", self.source_root / "openclaw.json")
         else:
-            self.record("messaging-settings", self.source_root / "openclaw.json", self.target_root / ".env", "skipped", "No Hermes-compatible messaging settings found")
+            self.record("messaging-settings", self.source_root / "openclaw.json", self.target_root / ".env", "skipped", "No Claudia-compatible messaging settings found")
 
     def handle_secret_settings(self, config: Optional[Dict[str, Any]] = None) -> None:
         config = config or self.load_openclaw_config()
@@ -1049,7 +1049,7 @@ class Migrator:
                 self.source_root / "openclaw.json",
                 self.target_root / ".env",
                 "skipped",
-                "No allowlisted Hermes-compatible secrets found",
+                "No allowlisted Claudia-compatible secrets found",
                 supported_targets=sorted(SUPPORTED_SECRET_TARGETS),
             )
 
@@ -1645,16 +1645,16 @@ class Migrator:
         ]
         for candidate in candidates:
             if candidate:
-                self.archive_path(candidate, reason="No direct Hermes destination; archived for manual review")
+                self.archive_path(candidate, reason="No direct Claudia destination; archived for manual review")
 
         for rel in ("workspace/.learnings", "workspace/memory"):
             candidate = self.source_root / rel
             if candidate.exists():
-                self.archive_path(candidate, reason="No direct Hermes destination; archived for manual review")
+                self.archive_path(candidate, reason="No direct Claudia destination; archived for manual review")
 
         partially_extracted = [
-            ("openclaw.json", "Selected Hermes-compatible values were extracted; raw OpenClaw config was not copied."),
-            ("credentials/telegram-default-allowFrom.json", "Selected Hermes-compatible values were extracted; raw credentials file was not copied."),
+            ("openclaw.json", "Selected Claudia-compatible values were extracted; raw OpenClaw config was not copied."),
+            ("credentials/telegram-default-allowFrom.json", "Selected Claudia-compatible values were extracted; raw credentials file was not copied."),
         ]
         for rel, reason in partially_extracted:
             candidate = self.source_root / rel
@@ -1703,7 +1703,7 @@ class Migrator:
                 continue
             if name in existing_mcp and not self.overwrite:
                 self.record("mcp-servers", f"mcp.servers.{name}", f"mcp_servers.{name}", "conflict",
-                            "MCP server already exists in Hermes config")
+                            "MCP server already exists in Claudia config")
                 continue
 
             claudia_srv: Dict[str, Any] = {}
@@ -1813,7 +1813,7 @@ class Migrator:
             dest = self.archive_dir / "cron-config.json"
             dest.write_text(json.dumps(cron, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
             self.record("cron-jobs", "openclaw.json cron.*", str(dest), "archived",
-                        "Cron config archived. Use 'hermes cron' to recreate jobs manually.")
+                        "Cron config archived. Use 'claudia cron' to recreate jobs manually.")
         else:
             self.record("cron-jobs", "openclaw.json cron.*", "archive/cron-config.json",
                         "archived", "Would archive cron config")
@@ -1884,7 +1884,7 @@ class Migrator:
             agent_cfg["verbose"] = defaults["verboseDefault"]
             changes = True
         if defaults.get("thinkingDefault"):
-            # Map OpenClaw thinking -> Hermes reasoning_effort
+            # Map OpenClaw thinking -> Claudia reasoning_effort
             thinking = defaults["thinkingDefault"]
             if thinking in ("always", "high"):
                 agent_cfg["reasoning_effort"] = "high"
@@ -1953,7 +1953,7 @@ class Migrator:
                 self.maybe_backup(claudia_cfg_path)
                 dump_yaml_file(claudia_cfg_path, claudia_cfg)
             self.record("agent-config", "openclaw.json agents.defaults", "config.yaml agent/compression/terminal",
-                        "migrated", "Agent defaults mapped to Hermes config")
+                        "migrated", "Agent defaults mapped to Claudia config")
 
         # Archive multi-agent list
         if agent_list:
@@ -1988,7 +1988,7 @@ class Migrator:
             dest = self.archive_dir / "gateway-config.json"
             dest.write_text(json.dumps(gateway, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         self.record("gateway-config", "openclaw.json gateway.*", "archive/gateway-config.json",
-                    "archived", "Gateway config archived. Use 'hermes gateway' to configure.")
+                    "archived", "Gateway config archived. Use 'claudia gateway' to configure.")
 
         # Extract gateway auth token to .env if present
         auth = gateway.get("auth") or {}
@@ -2177,21 +2177,21 @@ class Migrator:
                         continue
                     self._set_env_var(env_key, str(val), f"channels.{ch_name}.{oc_key}")
 
-        # Map Discord-specific settings to Hermes config
+        # Map Discord-specific settings to Claudia config
         discord_cfg = channels.get("discord") or {}
         if discord_cfg:
             claudia_cfg_path = self.target_root / "config.yaml"
             claudia_cfg = load_yaml_file(claudia_cfg_path)
-            discord_hermes = claudia_cfg.get("discord") or {}
+            discord_claudia = claudia_cfg.get("discord") or {}
             changed = False
             if "requireMention" in discord_cfg:
-                discord_hermes["require_mention"] = discord_cfg["requireMention"]
+                discord_claudia["require_mention"] = discord_cfg["requireMention"]
                 changed = True
             if discord_cfg.get("autoThread") is not None:
-                discord_hermes["auto_thread"] = discord_cfg["autoThread"]
+                discord_claudia["auto_thread"] = discord_cfg["autoThread"]
                 changed = True
             if changed and self.execute:
-                claudia_cfg["discord"] = discord_hermes
+                claudia_cfg["discord"] = discord_claudia
                 dump_yaml_file(claudia_cfg_path, claudia_cfg)
 
         # Archive complex channel configs (group settings, thread bindings, etc.)
@@ -2224,19 +2224,19 @@ class Migrator:
 
         claudia_cfg_path = self.target_root / "config.yaml"
         claudia_cfg = load_yaml_file(claudia_cfg_path)
-        browser_hermes = claudia_cfg.get("browser") or {}
+        browser_claudia = claudia_cfg.get("browser") or {}
         changed = False
 
-        # Map fields that have Hermes equivalents
+        # Map fields that have Claudia equivalents
         if browser.get("cdpUrl"):
-            browser_hermes["cdp_url"] = browser["cdpUrl"]
+            browser_claudia["cdp_url"] = browser["cdpUrl"]
             changed = True
         if browser.get("headless") is not None:
-            browser_hermes["headless"] = browser["headless"]
+            browser_claudia["headless"] = browser["headless"]
             changed = True
 
         if changed:
-            claudia_cfg["browser"] = browser_hermes
+            claudia_cfg["browser"] = browser_claudia
             if self.execute:
                 self.maybe_backup(claudia_cfg_path)
                 dump_yaml_file(claudia_cfg_path, claudia_cfg)
@@ -2416,7 +2416,7 @@ class Migrator:
         if not self.output_dir:
             return
         notes = [
-            "# OpenClaw -> Hermes Migration Notes",
+            "# OpenClaw -> Claudia Migration Notes",
             "",
             "This document lists items that require manual attention after migration.",
             "",
@@ -2434,7 +2434,7 @@ class Migrator:
                 "## Archived Items (Manual Review Needed)",
                 "",
                 "These OpenClaw configurations were archived because they don't have a",
-                "direct 1:1 mapping in Hermes. Review each file and recreate manually:",
+                "direct 1:1 mapping in Claudia. Review each file and recreate manually:",
                 "",
             ])
             for item in archived:
@@ -2444,9 +2444,9 @@ class Migrator:
         conflicts = [i for i in self.items if i.status == "conflict"]
         if conflicts:
             notes.extend([
-                "## Conflicts (Existing Hermes Config Not Overwritten)",
+                "## Conflicts (Existing Claudia Config Not Overwritten)",
                 "",
-                "These items already existed in your Hermes config. Re-run with",
+                "These items already existed in your Claudia config. Re-run with",
                 "`--overwrite` to force, or merge manually:",
                 "",
             ])
@@ -2458,25 +2458,25 @@ class Migrator:
             "## IMPORTANT: Archive the OpenClaw Directory",
             "",
             "After migration, your OpenClaw directory still exists on disk with workspace",
-            "state files (todo.json, sessions, logs). If the Hermes agent discovers these",
-            "directories, it may read/write to them instead of the Hermes state, causing",
+            "state files (todo.json, sessions, logs). If the Claudia discovers these",
+            "directories, it may read/write to them instead of the Claudia state, causing",
             "confusion (e.g., cron jobs reading a different todo list than interactive sessions).",
             "",
-            "**Strongly recommended:** Run `hermes claw cleanup` to rename the OpenClaw",
+            "**Strongly recommended:** Run `claudia migrate cleanup` to rename the OpenClaw",
             "directory to `.openclaw.pre-migration`. This prevents the agent from finding it.",
             "The directory is renamed, not deleted — you can undo this at any time.",
             "",
             "If you skip this step and notice the agent getting confused about workspaces",
-            "or todo lists, run `hermes claw cleanup` to fix it.",
+            "or todo lists, run `claudia migrate cleanup` to fix it.",
             "",
-            "## Hermes-Specific Setup",
+            "## Claudia-Specific Setup",
             "",
             "After migration, you may want to:",
-            "- Run `hermes claw cleanup` to archive the OpenClaw directory (prevents state confusion)",
-            "- Run `hermes setup` to configure any remaining settings",
-            "- Run `hermes mcp list` to verify MCP servers were imported correctly",
-            "- Run `hermes cron` to recreate scheduled tasks (see archive/cron-config.json)",
-            "- Run `hermes gateway install` if you need the gateway service",
+            "- Run `claudia migrate cleanup` to archive the OpenClaw directory (prevents state confusion)",
+            "- Run `claudia setup` to configure any remaining settings",
+            "- Run `claudia mcp list` to verify MCP servers were imported correctly",
+            "- Run `claudia cron` to recreate scheduled tasks (see archive/cron-config.json)",
+            "- Run `claudia gateway install` if you need the gateway service",
             "- Review `~/.claudia/config.yaml` for any adjustments",
             "",
         ])
@@ -2489,19 +2489,19 @@ class Migrator:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Migrate OpenClaw user state into Hermes Agent.")
+    parser = argparse.ArgumentParser(description="Migrate OpenClaw user state into Claudia.")
     parser.add_argument("--source", default=str(Path.home() / ".openclaw"), help="OpenClaw home directory")
-    parser.add_argument("--target", default=str(Path.home() / ".claudia"), help="Hermes home directory")
+    parser.add_argument("--target", default=str(Path.home() / ".claudia"), help="Claudia home directory")
     parser.add_argument(
         "--workspace-target",
         help="Optional workspace root where the workspace instructions file should be copied",
     )
     parser.add_argument("--execute", action="store_true", help="Apply changes instead of reporting a dry run")
-    parser.add_argument("--overwrite", action="store_true", help="Overwrite existing Hermes targets after backing them up")
+    parser.add_argument("--overwrite", action="store_true", help="Overwrite existing Claudia targets after backing them up")
     parser.add_argument(
         "--migrate-secrets",
         action="store_true",
-        help="Import a narrow allowlist of Hermes-compatible secrets into the target env file",
+        help="Import a narrow allowlist of Claudia-compatible secrets into the target env file",
     )
     parser.add_argument(
         "--skill-conflict",
@@ -2561,7 +2561,7 @@ def main() -> int:
 
     print()
     print(f"  ╔══════════════════════════════════════════════════════╗")
-    print(f"  ║   OpenClaw -> Hermes Migration   [{mode_label:>8s}]   ║")
+    print(f"  ║   OpenClaw -> Claudia Migration   [{mode_label:>8s}]   ║")
     print(f"  ╠══════════════════════════════════════════════════════╣")
     print(f"  ║  Source:  {str(report['source_root'])[:42]:<42s}  ║")
     print(f"  ║  Target:  {str(report['target_root'])[:42]:<42s}  ║")
@@ -2631,9 +2631,9 @@ def main() -> int:
         print()
         print("  Next steps:")
         print("    1. Review ~/.claudia/config.yaml")
-        print("    2. Run: hermes mcp list")
+        print("    2. Run: claudia mcp list")
         if any(i["kind"] == "cron-jobs" and i["status"] == "archived" for i in items):
-            print("    3. Recreate cron jobs: hermes cron")
+            print("    3. Recreate cron jobs: claudia cron")
         if report.get("output_dir"):
             print(f"    → Full report: {report['output_dir']}/MIGRATION_NOTES.md")
     elif not args.execute:

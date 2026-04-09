@@ -116,7 +116,7 @@ def switch_model(
                     error_message=(
                         "No custom endpoint configured. Set model.base_url "
                         "in config.yaml, or set OPENAI_BASE_URL in .env, "
-                        "or run: hermes setup → Custom OpenAI-compatible endpoint"
+                        "or run: claudia setup → Custom OpenAI-compatible endpoint"
                     ),
                 )
             return ModelSwitchResult(
@@ -219,7 +219,7 @@ def switch_to_custom_provider() -> CustomAutoResult:
             error_message=(
                 "No custom endpoint configured. "
                 "Set model.base_url in config.yaml, or set OPENAI_BASE_URL "
-                "in .env, or run: hermes setup → Custom OpenAI-compatible endpoint"
+                "in .env, or run: claudia setup → Custom OpenAI-compatible endpoint"
             ),
         )
 

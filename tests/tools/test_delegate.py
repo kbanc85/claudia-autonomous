@@ -615,7 +615,7 @@ class TestDelegationCredentialResolution(unittest.TestCase):
             "api_mode": "chat_completions",
         }
         parent = _make_mock_parent(depth=0)
-        cfg = {"model": "hermes-3-llama-3.1-8b", "provider": "nous"}
+        cfg = {"model": "claudia-3-llama-3.1-8b", "provider": "nous"}
         creds = _resolve_delegation_credentials(cfg, parent)
         self.assertEqual(creds["provider"], "nous")
         self.assertEqual(creds["base_url"], "https://inference-api.nousresearch.com/v1")

@@ -21,7 +21,7 @@ from claudia_cli.config import (
 )
 
 
-class TestGetHermesHome:
+class TestGetClaudiaHome:
     def test_default_path(self):
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("CLAUDIA_HOME", None)
@@ -34,7 +34,7 @@ class TestGetHermesHome:
             assert home == Path("/custom/path")
 
 
-class TestEnsureHermesHome:
+class TestEnsureClaudiaHome:
     def test_creates_subdirs(self, tmp_path):
         with patch.dict(os.environ, {"CLAUDIA_HOME": str(tmp_path)}):
             ensure_claudia_home()

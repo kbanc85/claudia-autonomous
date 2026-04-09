@@ -514,7 +514,7 @@ class TestGatewayProtection:
     """Prevent agents from starting the gateway outside systemd management."""
 
     def test_gateway_run_with_disown_detected(self):
-        cmd = "kill 1605 && cd ~/.claudia/hermes-agent && source venv/bin/activate && python -m claudia_cli.main gateway run --replace &disown; echo done"
+        cmd = "kill 1605 && cd ~/.claudia/claudia-autonomous && source venv/bin/activate && python -m claudia_cli.main gateway run --replace &disown; echo done"
         dangerous, key, desc = detect_dangerous_command(cmd)
         assert dangerous is True
         assert "systemctl" in desc
@@ -542,19 +542,19 @@ class TestGatewayProtection:
 
     def test_systemctl_restart_not_flagged(self):
         """Using systemctl to manage the gateway is the correct approach."""
-        cmd = "systemctl --user restart hermes-gateway"
+        cmd = "systemctl --user restart claudia-gateway"
         dangerous, key, desc = detect_dangerous_command(cmd)
         assert dangerous is False
 
     def test_pkill_claudia_detected(self):
-        """pkill targeting hermes/gateway processes must be caught."""
+        """pkill targeting claudia/gateway processes must be caught."""
         cmd = 'pkill -f "cli.py --gateway"'
         dangerous, key, desc = detect_dangerous_command(cmd)
         assert dangerous is True
         assert "self-termination" in desc
 
     def test_killall_claudia_detected(self):
-        cmd = "killall hermes"
+        cmd = "killall claudia"
         dangerous, key, desc = detect_dangerous_command(cmd)
         assert dangerous is True
         assert "self-termination" in desc

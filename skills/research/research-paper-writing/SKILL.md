@@ -8,7 +8,7 @@ license: MIT
 dependencies: [semanticscholar, arxiv, habanero, requests, scipy, numpy, matplotlib, SciencePlots]
 platforms: [linux, macos]
 metadata:
-  hermes:
+  claudia:
     tags: [Research, Paper Writing, Experiments, ML, AI, NeurIPS, ICML, ICLR, ACL, AAAI, COLM, LaTeX, Citations, Statistical Analysis]
     category: research
     related_skills: [arxiv, ml-paper-writing, subagent-driven-development, plan]
@@ -1343,13 +1343,13 @@ Camera-Ready Checklist:
 
 ---
 
-## Hermes Agent Integration
+## Claudia Integration
 
-This skill is designed for the Hermes agent. It uses Hermes tools, delegation, scheduling, and memory for the full research lifecycle.
+This skill is designed for the Claudia. It uses Claudia tools, delegation, scheduling, and memory for the full research lifecycle.
 
 ### Related Skills
 
-Compose this skill with other Hermes skills for specific phases:
+Compose this skill with other Claudia skills for specific phases:
 
 | Skill | When to Use | How to Load |
 |-------|-------------|-------------|
@@ -1362,7 +1362,7 @@ Compose this skill with other Hermes skills for specific phases:
 
 **This skill supersedes `ml-paper-writing`** — it contains all of ml-paper-writing's content plus the full experiment/analysis pipeline and autoreason methodology.
 
-### Hermes Tools Reference
+### Claudia Tools Reference
 
 | Tool | Usage in This Pipeline |
 |------|----------------------|

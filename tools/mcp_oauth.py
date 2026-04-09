@@ -1,7 +1,7 @@
 """Thin OAuth adapter for MCP HTTP servers.
 
 Wraps the MCP SDK's built-in ``OAuthClientProvider`` (which implements
-``httpx.Auth``) with Hermes-specific token storage and browser-based
+``httpx.Auth``) with Claudia-specific token storage and browser-based
 authorization.  The SDK handles all of the heavy lifting: PKCE generation,
 metadata discovery, dynamic client registration, token exchange, and refresh.
 
@@ -55,7 +55,7 @@ def _sanitize_server_name(name: str) -> str:
     return clean[:60] or "unnamed"
 
 
-class HermesTokenStorage:
+class ClaudiaTokenStorage:
     """File-backed token storage implementing the MCP SDK's TokenStorage protocol."""
 
     def __init__(self, server_name: str):
@@ -181,7 +181,7 @@ async def _wait_for_callback() -> tuple[str, str | None]:
     If the callback times out, raises ``OAuthNonInteractiveError`` instead of
     calling blocking ``input()`` — the old ``input()`` call would block the
     entire MCP asyncio event loop, preventing all other MCP servers from
-    connecting and potentially hanging Hermes startup indefinitely.
+    connecting and potentially hanging Claudia startup indefinitely.
     """
     global _oauth_port
     port = _oauth_port or _find_free_port()
@@ -206,7 +206,7 @@ async def _wait_for_callback() -> tuple[str, str | None]:
     if not code:
         raise OAuthNonInteractiveError(
             "OAuth browser callback timed out after 120 seconds. "
-            "Run 'hermes mcp auth <server-name>' to authorize interactively."
+            "Run 'claudia mcp auth <server-name>' to authorize interactively."
         )
     return code, state
 
@@ -255,7 +255,7 @@ def build_oauth_auth(server_name: str, server_url: str):
         logger.warning("MCP SDK auth module not available — OAuth disabled")
         return None
 
-    storage = HermesTokenStorage(server_name)
+    storage = ClaudiaTokenStorage(server_name)
     interactive = _is_interactive()
 
     if not interactive:
@@ -270,7 +270,7 @@ def build_oauth_auth(server_name: str, server_url: str):
             logger.warning(
                 "MCP server '%s' requires OAuth but no cached tokens found "
                 "and environment is non-interactive. The server will fail to "
-                "connect. Run 'hermes mcp auth %s' to authorize interactively.",
+                "connect. Run 'claudia mcp auth %s' to authorize interactively.",
                 server_name, server_name,
             )
 
@@ -279,7 +279,7 @@ def build_oauth_auth(server_name: str, server_url: str):
     redirect_uri = f"http://127.0.0.1:{_oauth_port}/callback"
 
     client_metadata = OAuthClientMetadata(
-        client_name="Hermes Agent",
+        client_name="Claudia",
         redirect_uris=[redirect_uri],
         grant_types=["authorization_code", "refresh_token"],
         response_types=["code"],
@@ -304,7 +304,7 @@ def build_oauth_auth(server_name: str, server_url: str):
             raise OAuthNonInteractiveError(
                 f"MCP server '{server_name}' requires interactive OAuth "
                 f"authorization but the environment is non-interactive "
-                f"(no TTY). Run 'hermes mcp auth {server_name}' to "
+                f"(no TTY). Run 'claudia mcp auth {server_name}' to "
                 f"authorize, then restart."
             )
 
@@ -323,4 +323,4 @@ def build_oauth_auth(server_name: str, server_url: str):
 
 def remove_oauth_tokens(server_name: str) -> None:
     """Delete stored OAuth tokens and client info for a server."""
-    HermesTokenStorage(server_name).remove()
+    ClaudiaTokenStorage(server_name).remove()

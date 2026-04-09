@@ -1,8 +1,8 @@
-# nix/packages.nix — Hermes Agent package built with uv2nix
+# nix/packages.nix — Claudia package built with uv2nix
 { inputs, ... }: {
   perSystem = { pkgs, system, ... }:
     let
-      hermesVenv = pkgs.callPackage ./python.nix {
+      claudiaVenv = pkgs.callPackage ./python.nix {
         inherit (inputs) uv2nix pyproject-nix pyproject-build-systems;
       };
 
@@ -20,7 +20,7 @@
       runtimePath = pkgs.lib.makeBinPath runtimeDeps;
     in {
       packages.default = pkgs.stdenv.mkDerivation {
-        pname = "hermes-agent";
+        pname = "claudia-autonomous";
         version = "0.1.0";
 
         dontUnpack = true;
@@ -30,22 +30,22 @@
         installPhase = ''
           runHook preInstall
 
-          mkdir -p $out/share/hermes-agent $out/bin
-          cp -r ${bundledSkills} $out/share/hermes-agent/skills
+          mkdir -p $out/share/claudia-autonomous $out/bin
+          cp -r ${bundledSkills} $out/share/claudia-autonomous/skills
 
           ${pkgs.lib.concatMapStringsSep "\n" (name: ''
-            makeWrapper ${hermesVenv}/bin/${name} $out/bin/${name} \
+            makeWrapper ${claudiaVenv}/bin/${name} $out/bin/${name} \
               --suffix PATH : "${runtimePath}" \
-              --set CLAUDIA_BUNDLED_SKILLS $out/share/hermes-agent/skills
-          '') [ "hermes" "hermes-agent" "hermes-acp" ]}
+              --set CLAUDIA_BUNDLED_SKILLS $out/share/claudia-autonomous/skills
+          '') [ "claudia" "claudia-autonomous" "claudia-acp" ]}
 
           runHook postInstall
         '';
 
         meta = with pkgs.lib; {
           description = "AI agent with advanced tool-calling capabilities";
-          homepage = "https://github.com/NousResearch/hermes-agent";
-          mainProgram = "hermes";
+          homepage = "https://github.com/NousResearch/claudia-autonomous";
+          mainProgram = "claudia";
           license = licenses.mit;
           platforms = platforms.unix;
         };

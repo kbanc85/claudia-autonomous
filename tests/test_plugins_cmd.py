@@ -1,4 +1,4 @@
-"""Tests for claudia_cli.plugins_cmd — the ``hermes plugins`` CLI subcommand."""
+"""Tests for claudia_cli.plugins_cmd — the ``claudia plugins`` CLI subcommand."""
 
 from __future__ import annotations
 

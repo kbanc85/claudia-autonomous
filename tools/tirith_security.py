@@ -106,7 +106,7 @@ _MARKER_TTL = 86400  # 24 hours
 
 
 def _get_claudia_home() -> str:
-    """Return the Hermes home directory, respecting CLAUDIA_HOME env var."""
+    """Return the Claudia home directory, respecting CLAUDIA_HOME env var."""
     return str(get_claudia_home())
 
 

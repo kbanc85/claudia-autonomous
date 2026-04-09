@@ -52,7 +52,7 @@ logger = logging.getLogger(__name__)
 # Path Configuration
 # ============================================================================
 
-# Path to tinker-atropos submodule (relative to hermes-agent root)
+# Path to tinker-atropos submodule (relative to claudia-autonomous root)
 CLAUDIA_ROOT = Path(__file__).parent.parent
 TINKER_ATROPOS_ROOT = CLAUDIA_ROOT / "tinker-atropos"
 ENVIRONMENTS_DIR = TINKER_ATROPOS_ROOT / "tinker_atropos" / "environments"

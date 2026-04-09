@@ -10,12 +10,12 @@ AI-native cross-session user modeling with dialectic Q&A, semantic search, peer 
 ## Setup
 
 ```bash
-hermes memory setup    # select "honcho"
+claudia memory setup    # select "honcho"
 ```
 
 Or manually:
 ```bash
-hermes config set memory.provider honcho
+claudia config set memory.provider honcho
 echo "HONCHO_API_KEY=your-key" >> ~/.claudia/.env
 ```
 

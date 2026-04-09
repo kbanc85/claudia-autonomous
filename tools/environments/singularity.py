@@ -114,7 +114,7 @@ def _get_scratch_dir() -> Path:
 
     scratch = Path("/scratch")
     if scratch.exists() and os.access(scratch, os.W_OK):
-        user_scratch = scratch / os.getenv("USER", "hermes") / "hermes-agent"
+        user_scratch = scratch / os.getenv("USER", "claudia") / "claudia-autonomous"
         user_scratch.mkdir(parents=True, exist_ok=True)
         logger.info("Using /scratch for sandboxes: %s", user_scratch)
         return user_scratch
@@ -234,7 +234,7 @@ class SingularityEnvironment(BaseEnvironment):
 
         # Persistent overlay directory
         if self._persistent:
-            overlay_base = _get_scratch_dir() / "hermes-overlays"
+            overlay_base = _get_scratch_dir() / "claudia-overlays"
             overlay_base.mkdir(parents=True, exist_ok=True)
             self._overlay_dir = overlay_base / f"overlay-{task_id}"
             self._overlay_dir.mkdir(parents=True, exist_ok=True)

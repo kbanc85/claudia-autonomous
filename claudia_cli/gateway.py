@@ -1,7 +1,7 @@
 """
-Gateway subcommand for hermes CLI.
+Gateway subcommand for claudia CLI.
 
-Handles: hermes gateway [run|start|stop|restart|status|install|uninstall|setup]
+Handles: claudia gateway [run|start|stop|restart|status|install|uninstall|setup]
 """
 
 import asyncio
@@ -16,7 +16,7 @@ PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 
 from claudia_cli.config import get_env_value, get_claudia_home, save_env_value, is_managed, managed_error
 # display_claudia_home is imported lazily at call sites to avoid ImportError
-# when claudia_constants is cached from a pre-update version during `hermes update`.
+# when claudia_constants is cached from a pre-update version during `claudia update`.
 from claudia_cli.setup import (
     print_header, print_info, print_success, print_warning, print_error,
     prompt, prompt_choice, prompt_yes_no,
@@ -34,7 +34,7 @@ def find_gateway_pids() -> list:
     patterns = [
         "claudia_cli.main gateway",
         "claudia_cli/main.py gateway",
-        "hermes gateway",
+        "claudia gateway",
         "gateway/run.py",
     ]
 
@@ -123,8 +123,8 @@ def is_windows() -> bool:
 # Service Configuration
 # =============================================================================
 
-_SERVICE_BASE = "hermes-gateway"
-SERVICE_DESCRIPTION = "Hermes Agent Gateway - Messaging Platform Integration"
+_SERVICE_BASE = "claudia-gateway"
+SERVICE_DESCRIPTION = "Claudia Gateway - Messaging Platform Integration"
 
 
 def _profile_suffix() -> str:
@@ -157,8 +157,8 @@ def _profile_suffix() -> str:
 def get_service_name() -> str:
     """Derive a systemd service name scoped to this CLAUDIA_HOME.
 
-    Default ``~/.claudia`` returns ``hermes-gateway`` (backward compatible).
-    Profile ``~/.claudia/profiles/coder`` returns ``hermes-gateway-coder``.
+    Default ``~/.claudia`` returns ``claudia-gateway`` (backward compatible).
+    Profile ``~/.claudia/profiles/coder`` returns ``claudia-gateway-coder``.
     Any other CLAUDIA_HOME appends a short hash for uniqueness.
     """
     suffix = _profile_suffix()
@@ -240,8 +240,8 @@ def print_systemd_scope_conflict_warning() -> None:
     print_info("  This is confusing and can make start/stop/status behavior ambiguous.")
     print_info("  Default gateway commands target the user service unless you pass --system.")
     print_info("  Keep one of these:")
-    print_info("    hermes gateway uninstall")
-    print_info("    sudo hermes gateway uninstall --system")
+    print_info("    claudia gateway uninstall")
+    print_info("    sudo claudia gateway uninstall --system")
 
 
 def _require_root_for_system_service(action: str) -> None:
@@ -312,12 +312,12 @@ def install_linux_gateway_from_setup(force: bool = False) -> tuple[str | None, b
     if scope == "system":
         run_as_user = _default_system_service_user()
         if os.geteuid() != 0:
-            print_warning("  System service install requires sudo, so Hermes can't create it from this user session.")
+            print_warning("  System service install requires sudo, so Claudia can't create it from this user session.")
             if run_as_user:
-                print_info(f"  After setup, run: sudo hermes gateway install --system --run-as-user {run_as_user}")
+                print_info(f"  After setup, run: sudo claudia gateway install --system --run-as-user {run_as_user}")
             else:
-                print_info("  After setup, run: sudo hermes gateway install --system --run-as-user <your-user>")
-            print_info("  Then start it with: sudo hermes gateway start --system")
+                print_info("  After setup, run: sudo claudia gateway install --system --run-as-user <your-user>")
+            print_info("  Then start it with: sudo claudia gateway start --system")
             return scope, False
 
         if not run_as_user:
@@ -440,10 +440,10 @@ def get_python_path() -> str:
     return sys.executable
 
 def get_claudia_cli_path() -> str:
-    """Get the path to the hermes CLI."""
+    """Get the path to the claudia CLI."""
     # Check if installed via pip
     import shutil
-    claudia_bin = shutil.which("hermes")
+    claudia_bin = shutil.which("claudia")
     if claudia_bin:
         return claudia_bin
     
@@ -473,23 +473,23 @@ def _claudia_home_for_target_user(target_home_dir: str) -> str:
     root's home.  This translates it to the target user's equivalent path:
       /root/.claudia                    → /home/alice/.claudia
       /root/.claudia/profiles/coder     → /home/alice/.claudia/profiles/coder
-      /opt/custom-hermes               → /opt/custom-hermes  (kept as-is)
+      /opt/custom-claudia               → /opt/custom-claudia  (kept as-is)
     """
-    current_hermes = get_claudia_home().resolve()
+    current_claudia = get_claudia_home().resolve()
     current_default = (Path.home() / ".claudia").resolve()
     target_default = Path(target_home_dir) / ".claudia"
 
     # Default ~/.claudia → remap to target user's default
-    if current_hermes == current_default:
+    if current_claudia == current_default:
         return str(target_default)
 
     # Profile or subdir of ~/.claudia → preserve the relative structure
     try:
-        relative = current_hermes.relative_to(current_default)
+        relative = current_claudia.relative_to(current_default)
         return str(target_default / relative)
     except ValueError:
         # Completely custom path (not under ~/.claudia) — keep as-is
-        return str(current_hermes)
+        return str(current_claudia)
 
 
 def generate_systemd_unit(system: bool = False, run_as_user: str | None = None) -> str:
@@ -600,7 +600,7 @@ def refresh_systemd_unit_if_needed(system: bool = False) -> bool:
     expected_user = _read_systemd_user_from_unit(unit_path) if system else None
     unit_path.write_text(generate_systemd_unit(system=system, run_as_user=expected_user), encoding="utf-8")
     subprocess.run(_systemctl_cmd(system) + ["daemon-reload"], check=True)
-    print(f"↻ Updated gateway {_service_scope_label(system)} service definition to match the current Hermes install")
+    print(f"↻ Updated gateway {_service_scope_label(system)} service definition to match the current Claudia install")
     return True
 
 
@@ -698,8 +698,8 @@ def systemd_install(force: bool = False, system: bool = False, run_as_user: str 
     print(f"✓ {_service_scope_label(system).capitalize()} service installed and enabled!")
     print()
     print("Next steps:")
-    print(f"  {'sudo ' if system else ''}hermes gateway start{scope_flag}              # Start the service")
-    print(f"  {'sudo ' if system else ''}hermes gateway status{scope_flag}             # Check status")
+    print(f"  {'sudo ' if system else ''}claudia gateway start{scope_flag}              # Start the service")
+    print(f"  {'sudo ' if system else ''}claudia gateway status{scope_flag}             # Check status")
     print(f"  {'journalctl' if system else 'journalctl --user'} -u {get_service_name()} -f  # View logs")
     print()
 
@@ -766,7 +766,7 @@ def systemd_status(deep: bool = False, system: bool = False):
 
     if not unit_path.exists():
         print("✗ Gateway service is not installed")
-        print(f"  Run: {'sudo ' if system else ''}hermes gateway install{scope_flag}")
+        print(f"  Run: {'sudo ' if system else ''}claudia gateway install{scope_flag}")
         return
 
     if has_conflicting_systemd_units():
@@ -775,7 +775,7 @@ def systemd_status(deep: bool = False, system: bool = False):
 
     if not systemd_unit_is_current(system=system):
         print("⚠ Installed gateway service definition is outdated")
-        print(f"  Run: {'sudo ' if system else ''}hermes gateway restart{scope_flag}  # auto-refreshes the unit")
+        print(f"  Run: {'sudo ' if system else ''}claudia gateway restart{scope_flag}  # auto-refreshes the unit")
         print()
 
     subprocess.run(
@@ -795,7 +795,7 @@ def systemd_status(deep: bool = False, system: bool = False):
         print(f"✓ {_service_scope_label(system).capitalize()} gateway service is running")
     else:
         print(f"✗ {_service_scope_label(system).capitalize()} gateway service is stopped")
-        print(f"  Run: {'sudo ' if system else ''}hermes gateway start{scope_flag}")
+        print(f"  Run: {'sudo ' if system else ''}claudia gateway start{scope_flag}")
 
     configured_user = _read_systemd_user_from_unit(unit_path) if system else None
     if configured_user:
@@ -938,7 +938,7 @@ def refresh_launchd_plist_if_needed() -> bool:
     # Unload/reload so launchd picks up the new definition
     subprocess.run(["launchctl", "unload", str(plist_path)], check=False)
     subprocess.run(["launchctl", "load", str(plist_path)], check=False)
-    print("↻ Updated gateway launchd service definition to match the current Hermes install")
+    print("↻ Updated gateway launchd service definition to match the current Claudia install")
     return True
 
 
@@ -965,7 +965,7 @@ def launchd_install(force: bool = False):
     print("✓ Service installed and loaded!")
     print()
     print("Next steps:")
-    print("  hermes gateway status             # Check status")
+    print("  claudia gateway status             # Check status")
     from claudia_constants import display_claudia_home as _dhh
     print(f"  tail -f {_dhh()}/logs/gateway.log  # View logs")
 
@@ -1070,10 +1070,10 @@ def launchd_status(deep: bool = False):
 
     print(f"Launchd plist: {plist_path}")
     if launchd_plist_is_current():
-        print("✓ Service definition matches the current Hermes install")
+        print("✓ Service definition matches the current Claudia install")
     else:
-        print("⚠ Service definition is stale relative to the current Hermes install")
-        print("  Run: hermes gateway start")
+        print("⚠ Service definition is stale relative to the current Claudia install")
+        print("  Run: claudia gateway start")
     
     if result.returncode == 0:
         print("✓ Gateway service is loaded")
@@ -1081,7 +1081,7 @@ def launchd_status(deep: bool = False):
     else:
         print("✗ Gateway service is not loaded")
         print("  Service definition exists locally but launchd has not loaded it.")
-        print("  Run: hermes gateway start")
+        print("  Run: claudia gateway start")
     
     if deep:
         log_file = get_claudia_home() / "logs" / "gateway.log"
@@ -1110,7 +1110,7 @@ def run_gateway(verbose: int = 0, quiet: bool = False, replace: bool = False):
     from gateway.run import start_gateway
     
     print("┌─────────────────────────────────────────────────────────┐")
-    print("│           ⚕ Hermes Gateway Starting...                 │")
+    print("│           ⚕ Claudia Gateway Starting...                 │")
     print("├─────────────────────────────────────────────────────────┤")
     print("│  Messaging platforms + cron scheduler                    │")
     print("│  Press Ctrl+C to stop                                   │")
@@ -1223,7 +1223,7 @@ _PLATFORMS = [
             "3. Get an access token: Element → Settings → Help & About → Access Token",
             "   Or via API: curl -X POST https://your-server/_matrix/client/v3/login \\",
             "     -d '{\"type\":\"m.login.password\",\"user\":\"@bot:server\",\"password\":\"...\"}'",
-            "4. Alternatively, provide user ID + password and Hermes will log in directly",
+            "4. Alternatively, provide user ID + password and Claudia will log in directly",
             "5. For E2EE: set MATRIX_ENCRYPTION=true (requires pip install 'matrix-nio[e2e]')",
             "6. To find your user ID: it's @username:your-server (shown in Element profile)",
         ],
@@ -1233,7 +1233,7 @@ _PLATFORMS = [
             {"name": "MATRIX_ACCESS_TOKEN", "prompt": "Access token (leave empty to use password login instead)", "password": True,
              "help": "Paste your access token, or leave empty and provide user ID + password below."},
             {"name": "MATRIX_USER_ID", "prompt": "User ID (@bot:server — required for password login)", "password": False,
-             "help": "Full Matrix user ID, e.g. @hermes:matrix.example.org"},
+             "help": "Full Matrix user ID, e.g. @claudia:matrix.example.org"},
             {"name": "MATRIX_ALLOWED_USERS", "prompt": "Allowed user IDs (comma-separated, e.g. @you:server)", "password": False,
              "is_allowlist": True,
              "help": "Matrix user IDs who can interact with the bot."},
@@ -1249,7 +1249,7 @@ _PLATFORMS = [
         "setup_instructions": [
             "1. In Mattermost: Integrations → Bot Accounts → Add Bot Account",
             "   (System Console → Integrations → Bot Accounts must be enabled)",
-            "2. Give it a username (e.g. hermes) and copy the bot token",
+            "2. Give it a username (e.g. claudia) and copy the bot token",
             "3. Works with any self-hosted Mattermost instance — enter your server URL",
             "4. To find your user ID: click your avatar (top-left) → Profile",
             "   Your user ID is displayed there — click it to copy.",
@@ -1265,7 +1265,7 @@ _PLATFORMS = [
              "is_allowlist": True,
              "help": "Your Mattermost user ID from step 4 above."},
             {"name": "MATTERMOST_HOME_CHANNEL", "prompt": "Home channel ID (for cron/notification delivery, or empty to set later with /set-home)", "password": False,
-             "help": "Channel ID where Hermes delivers cron results and notifications."},
+             "help": "Channel ID where Claudia delivers cron results and notifications."},
             {"name": "MATTERMOST_REPLY_MODE", "prompt": "Reply mode — 'off' for flat messages, 'thread' for threaded replies (default: off)", "password": False,
              "help": "off = flat channel messages, thread = replies nest under your message."},
         ],
@@ -1288,7 +1288,7 @@ _PLATFORMS = [
         "emoji": "📧",
         "token_var": "EMAIL_ADDRESS",
         "setup_instructions": [
-            "1. Use a dedicated email account for your Hermes agent",
+            "1. Use a dedicated email account for your Claudia",
             "2. For Gmail: enable 2FA, then create an App Password at",
             "   https://myaccount.google.com/apppasswords",
             "3. For other providers: use your email password or app-specific password",
@@ -1296,7 +1296,7 @@ _PLATFORMS = [
         ],
         "vars": [
             {"name": "EMAIL_ADDRESS", "prompt": "Email address", "password": False,
-             "help": "The email address Hermes will use (e.g., hermes@gmail.com)."},
+             "help": "The email address Claudia will use (e.g., claudia@gmail.com)."},
             {"name": "EMAIL_PASSWORD", "prompt": "Email password (or app password)", "password": True,
              "help": "For Gmail, use an App Password (not your regular password)."},
             {"name": "EMAIL_IMAP_HOST", "prompt": "IMAP host", "password": False,
@@ -1544,7 +1544,7 @@ def _setup_standard_platform(platform: dict):
                 print()
                 access_choices = [
                     "Enable open access (anyone can message the bot)",
-                    "Use DM pairing (unknown users request access, you approve with 'hermes pairing approve')",
+                    "Use DM pairing (unknown users request access, you approve with 'claudia pairing approve')",
                     "Skip for now (bot will deny all users until configured)",
                 ]
                 access_idx = prompt_choice("  How should unauthorized users be handled?", access_choices, 1)
@@ -1553,9 +1553,9 @@ def _setup_standard_platform(platform: dict):
                     print_warning("  Open access enabled — anyone can use your bot!")
                 elif access_idx == 1:
                     print_success("  DM pairing mode — users will receive a code to request access.")
-                    print_info("  Approve with: hermes pairing approve {platform} {code}")
+                    print_info("  Approve with: claudia pairing approve {platform} {code}")
                 else:
-                    print_info("  Skipped — configure later with 'hermes gateway setup'")
+                    print_info("  Skipped — configure later with 'claudia gateway setup'")
             continue
 
         value = prompt(f"  {var['prompt']}", password=var.get("password", False))
@@ -1660,7 +1660,7 @@ def _setup_signal():
         print_info("    Docker: bbernhard/signal-cli-rest-api")
         print()
         print_info("  After installing, link your account and start the daemon:")
-        print_info("    signal-cli link -n \"HermesAgent\"")
+        print_info("    signal-cli link -n \"ClaudiaAgent\"")
         print_info("    signal-cli --account +YOURNUMBER daemon --http 127.0.0.1:8080")
         print()
 
@@ -1832,7 +1832,7 @@ def gateway_setup():
                         launchd_restart()
                     else:
                         kill_gateway_processes()
-                        print_info("Start manually: hermes gateway")
+                        print_info("Start manually: claudia gateway")
                 except subprocess.CalledProcessError as e:
                     print_error(f"  Restart failed: {e}")
         elif service_installed:
@@ -1868,18 +1868,18 @@ def gateway_setup():
                                 print_error(f"  Start failed: {e}")
                     except subprocess.CalledProcessError as e:
                         print_error(f"  Install failed: {e}")
-                        print_info("  You can try manually: hermes gateway install")
+                        print_info("  You can try manually: claudia gateway install")
                 else:
-                    print_info("  You can install later: hermes gateway install")
+                    print_info("  You can install later: claudia gateway install")
                     if is_linux():
-                        print_info("  Or as a boot-time service: sudo hermes gateway install --system")
-                    print_info("  Or run in foreground:  hermes gateway")
+                        print_info("  Or as a boot-time service: sudo claudia gateway install --system")
+                    print_info("  Or run in foreground:  claudia gateway")
             else:
                 print_info("  Service install not supported on this platform.")
-                print_info("  Run in foreground: hermes gateway")
+                print_info("  Run in foreground: claudia gateway")
     else:
         print()
-        print_info("No platforms configured. Run 'hermes gateway setup' when ready.")
+        print_info("No platforms configured. Run 'claudia gateway setup' when ready.")
 
     print()
 
@@ -1918,7 +1918,7 @@ def gateway_command(args):
             launchd_install(force)
         else:
             print("Service installation not supported on this platform.")
-            print("Run manually: hermes gateway run")
+            print("Run manually: claudia gateway run")
             sys.exit(1)
     
     elif subcmd == "uninstall":
@@ -2006,14 +2006,14 @@ def gateway_command(args):
                     print(f"  Run:  sudo loginctl enable-linger {_username}")
                     print()
                     print("  Then restart the gateway:")
-                    print("    hermes gateway restart")
+                    print("    claudia gateway restart")
                     return
 
             if service_configured:
                 print()
                 print("✗ Gateway service restart failed.")
                 print("  The service definition exists, but the service manager did not recover it.")
-                print("  Fix the service, then retry: hermes gateway start")
+                print("  Fix the service, then retry: claudia gateway start")
                 sys.exit(1)
 
             # Manual restart: kill existing processes
@@ -2050,8 +2050,8 @@ def gateway_command(args):
                         print(f"  {line}")
                 print()
                 print("To install as a service:")
-                print("  hermes gateway install")
-                print("  sudo hermes gateway install --system")
+                print("  claudia gateway install")
+                print("  sudo claudia gateway install --system")
             else:
                 print("✗ Gateway is not running")
                 runtime_lines = _runtime_health_lines()
@@ -2062,6 +2062,6 @@ def gateway_command(args):
                         print(f"  {line}")
                 print()
                 print("To start:")
-                print("  hermes gateway          # Run in foreground")
-                print("  hermes gateway install  # Install as user service")
-                print("  sudo hermes gateway install --system  # Install as boot-time system service")
+                print("  claudia gateway          # Run in foreground")
+                print("  claudia gateway install  # Install as user service")
+                print("  sudo claudia gateway install --system  # Install as boot-time system service")

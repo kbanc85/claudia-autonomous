@@ -78,7 +78,7 @@ class TestReasoningCommand:
 
     @pytest.mark.asyncio
     async def test_reasoning_command_reloads_current_state_from_config(self, tmp_path, monkeypatch):
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir()
         config_path = claudia_home / "config.yaml"
         config_path.write_text(
@@ -102,7 +102,7 @@ class TestReasoningCommand:
 
     @pytest.mark.asyncio
     async def test_handle_reasoning_command_updates_config_and_cache(self, tmp_path, monkeypatch):
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir()
         config_path = claudia_home / "config.yaml"
         config_path.write_text("agent:\n  reasoning_effort: medium\n", encoding="utf-8")
@@ -121,7 +121,7 @@ class TestReasoningCommand:
         assert "takes effect on next message" in result
 
     def test_run_agent_reloads_reasoning_config_per_message(self, tmp_path, monkeypatch):
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir()
         (claudia_home / "config.yaml").write_text("agent:\n  reasoning_effort: low\n", encoding="utf-8")
 
@@ -171,7 +171,7 @@ class TestReasoningCommand:
         assert _CapturingAgent.last_init["reasoning_config"] == {"enabled": True, "effort": "low"}
 
     def test_run_agent_prefers_config_over_stale_reasoning_env(self, tmp_path, monkeypatch):
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir()
         (claudia_home / "config.yaml").write_text("agent:\n  reasoning_effort: none\n", encoding="utf-8")
 
@@ -220,7 +220,7 @@ class TestReasoningCommand:
         assert _CapturingAgent.last_init["reasoning_config"] == {"enabled": False}
 
     def test_run_agent_includes_enabled_mcp_servers_in_gateway_toolsets(self, tmp_path, monkeypatch):
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir()
         (claudia_home / "config.yaml").write_text(
             "platform_toolsets:\n"
@@ -281,7 +281,7 @@ class TestReasoningCommand:
         assert "web-search-prime" in enabled_toolsets
 
     def test_run_agent_homeassistant_uses_default_platform_toolset(self, tmp_path, monkeypatch):
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir()
         (claudia_home / "config.yaml").write_text("", encoding="utf-8")
 

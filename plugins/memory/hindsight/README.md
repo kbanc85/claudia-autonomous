@@ -10,12 +10,12 @@ Long-term memory with knowledge graph, entity resolution, and multi-strategy ret
 ## Setup
 
 ```bash
-hermes memory setup    # select "hindsight"
+claudia memory setup    # select "hindsight"
 ```
 
 Or manually:
 ```bash
-hermes config set memory.provider hindsight
+claudia config set memory.provider hindsight
 echo "HINDSIGHT_API_KEY=your-key" >> ~/.claudia/.env
 ```
 
@@ -26,7 +26,7 @@ Config file: `$CLAUDIA_HOME/hindsight/config.json` (or `~/.hindsight/config.json
 | Key | Default | Description |
 |-----|---------|-------------|
 | `mode` | `cloud` | `cloud` or `local` |
-| `bank_id` | `hermes` | Memory bank identifier |
+| `bank_id` | `claudia` | Memory bank identifier |
 | `budget` | `mid` | Recall thoroughness: `low`/`mid`/`high` |
 
 ## Tools

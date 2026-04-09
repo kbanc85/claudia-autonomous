@@ -1,4 +1,4 @@
-"""Shared fixtures for the hermes-agent test suite."""
+"""Shared fixtures for the claudia-autonomous test suite."""
 
 import asyncio
 import os
@@ -48,7 +48,7 @@ def tmp_dir(tmp_path):
 
 @pytest.fixture()
 def mock_config():
-    """Return a minimal hermes config dict suitable for unit tests."""
+    """Return a minimal claudia config dict suitable for unit tests."""
     return {
         "model": "test/mock-model",
         "toolsets": ["terminal", "file"],

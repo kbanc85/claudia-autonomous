@@ -1,5 +1,5 @@
 """
-Hermes Agent Uninstaller.
+Claudia Uninstaller.
 
 Provides options for:
 - Full uninstall: Remove everything including configs and data
@@ -54,7 +54,7 @@ def find_shell_configs() -> list:
 
 
 def remove_path_from_shell_configs():
-    """Remove Hermes PATH entries from shell configuration files."""
+    """Remove Claudia PATH entries from shell configuration files."""
     configs = find_shell_configs()
     removed_from = []
     
@@ -63,22 +63,22 @@ def remove_path_from_shell_configs():
             content = config_path.read_text()
             original_content = content
             
-            # Remove lines containing hermes-agent or hermes PATH entries
+            # Remove lines containing claudia-autonomous or claudia PATH entries
             new_lines = []
             skip_next = False
             
             for line in content.split('\n'):
-                # Skip the "# Hermes Agent" comment and following line
-                if '# Hermes Agent' in line or '# hermes-agent' in line:
+                # Skip the "# Claudia" comment and following line
+                if '# Claudia' in line or '# claudia-autonomous' in line:
                     skip_next = True
                     continue
-                if skip_next and ('hermes' in line.lower() and 'PATH' in line):
+                if skip_next and ('claudia' in line.lower() and 'PATH' in line):
                     skip_next = False
                     continue
                 skip_next = False
                 
-                # Remove any PATH line containing hermes
-                if 'hermes' in line.lower() and ('PATH=' in line or 'path=' in line.lower()):
+                # Remove any PATH line containing claudia
+                if 'claudia' in line.lower() and ('PATH=' in line or 'path=' in line.lower()):
                     continue
                     
                 new_lines.append(line)
@@ -100,10 +100,10 @@ def remove_path_from_shell_configs():
 
 
 def remove_wrapper_script():
-    """Remove the hermes wrapper script if it exists."""
+    """Remove the claudia wrapper script if it exists."""
     wrapper_paths = [
-        Path.home() / ".local" / "bin" / "hermes",
-        Path("/usr/local/bin/hermes"),
+        Path.home() / ".local" / "bin" / "claudia",
+        Path("/usr/local/bin/claudia"),
     ]
     
     removed = []
@@ -112,7 +112,7 @@ def remove_wrapper_script():
             try:
                 # Check if it's our wrapper (contains claudia_cli reference)
                 content = wrapper.read_text()
-                if 'claudia_cli' in content or 'hermes-agent' in content:
+                if 'claudia_cli' in content or 'claudia-autonomous' in content:
                     wrapper.unlink()
                     removed.append(wrapper)
             except Exception as e:
@@ -132,7 +132,7 @@ def uninstall_gateway_service():
         from claudia_cli.gateway import get_service_name
         svc_name = get_service_name()
     except Exception:
-        svc_name = "hermes-gateway"
+        svc_name = "claudia-gateway"
 
     service_file = Path.home() / ".config" / "systemd" / "user" / f"{svc_name}.service"
     
@@ -184,7 +184,7 @@ def run_uninstall(args):
     
     print()
     print(color("┌─────────────────────────────────────────────────────────┐", Colors.MAGENTA, Colors.BOLD))
-    print(color("│            ⚕ Hermes Agent Uninstaller                  │", Colors.MAGENTA, Colors.BOLD))
+    print(color("│            ⚕ Claudia Uninstaller                  │", Colors.MAGENTA, Colors.BOLD))
     print(color("└─────────────────────────────────────────────────────────┘", Colors.MAGENTA, Colors.BOLD))
     print()
     
@@ -225,10 +225,10 @@ def run_uninstall(args):
     # Final confirmation
     print()
     if full_uninstall:
-        print(color("⚠️  WARNING: This will permanently delete ALL Hermes data!", Colors.RED, Colors.BOLD))
+        print(color("⚠️  WARNING: This will permanently delete ALL Claudia data!", Colors.RED, Colors.BOLD))
         print(color("   Including: configs, API keys, sessions, scheduled jobs, logs", Colors.RED))
     else:
-        print("This will remove the Hermes code but keep your configuration and data.")
+        print("This will remove the Claudia code but keep your configuration and data.")
     
     print()
     try:
@@ -264,7 +264,7 @@ def run_uninstall(args):
         log_info("No PATH entries found to remove")
     
     # 3. Remove wrapper script
-    log_info("Removing hermes command...")
+    log_info("Removing claudia command...")
     removed_wrappers = remove_wrapper_script()
     if removed_wrappers:
         for wrapper in removed_wrappers:
@@ -279,7 +279,7 @@ def run_uninstall(args):
     # We need to be careful here
     try:
         if project_root.exists():
-            # If the install is inside ~/.claudia/, just remove the hermes-agent subdir
+            # If the install is inside ~/.claudia/, just remove the claudia-autonomous subdir
             if claudia_home in project_root.parents or project_root.parent == claudia_home:
                 shutil.rmtree(project_root)
                 log_success(f"Removed {project_root}")
@@ -316,11 +316,11 @@ def run_uninstall(args):
         print(f"  {claudia_home}/")
         print()
         print("To reinstall later with your existing settings:")
-        print(color("  curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash", Colors.DIM))
+        print(color("  curl -fsSL https://raw.githubusercontent.com/NousResearch/claudia-autonomous/main/scripts/install.sh | bash", Colors.DIM))
         print()
     
     print(color("Reload your shell to complete the process:", Colors.YELLOW))
     print("  source ~/.bashrc  # or ~/.zshrc")
     print()
-    print("Thank you for using Hermes Agent! ⚕")
+    print("Thank you for using Claudia! ⚕")
     print()

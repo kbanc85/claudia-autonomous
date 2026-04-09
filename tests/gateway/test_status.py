@@ -14,7 +14,7 @@ class TestGatewayPidState:
 
         payload = json.loads((tmp_path / "gateway.pid").read_text())
         assert payload["pid"] == os.getpid()
-        assert payload["kind"] == "hermes-gateway"
+        assert payload["kind"] == "claudia-gateway"
         assert isinstance(payload["argv"], list)
         assert payload["argv"]
 
@@ -31,7 +31,7 @@ class TestGatewayPidState:
         pid_path = tmp_path / "gateway.pid"
         pid_path.write_text(json.dumps({
             "pid": os.getpid(),
-            "kind": "hermes-gateway",
+            "kind": "claudia-gateway",
             "argv": ["python", "-m", "claudia_cli.main", "gateway"],
             "start_time": 123,
         }))
@@ -47,7 +47,7 @@ class TestGatewayPidState:
         pid_path = tmp_path / "gateway.pid"
         pid_path.write_text(json.dumps({
             "pid": os.getpid(),
-            "kind": "hermes-gateway",
+            "kind": "claudia-gateway",
             "argv": ["/venv/bin/python", "/repo/claudia_cli/main.py", "gateway", "run", "--replace"],
             "start_time": 123,
         }))
@@ -73,7 +73,7 @@ class TestGatewayRuntimeStatus:
         state_path.write_text(json.dumps({
             "pid": 99999,
             "start_time": 1000.0,
-            "kind": "hermes-gateway",
+            "kind": "claudia-gateway",
             "platforms": {},
             "updated_at": "2025-01-01T00:00:00Z",
         }))
@@ -112,7 +112,7 @@ class TestScopedLocks:
         lock_path.write_text(json.dumps({
             "pid": 99999,
             "start_time": 123,
-            "kind": "hermes-gateway",
+            "kind": "claudia-gateway",
         }))
 
         monkeypatch.setattr(status.os, "kill", lambda pid, sig: None)
@@ -130,7 +130,7 @@ class TestScopedLocks:
         lock_path.write_text(json.dumps({
             "pid": 99999,
             "start_time": 123,
-            "kind": "hermes-gateway",
+            "kind": "claudia-gateway",
         }))
 
         def fake_kill(pid, sig):

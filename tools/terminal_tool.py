@@ -18,7 +18,7 @@ Features:
 
 Cloud sandbox note:
 - Persistent filesystems preserve working state across sandbox recreation
-- Persistent filesystems do NOT guarantee the same live sandbox or long-running processes survive cleanup, idle reaping, or Hermes exit
+- Persistent filesystems do NOT guarantee the same live sandbox or long-running processes survive cleanup, idle reaping, or Claudia exit
 
 Usage:
     from terminal_tool import terminal_tool
@@ -52,7 +52,7 @@ logger = logging.getLogger(__name__)
 # long-running subprocesses immediately instead of blocking until timeout.
 # ---------------------------------------------------------------------------
 from tools.interrupt import is_interrupted, _interrupt_event  # noqa: F401 — re-exported
-# display_claudia_home imported lazily at call site (stale-module safety during hermes update)
+# display_claudia_home imported lazily at call site (stale-module safety during claudia update)
 
 
 def ensure_minisweagent_on_path(_repo_root: Path | None = None) -> None:
@@ -83,10 +83,10 @@ def _check_disk_usage_warning():
     try:
         scratch_dir = _get_scratch_dir()
 
-        # Get total size of hermes directories
+        # Get total size of claudia directories
         total_bytes = 0
         import glob
-        for path in glob.glob(str(scratch_dir / "hermes-*")):
+        for path in glob.glob(str(scratch_dir / "claudia-*")):
             for f in Path(path).rglob('*'):
                 if f.is_file():
                     try:
@@ -800,7 +800,7 @@ def get_active_environments_info() -> Dict[str, Any]:
     total_size = 0
     for task_id in _active_environments.keys():
         scratch_dir = _get_scratch_dir()
-        pattern = f"hermes-*{task_id[:8]}*"
+        pattern = f"claudia-*{task_id[:8]}*"
         import glob
         for path in glob.glob(str(scratch_dir / pattern)):
             try:
@@ -830,7 +830,7 @@ def cleanup_all_environments():
     # Also clean any orphaned directories
     scratch_dir = _get_scratch_dir()
     import glob
-    for path in glob.glob(str(scratch_dir / "hermes-*")):
+    for path in glob.glob(str(scratch_dir / "claudia-*")):
         try:
             shutil.rmtree(path, ignore_errors=True)
             logger.info("Removed orphaned: %s", path)

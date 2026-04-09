@@ -364,7 +364,7 @@ class TrajectoryCompressor:
             if client is None:
                 raise RuntimeError(
                     f"Provider '{provider}' is not configured. "
-                    f"Check your API key or run: hermes setup")
+                    f"Check your API key or run: claudia setup")
             self.client = None  # Not used directly
             self.async_client = None  # Not used directly
         else:

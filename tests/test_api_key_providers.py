@@ -623,7 +623,7 @@ class TestHasAnyProviderConfigured:
         assert _has_any_provider_configured() is True
 
     def test_claude_code_creds_ignored_on_fresh_install(self, monkeypatch, tmp_path):
-        """Claude Code credentials should NOT skip the wizard when Hermes is unconfigured."""
+        """Claude Code credentials should NOT skip the wizard when Claudia is unconfigured."""
         from claudia_cli import config as config_module
         claudia_home = tmp_path / ".claudia"
         claudia_home.mkdir()
@@ -723,7 +723,7 @@ class TestHasAnyProviderConfigured:
         assert _has_any_provider_configured() is False
 
     def test_claude_code_creds_counted_when_claudia_configured(self, monkeypatch, tmp_path):
-        """Claude Code credentials should count when Hermes has been explicitly configured."""
+        """Claude Code credentials should count when Claudia has been explicitly configured."""
         import yaml
         from claudia_cli import config as config_module
         claudia_home = tmp_path / ".claudia"

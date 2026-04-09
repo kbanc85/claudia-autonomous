@@ -77,4 +77,4 @@ Add a first-class `gemini` provider that authenticates via Google OAuth, using t
 ## Reference implementations
 - clawdbot: `extensions/google/oauth.flow.ts` (PKCE + localhost server)
 - pi-mono: `packages/ai/src/utils/oauth/google-gemini-cli.ts` (same flow)
-- hermes-agent Copilot OAuth: `claudia_cli/main.py` `_copilot_device_flow()` (different flow type but same lifecycle pattern)
+- claudia-autonomous Copilot OAuth: `claudia_cli/main.py` `_copilot_device_flow()` (different flow type but same lifecycle pattern)

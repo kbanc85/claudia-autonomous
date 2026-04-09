@@ -59,7 +59,7 @@ def codex_auth_dir(tmp_path, monkeypatch):
 
 class TestReadCodexAccessToken:
     def test_valid_auth_store(self, tmp_path, monkeypatch):
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir(parents=True, exist_ok=True)
         (claudia_home / "auth.json").write_text(json.dumps({
             "version": 1,
@@ -74,7 +74,7 @@ class TestReadCodexAccessToken:
         assert result == "tok-123"
 
     def test_missing_returns_none(self, tmp_path, monkeypatch):
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir(parents=True, exist_ok=True)
         (claudia_home / "auth.json").write_text(json.dumps({"version": 1, "providers": {}}))
         monkeypatch.setenv("CLAUDIA_HOME", str(claudia_home))
@@ -82,7 +82,7 @@ class TestReadCodexAccessToken:
         assert result is None
 
     def test_empty_token_returns_none(self, tmp_path, monkeypatch):
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir(parents=True, exist_ok=True)
         (claudia_home / "auth.json").write_text(json.dumps({
             "version": 1,
@@ -124,7 +124,7 @@ class TestReadCodexAccessToken:
         payload = base64.urlsafe_b64encode(payload_data).rstrip(b"=").decode()
         expired_jwt = f"{header}.{payload}.fakesig"
 
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir(parents=True, exist_ok=True)
         (claudia_home / "auth.json").write_text(json.dumps({
             "version": 1,
@@ -148,7 +148,7 @@ class TestReadCodexAccessToken:
         payload = base64.urlsafe_b64encode(payload_data).rstrip(b"=").decode()
         valid_jwt = f"{header}.{payload}.fakesig"
 
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir(parents=True, exist_ok=True)
         (claudia_home / "auth.json").write_text(json.dumps({
             "version": 1,
@@ -164,7 +164,7 @@ class TestReadCodexAccessToken:
 
     def test_non_jwt_token_passes_through(self, tmp_path, monkeypatch):
         """Non-JWT tokens (no dots) should be returned as-is."""
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir(parents=True, exist_ok=True)
         (claudia_home / "auth.json").write_text(json.dumps({
             "version": 1,
@@ -248,7 +248,7 @@ class TestExpiredCodexFallback:
         payload = base64.urlsafe_b64encode(payload_data).rstrip(b"=").decode()
         expired_jwt = f"{header}.{payload}.fakesig"
 
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir(parents=True, exist_ok=True)
         (claudia_home / "auth.json").write_text(json.dumps({
             "version": 1,
@@ -280,7 +280,7 @@ class TestExpiredCodexFallback:
         payload = base64.urlsafe_b64encode(payload_data).rstrip(b"=").decode()
         expired_jwt = f"{header}.{payload}.fakesig"
 
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir(parents=True, exist_ok=True)
         (claudia_home / "auth.json").write_text(json.dumps({
             "version": 1,
@@ -311,7 +311,7 @@ class TestExpiredCodexFallback:
         payload = base64.urlsafe_b64encode(payload_data).rstrip(b"=").decode()
         expired_jwt = f"{header}.{payload}.fakesig"
 
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir(parents=True, exist_ok=True)
         (claudia_home / "auth.json").write_text(json.dumps({
             "version": 1,
@@ -336,7 +336,7 @@ class TestExpiredCodexFallback:
     def test_claudia_oauth_file_sets_oauth_flag(self, monkeypatch):
         """OAuth-style tokens should get is_oauth=*** (token is not sk-ant-api-*)."""
         # Mock resolve_anthropic_token to return an OAuth-style token
-        with patch("agent.anthropic_adapter.resolve_anthropic_token", return_value="hermes-oauth-jwt-token"), \
+        with patch("agent.anthropic_adapter.resolve_anthropic_token", return_value="claudia-oauth-jwt-token"), \
              patch("agent.anthropic_adapter.build_anthropic_client") as mock_build, \
              patch("agent.auxiliary_client._select_pool_entry", return_value=(False, None)):
             mock_build.return_value = MagicMock()
@@ -354,7 +354,7 @@ class TestExpiredCodexFallback:
         payload = base64.urlsafe_b64encode(payload_data).rstrip(b"=").decode()
         no_exp_jwt = f"{header}.{payload}.fakesig"
 
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir(parents=True, exist_ok=True)
         (claudia_home / "auth.json").write_text(json.dumps({
             "version": 1,
@@ -375,7 +375,7 @@ class TestExpiredCodexFallback:
         payload = base64.urlsafe_b64encode(b"not-json-content").rstrip(b"=").decode()
         bad_jwt = f"{header}.{payload}.fakesig"
 
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir(parents=True, exist_ok=True)
         (claudia_home / "auth.json").write_text(json.dumps({
             "version": 1,
@@ -1044,7 +1044,7 @@ class TestTaskSpecificOverrides:
         assert model == "google/gemini-3-flash-preview"
 
     def test_task_direct_endpoint_from_config(self, monkeypatch, tmp_path):
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir(parents=True, exist_ok=True)
         (claudia_home / "config.yaml").write_text(
             """auxiliary:
@@ -1070,7 +1070,7 @@ class TestTaskSpecificOverrides:
 
     def test_compression_summary_base_url_from_config(self, monkeypatch, tmp_path):
         """compression.summary_base_url should produce a custom-endpoint client."""
-        claudia_home = tmp_path / "hermes"
+        claudia_home = tmp_path / "claudia"
         claudia_home.mkdir(parents=True, exist_ok=True)
         (claudia_home / "config.yaml").write_text(
             """compression:

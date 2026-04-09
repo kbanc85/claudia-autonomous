@@ -66,7 +66,7 @@ class TestSandboxRequirements(unittest.TestCase):
         self.assertIn("code", EXECUTE_CODE_SCHEMA["parameters"]["required"])
 
 
-class TestHermesToolsGeneration(unittest.TestCase):
+class TestClaudiaToolsGeneration(unittest.TestCase):
     def test_generates_all_allowed_tools(self):
         src = generate_claudia_tools_module(list(SANDBOX_ALLOWED_TOOLS))
         for tool in SANDBOX_ALLOWED_TOOLS:
@@ -472,7 +472,7 @@ class TestBuildExecuteCodeSchema(unittest.TestCase):
     def test_real_scenario_all_sandbox_tools_disabled(self):
         """Reproduce the exact code path from model_tools.py:231-234.
 
-        Scenario: user runs `hermes tools code_execution` (only code_execution
+        Scenario: user runs `claudia tools code_execution` (only code_execution
         toolset enabled). tools_to_include = {"execute_code"}.
 
         model_tools.py does:
@@ -497,7 +497,7 @@ class TestBuildExecuteCodeSchema(unittest.TestCase):
                          "Bug: broken import syntax sent to the model")
 
     def test_real_scenario_only_vision_enabled(self):
-        """Another real path: user runs `hermes tools code_execution,vision`.
+        """Another real path: user runs `claudia tools code_execution,vision`.
 
         tools_to_include = {"execute_code", "vision_analyze"}
         SANDBOX_ALLOWED_TOOLS has neither, so intersection is empty.

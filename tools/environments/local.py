@@ -19,10 +19,10 @@ from tools.interrupt import is_interrupted
 # printf (no trailing newline) keeps the boundaries clean for splitting.
 _OUTPUT_FENCE = "__CLAUDIA_FENCE_a9f7b3__"
 
-# Hermes-internal env vars that should NOT leak into terminal subprocesses.
-# These are loaded from ~/.claudia/.env for Hermes' own LLM/provider calls
+# Claudia-internal env vars that should NOT leak into terminal subprocesses.
+# These are loaded from ~/.claudia/.env for Claudia' own LLM/provider calls
 # but can break external CLIs (e.g. codex) that also honor them.
-# See: https://github.com/NousResearch/hermes-agent/issues/1002
+# See: https://github.com/NousResearch/claudia-autonomous/issues/1002
 #
 # Built dynamically from the provider registry so new providers are
 # automatically covered without manual blocklist maintenance.
@@ -34,7 +34,7 @@ def _build_provider_env_blocklist() -> frozenset:
 
     Automatically picks up api_key_env_vars and base_url_env_var from
     every registered provider, plus tool/messaging env vars from the
-    optional config registry, so new Hermes-managed secrets are blocked
+    optional config registry, so new Claudia-managed secrets are blocked
     in subprocesses without having to maintain multiple static lists.
     """
     blocked: set[str] = set()
@@ -59,7 +59,7 @@ def _build_provider_env_blocklist() -> frozenset:
     except ImportError:
         pass
 
-    # Vars not covered above but still Hermes-internal / conflict-prone.
+    # Vars not covered above but still Claudia-internal / conflict-prone.
     blocked.update({
         "OPENAI_BASE_URL",
         "OPENAI_API_KEY",
@@ -132,7 +132,7 @@ _CLAUDIA_PROVIDER_ENV_BLOCKLIST = _build_provider_env_blocklist()
 
 
 def _sanitize_subprocess_env(base_env: dict | None, extra_env: dict | None = None) -> dict:
-    """Filter Hermes-managed secrets from a subprocess environment.
+    """Filter Claudia-managed secrets from a subprocess environment.
 
     `_CLAUDIA_FORCE_<VAR>` entries in ``extra_env`` opt a blocked variable back in
     intentionally for callers that truly need it.  Vars registered via
@@ -199,7 +199,7 @@ def _find_bash() -> str:
             return candidate
 
     raise RuntimeError(
-        "Git Bash not found. Hermes Agent requires Git for Windows on Windows.\n"
+        "Git Bash not found. Claudia requires Git for Windows on Windows.\n"
         "Install it from: https://git-scm.com/download/win\n"
         "Or set CLAUDIA_GIT_BASH_PATH to your bash.exe location."
     )
@@ -335,7 +335,7 @@ class LocalEnvironment(PersistentShellMixin, BaseEnvironment):
 
     @property
     def _temp_prefix(self) -> str:
-        return f"/tmp/hermes-local-{self._session_id}"
+        return f"/tmp/claudia-local-{self._session_id}"
 
     def _spawn_shell_process(self) -> subprocess.Popen:
         user_shell = _find_bash()

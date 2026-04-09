@@ -1,4 +1,4 @@
-"""Helpers for loading Hermes .env files consistently across entrypoints."""
+"""Helpers for loading Claudia .env files consistently across entrypoints."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ def load_claudia_dotenv(
     claudia_home: str | os.PathLike | None = None,
     project_env: str | os.PathLike | None = None,
 ) -> list[Path]:
-    """Load Hermes environment files with user config taking precedence.
+    """Load Claudia environment files with user config taking precedence.
 
     Behavior:
     - `~/.claudia/.env` overrides stale shell-exported values when present.

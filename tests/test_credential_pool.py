@@ -9,13 +9,13 @@ import pytest
 
 
 def _write_auth_store(tmp_path, payload: dict) -> None:
-    claudia_home = tmp_path / "hermes"
+    claudia_home = tmp_path / "claudia"
     claudia_home.mkdir(parents=True, exist_ok=True)
     (claudia_home / "auth.json").write_text(json.dumps(payload, indent=2))
 
 
 def test_fill_first_selection_skips_recently_exhausted_entry(tmp_path, monkeypatch):
-    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "hermes"))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "claudia"))
     _write_auth_store(
         tmp_path,
         {
@@ -60,7 +60,7 @@ def test_fill_first_selection_skips_recently_exhausted_entry(tmp_path, monkeypat
 
 
 def test_select_clears_expired_exhaustion(tmp_path, monkeypatch):
-    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "hermes"))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "claudia"))
     _write_auth_store(
         tmp_path,
         {
@@ -93,7 +93,7 @@ def test_select_clears_expired_exhaustion(tmp_path, monkeypatch):
 
 
 def test_round_robin_strategy_rotates_priorities(tmp_path, monkeypatch):
-    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "hermes"))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "claudia"))
     _write_auth_store(
         tmp_path,
         {
@@ -120,7 +120,7 @@ def test_round_robin_strategy_rotates_priorities(tmp_path, monkeypatch):
             },
         },
     )
-    config_path = tmp_path / "hermes" / "config.yaml"
+    config_path = tmp_path / "claudia" / "config.yaml"
     config_path.write_text("credential_pool_strategies:\n  openrouter: round_robin\n")
 
     from agent.credential_pool import load_pool
@@ -137,7 +137,7 @@ def test_round_robin_strategy_rotates_priorities(tmp_path, monkeypatch):
 
 
 def test_random_strategy_uses_random_choice(tmp_path, monkeypatch):
-    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "hermes"))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "claudia"))
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     _write_auth_store(
         tmp_path,
@@ -165,7 +165,7 @@ def test_random_strategy_uses_random_choice(tmp_path, monkeypatch):
             },
         },
     )
-    config_path = tmp_path / "hermes" / "config.yaml"
+    config_path = tmp_path / "claudia" / "config.yaml"
     config_path.write_text("credential_pool_strategies:\n  openrouter: random\n")
 
     monkeypatch.setattr("agent.credential_pool.random.choice", lambda entries: entries[-1])
@@ -180,7 +180,7 @@ def test_random_strategy_uses_random_choice(tmp_path, monkeypatch):
 
 
 def test_exhausted_entry_resets_after_ttl(tmp_path, monkeypatch):
-    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "hermes"))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "claudia"))
     _write_auth_store(
         tmp_path,
         {
@@ -215,7 +215,7 @@ def test_exhausted_entry_resets_after_ttl(tmp_path, monkeypatch):
 
 
 def test_mark_exhausted_and_rotate_persists_status(tmp_path, monkeypatch):
-    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "hermes"))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "claudia"))
     _write_auth_store(
         tmp_path,
         {
@@ -253,14 +253,14 @@ def test_mark_exhausted_and_rotate_persists_status(tmp_path, monkeypatch):
     assert next_entry is not None
     assert next_entry.id == "cred-2"
 
-    auth_payload = json.loads((tmp_path / "hermes" / "auth.json").read_text())
+    auth_payload = json.loads((tmp_path / "claudia" / "auth.json").read_text())
     persisted = auth_payload["credential_pool"]["anthropic"][0]
     assert persisted["last_status"] == "exhausted"
     assert persisted["last_error_code"] == 402
 
 
 def test_try_refresh_current_updates_only_current_entry(tmp_path, monkeypatch):
-    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "hermes"))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "claudia"))
     _write_auth_store(
         tmp_path,
         {
@@ -311,7 +311,7 @@ def test_try_refresh_current_updates_only_current_entry(tmp_path, monkeypatch):
     assert refreshed is not None
     assert refreshed.access_token == "access-new"
 
-    auth_payload = json.loads((tmp_path / "hermes" / "auth.json").read_text())
+    auth_payload = json.loads((tmp_path / "claudia" / "auth.json").read_text())
     primary, secondary = auth_payload["credential_pool"]["openai-codex"]
     assert primary["access_token"] == "access-new"
     assert primary["refresh_token"] == "refresh-new"
@@ -320,7 +320,7 @@ def test_try_refresh_current_updates_only_current_entry(tmp_path, monkeypatch):
 
 
 def test_load_pool_seeds_env_api_key(tmp_path, monkeypatch):
-    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "hermes"))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "claudia"))
     monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-seeded")
     _write_auth_store(tmp_path, {"version": 1, "providers": {}})
 
@@ -335,7 +335,7 @@ def test_load_pool_seeds_env_api_key(tmp_path, monkeypatch):
 
 
 def test_load_pool_removes_stale_seeded_env_entry(tmp_path, monkeypatch):
-    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "hermes"))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "claudia"))
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     _write_auth_store(
         tmp_path,
@@ -363,12 +363,12 @@ def test_load_pool_removes_stale_seeded_env_entry(tmp_path, monkeypatch):
 
     assert pool.entries() == []
 
-    auth_payload = json.loads((tmp_path / "hermes" / "auth.json").read_text())
+    auth_payload = json.loads((tmp_path / "claudia" / "auth.json").read_text())
     assert auth_payload["credential_pool"]["openrouter"] == []
 
 
 def test_load_pool_migrates_nous_provider_state(tmp_path, monkeypatch):
-    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "hermes"))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "claudia"))
     _write_auth_store(
         tmp_path,
         {
@@ -378,7 +378,7 @@ def test_load_pool_migrates_nous_provider_state(tmp_path, monkeypatch):
                 "nous": {
                     "portal_base_url": "https://portal.example.com",
                     "inference_base_url": "https://inference.example.com/v1",
-                    "client_id": "hermes-cli",
+                    "client_id": "claudia-cli",
                     "token_type": "Bearer",
                     "scope": "inference:mint_agent_key",
                     "access_token": "access-token",
@@ -403,7 +403,7 @@ def test_load_pool_migrates_nous_provider_state(tmp_path, monkeypatch):
 
 
 def test_load_pool_removes_stale_file_backed_singleton_entry(tmp_path, monkeypatch):
-    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "hermes"))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "claudia"))
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("ANTHROPIC_TOKEN", raising=False)
     monkeypatch.delenv("CLAUDE_CODE_OAUTH_TOKEN", raising=False)
@@ -443,12 +443,12 @@ def test_load_pool_removes_stale_file_backed_singleton_entry(tmp_path, monkeypat
 
     assert pool.entries() == []
 
-    auth_payload = json.loads((tmp_path / "hermes" / "auth.json").read_text())
+    auth_payload = json.loads((tmp_path / "claudia" / "auth.json").read_text())
     assert auth_payload["credential_pool"]["anthropic"] == []
 
 
 def test_load_pool_migrates_nous_provider_state_preserves_tls(tmp_path, monkeypatch):
-    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "hermes"))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "claudia"))
     _write_auth_store(
         tmp_path,
         {
@@ -458,7 +458,7 @@ def test_load_pool_migrates_nous_provider_state_preserves_tls(tmp_path, monkeypa
                 "nous": {
                     "portal_base_url": "https://portal.example.com",
                     "inference_base_url": "https://inference.example.com/v1",
-                    "client_id": "hermes-cli",
+                    "client_id": "claudia-cli",
                     "token_type": "Bearer",
                     "scope": "inference:mint_agent_key",
                     "access_token": "access-token",
@@ -486,7 +486,7 @@ def test_load_pool_migrates_nous_provider_state_preserves_tls(tmp_path, monkeypa
         "ca_bundle": "/tmp/nous-ca.pem",
     }
 
-    auth_payload = json.loads((tmp_path / "hermes" / "auth.json").read_text())
+    auth_payload = json.loads((tmp_path / "claudia" / "auth.json").read_text())
     assert auth_payload["credential_pool"]["nous"][0]["tls"] == {
         "insecure": True,
         "ca_bundle": "/tmp/nous-ca.pem",
@@ -494,7 +494,7 @@ def test_load_pool_migrates_nous_provider_state_preserves_tls(tmp_path, monkeypa
 
 
 def test_singleton_seed_does_not_clobber_manual_oauth_entry(tmp_path, monkeypatch):
-    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "hermes"))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "claudia"))
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("ANTHROPIC_TOKEN", raising=False)
     monkeypatch.delenv("CLAUDE_CODE_OAUTH_TOKEN", raising=False)
@@ -542,7 +542,7 @@ def test_singleton_seed_does_not_clobber_manual_oauth_entry(tmp_path, monkeypatc
 
 
 def test_load_pool_prefers_anthropic_env_token_over_file_backed_oauth(tmp_path, monkeypatch):
-    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "hermes"))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "claudia"))
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.setenv("ANTHROPIC_TOKEN", "env-override-token")
     monkeypatch.delenv("CLAUDE_CODE_OAUTH_TOKEN", raising=False)
@@ -573,7 +573,7 @@ def test_load_pool_prefers_anthropic_env_token_over_file_backed_oauth(tmp_path, 
 
 def test_least_used_strategy_selects_lowest_count(tmp_path, monkeypatch):
     """least_used strategy should select the credential with the lowest request_count."""
-    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "hermes"))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "claudia"))
     monkeypatch.setattr(
         "agent.credential_pool.get_pool_strategy",
         lambda _provider: "least_used",
@@ -635,7 +635,7 @@ def test_least_used_strategy_selects_lowest_count(tmp_path, monkeypatch):
 
 def test_mark_used_increments_request_count(tmp_path, monkeypatch):
     """mark_used should increment the request_count of the current entry."""
-    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "hermes"))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "claudia"))
     monkeypatch.setattr(
         "agent.credential_pool.get_pool_strategy",
         lambda _provider: "fill_first",
@@ -684,7 +684,7 @@ def test_thread_safety_concurrent_select(tmp_path, monkeypatch):
     """Concurrent select() calls should not corrupt pool state."""
     import threading as _threading
 
-    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "hermes"))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "claudia"))
     monkeypatch.setattr(
         "agent.credential_pool.get_pool_strategy",
         lambda _provider: "round_robin",
@@ -745,7 +745,7 @@ def test_thread_safety_concurrent_select(tmp_path, monkeypatch):
 
 def test_custom_endpoint_pool_keyed_by_name(tmp_path, monkeypatch):
     """Verify load_pool('custom:together.ai') works and returns entries from auth.json."""
-    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "hermes"))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "claudia"))
     # Disable seeding so we only test stored entries
     monkeypatch.setattr(
         "agent.credential_pool._seed_custom_pool",
@@ -797,11 +797,11 @@ def test_custom_endpoint_pool_keyed_by_name(tmp_path, monkeypatch):
 
 def test_custom_endpoint_pool_seeds_from_config(tmp_path, monkeypatch):
     """Verify seeding from custom_providers api_key in config.yaml."""
-    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "hermes"))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "claudia"))
     _write_auth_store(tmp_path, {"version": 1})
 
     # Write config.yaml with a custom_providers entry
-    config_path = tmp_path / "hermes" / "config.yaml"
+    config_path = tmp_path / "claudia" / "config.yaml"
     import yaml
     config_path.write_text(yaml.dump({
         "custom_providers": [
@@ -825,11 +825,11 @@ def test_custom_endpoint_pool_seeds_from_config(tmp_path, monkeypatch):
 
 def test_custom_endpoint_pool_seeds_from_model_config(tmp_path, monkeypatch):
     """Verify seeding from model.api_key when model.provider=='custom' and base_url matches."""
-    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "hermes"))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "claudia"))
     _write_auth_store(tmp_path, {"version": 1})
 
     import yaml
-    config_path = tmp_path / "hermes" / "config.yaml"
+    config_path = tmp_path / "claudia" / "config.yaml"
     config_path.write_text(yaml.dump({
         "custom_providers": [
             {
@@ -857,7 +857,7 @@ def test_custom_endpoint_pool_seeds_from_model_config(tmp_path, monkeypatch):
 
 def test_custom_pool_does_not_break_existing_providers(tmp_path, monkeypatch):
     """Existing registry providers work exactly as before with custom pool support."""
-    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "hermes"))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "claudia"))
     monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-test")
     _write_auth_store(tmp_path, {"version": 1, "providers": {}})
 
@@ -872,10 +872,10 @@ def test_custom_pool_does_not_break_existing_providers(tmp_path, monkeypatch):
 
 def test_get_custom_provider_pool_key(tmp_path, monkeypatch):
     """get_custom_provider_pool_key maps base_url to custom:<name> pool key."""
-    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "hermes"))
-    (tmp_path / "hermes").mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "claudia"))
+    (tmp_path / "claudia").mkdir(parents=True, exist_ok=True)
     import yaml
-    config_path = tmp_path / "hermes" / "config.yaml"
+    config_path = tmp_path / "claudia" / "config.yaml"
     config_path.write_text(yaml.dump({
         "custom_providers": [
             {
@@ -901,7 +901,7 @@ def test_get_custom_provider_pool_key(tmp_path, monkeypatch):
 
 def test_list_custom_pool_providers(tmp_path, monkeypatch):
     """list_custom_pool_providers returns custom: pool keys from auth.json."""
-    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "hermes"))
+    monkeypatch.setenv("CLAUDIA_HOME", str(tmp_path / "claudia"))
     _write_auth_store(
         tmp_path,
         {

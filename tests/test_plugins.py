@@ -1,4 +1,4 @@
-"""Tests for the Hermes plugin system (claudia_cli.plugins)."""
+"""Tests for the Claudia plugin system (claudia_cli.plugins)."""
 
 import logging
 import os

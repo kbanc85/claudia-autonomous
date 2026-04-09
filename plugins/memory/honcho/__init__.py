@@ -312,7 +312,7 @@ class HonchoMemoryProvider(MemoryProvider):
         self._session_key = (
             cfg.resolve_session_name(session_title=session_title, session_id=session_id)
             or session_id
-            or "hermes-default"
+            or "claudia-default"
         )
         logger.debug("Honcho session key resolved: %s", self._session_key)
 
@@ -354,7 +354,7 @@ class HonchoMemoryProvider(MemoryProvider):
         try:
             self._do_session_init(
                 self._config,
-                self._lazy_init_session_id or "hermes-default",
+                self._lazy_init_session_id or "claudia-default",
                 **self._lazy_init_kwargs,
             )
             # Clear lazy refs

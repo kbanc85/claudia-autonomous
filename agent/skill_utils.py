@@ -243,14 +243,14 @@ def extract_skill_conditions(frontmatter: Dict[str, Any]) -> Dict[str, List]:
     # Handle cases where metadata is not a dict (e.g., a string from malformed YAML)
     if not isinstance(metadata, dict):
         metadata = {}
-    hermes = metadata.get("hermes") or {}
-    if not isinstance(hermes, dict):
-        hermes = {}
+    claudia = metadata.get("claudia") or {}
+    if not isinstance(claudia, dict):
+        claudia = {}
     return {
-        "fallback_for_toolsets": hermes.get("fallback_for_toolsets", []),
-        "requires_toolsets": hermes.get("requires_toolsets", []),
-        "fallback_for_tools": hermes.get("fallback_for_tools", []),
-        "requires_tools": hermes.get("requires_tools", []),
+        "fallback_for_toolsets": claudia.get("fallback_for_toolsets", []),
+        "requires_toolsets": claudia.get("requires_toolsets", []),
+        "fallback_for_tools": claudia.get("fallback_for_tools", []),
+        "requires_tools": claudia.get("requires_tools", []),
     }
 
 

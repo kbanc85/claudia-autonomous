@@ -479,7 +479,7 @@ class TestBuildContextFilesPrompt:
         with patch("pathlib.Path.home", return_value=fake_home):
             result = build_context_files_prompt(cwd=str(tmp_path))
         assert "Project Context" in result
-        assert "Hermes Agent" in result
+        assert "Claudia" in result
 
     def test_loads_agents_md(self, tmp_path):
         (tmp_path / "AGENTS.md").write_text("Use Ruff for linting.")
@@ -544,7 +544,7 @@ class TestBuildContextFilesPrompt:
         assert "Top level" in result
         assert "Src-specific" not in result
 
-    # --- .claudia.md / HERMES.md discovery ---
+    # --- .claudia.md / CLAUDIA.md discovery ---
 
     def test_loads_claudia_md(self, tmp_path):
         (tmp_path / ".claudia.md").write_text("Use pytest for testing.")
@@ -553,13 +553,13 @@ class TestBuildContextFilesPrompt:
         assert "Project Context" in result
 
     def test_loads_claudia_md_uppercase(self, tmp_path):
-        (tmp_path / "HERMES.md").write_text("Always use type hints.")
+        (tmp_path / "CLAUDIA.md").write_text("Always use type hints.")
         result = build_context_files_prompt(cwd=str(tmp_path))
         assert "type hints" in result
 
     def test_claudia_md_lowercase_takes_priority(self, tmp_path):
         (tmp_path / ".claudia.md").write_text("From dotfile.")
-        (tmp_path / "HERMES.md").write_text("From uppercase.")
+        (tmp_path / "CLAUDIA.md").write_text("From uppercase.")
         result = build_context_files_prompt(cwd=str(tmp_path))
         assert "From dotfile" in result
         assert "From uppercase" not in result
@@ -600,9 +600,9 @@ class TestBuildContextFilesPrompt:
     def test_claudia_md_beats_agents_md(self, tmp_path):
         """When both exist, .claudia.md wins and AGENTS.md is not loaded."""
         (tmp_path / "AGENTS.md").write_text("Agent guidelines here.")
-        (tmp_path / ".claudia.md").write_text("Hermes project rules.")
+        (tmp_path / ".claudia.md").write_text("Claudia project rules.")
         result = build_context_files_prompt(cwd=str(tmp_path))
-        assert "Hermes project rules" in result
+        assert "Claudia project rules" in result
         assert "Agent guidelines" not in result
 
     def test_agents_md_beats_claude_md(self, tmp_path):
@@ -653,12 +653,12 @@ class TestBuildContextFilesPrompt:
 
     def test_claudia_md_beats_all_others(self, tmp_path):
         """When all four types exist, only .claudia.md is loaded."""
-        (tmp_path / ".claudia.md").write_text("Hermes wins.")
+        (tmp_path / ".claudia.md").write_text("Claudia wins.")
         (tmp_path / "AGENTS.md").write_text("Agents lose.")
         (tmp_path / "CLAUDE.md").write_text("Claude loses.")
         (tmp_path / ".cursorrules").write_text("Cursor loses.")
         result = build_context_files_prompt(cwd=str(tmp_path))
-        assert "Hermes wins" in result
+        assert "Claudia wins" in result
         assert "Agents lose" not in result
         assert "Claude loses" not in result
         assert "Cursor loses" not in result
@@ -675,18 +675,18 @@ class TestBuildContextFilesPrompt:
 # =========================================================================
 
 
-class TestFindHermesMd:
+class TestFindClaudiaMd:
     def test_finds_in_cwd(self, tmp_path):
         (tmp_path / ".claudia.md").write_text("rules")
         assert _find_claudia_md(tmp_path) == tmp_path / ".claudia.md"
 
     def test_finds_uppercase(self, tmp_path):
-        (tmp_path / "HERMES.md").write_text("rules")
-        assert _find_claudia_md(tmp_path) == tmp_path / "HERMES.md"
+        (tmp_path / "CLAUDIA.md").write_text("rules")
+        assert _find_claudia_md(tmp_path) == tmp_path / "CLAUDIA.md"
 
     def test_prefers_lowercase(self, tmp_path):
         (tmp_path / ".claudia.md").write_text("lower")
-        (tmp_path / "HERMES.md").write_text("upper")
+        (tmp_path / "CLAUDIA.md").write_text("upper")
         assert _find_claudia_md(tmp_path) == tmp_path / ".claudia.md"
 
     def test_walks_to_git_root(self, tmp_path):
@@ -787,7 +787,7 @@ class TestReadSkillConditions:
     def test_reads_fallback_for_toolsets(self, tmp_path):
         skill_file = tmp_path / "SKILL.md"
         skill_file.write_text(
-            "---\nname: ddg\ndescription: DuckDuckGo\nmetadata:\n  hermes:\n    fallback_for_toolsets: [web]\n---\n"
+            "---\nname: ddg\ndescription: DuckDuckGo\nmetadata:\n  claudia:\n    fallback_for_toolsets: [web]\n---\n"
         )
         conditions = _read_skill_conditions(skill_file)
         assert conditions["fallback_for_toolsets"] == ["web"]
@@ -795,7 +795,7 @@ class TestReadSkillConditions:
     def test_reads_requires_toolsets(self, tmp_path):
         skill_file = tmp_path / "SKILL.md"
         skill_file.write_text(
-            "---\nname: openhue\ndescription: Hue lights\nmetadata:\n  hermes:\n    requires_toolsets: [terminal]\n---\n"
+            "---\nname: openhue\ndescription: Hue lights\nmetadata:\n  claudia:\n    requires_toolsets: [terminal]\n---\n"
         )
         conditions = _read_skill_conditions(skill_file)
         assert conditions["requires_toolsets"] == ["terminal"]
@@ -803,7 +803,7 @@ class TestReadSkillConditions:
     def test_reads_multiple_conditions(self, tmp_path):
         skill_file = tmp_path / "SKILL.md"
         skill_file.write_text(
-            "---\nname: test\ndescription: Test\nmetadata:\n  hermes:\n    fallback_for_toolsets: [browser]\n    requires_tools: [terminal]\n---\n"
+            "---\nname: test\ndescription: Test\nmetadata:\n  claudia:\n    fallback_for_toolsets: [browser]\n    requires_tools: [terminal]\n---\n"
         )
         conditions = _read_skill_conditions(skill_file)
         assert conditions["fallback_for_toolsets"] == ["browser"]
@@ -894,7 +894,7 @@ class TestBuildSkillsSystemPromptConditional:
         skill_dir = tmp_path / "skills" / "search" / "duckduckgo"
         skill_dir.mkdir(parents=True)
         (skill_dir / "SKILL.md").write_text(
-            "---\nname: duckduckgo\ndescription: Free web search\nmetadata:\n  hermes:\n    fallback_for_toolsets: [web]\n---\n"
+            "---\nname: duckduckgo\ndescription: Free web search\nmetadata:\n  claudia:\n    fallback_for_toolsets: [web]\n---\n"
         )
         result = build_skills_system_prompt(
             available_tools=set(),
@@ -907,7 +907,7 @@ class TestBuildSkillsSystemPromptConditional:
         skill_dir = tmp_path / "skills" / "search" / "duckduckgo"
         skill_dir.mkdir(parents=True)
         (skill_dir / "SKILL.md").write_text(
-            "---\nname: duckduckgo\ndescription: Free web search\nmetadata:\n  hermes:\n    fallback_for_toolsets: [web]\n---\n"
+            "---\nname: duckduckgo\ndescription: Free web search\nmetadata:\n  claudia:\n    fallback_for_toolsets: [web]\n---\n"
         )
         result = build_skills_system_prompt(
             available_tools=set(),
@@ -920,7 +920,7 @@ class TestBuildSkillsSystemPromptConditional:
         skill_dir = tmp_path / "skills" / "iot" / "openhue"
         skill_dir.mkdir(parents=True)
         (skill_dir / "SKILL.md").write_text(
-            "---\nname: openhue\ndescription: Hue lights\nmetadata:\n  hermes:\n    requires_toolsets: [terminal]\n---\n"
+            "---\nname: openhue\ndescription: Hue lights\nmetadata:\n  claudia:\n    requires_toolsets: [terminal]\n---\n"
         )
         result = build_skills_system_prompt(
             available_tools=set(),
@@ -933,7 +933,7 @@ class TestBuildSkillsSystemPromptConditional:
         skill_dir = tmp_path / "skills" / "iot" / "openhue"
         skill_dir.mkdir(parents=True)
         (skill_dir / "SKILL.md").write_text(
-            "---\nname: openhue\ndescription: Hue lights\nmetadata:\n  hermes:\n    requires_toolsets: [terminal]\n---\n"
+            "---\nname: openhue\ndescription: Hue lights\nmetadata:\n  claudia:\n    requires_toolsets: [terminal]\n---\n"
         )
         result = build_skills_system_prompt(
             available_tools=set(),
@@ -960,7 +960,7 @@ class TestBuildSkillsSystemPromptConditional:
         skill_dir = tmp_path / "skills" / "search" / "duckduckgo"
         skill_dir.mkdir(parents=True)
         (skill_dir / "SKILL.md").write_text(
-            "---\nname: duckduckgo\ndescription: Free web search\nmetadata:\n  hermes:\n    fallback_for_toolsets: [web]\n---\n"
+            "---\nname: duckduckgo\ndescription: Free web search\nmetadata:\n  claudia:\n    fallback_for_toolsets: [web]\n---\n"
         )
         result = build_skills_system_prompt()
         assert "duckduckgo" in result
@@ -986,7 +986,7 @@ class TestBuildSkillsSystemPromptConditional:
         skill_dir = tmp_path / "skills" / "general" / "nested-null"
         skill_dir.mkdir(parents=True)
         (skill_dir / "SKILL.md").write_text(
-            "---\nname: nested-null\ndescription: Null hermes key\nmetadata:\n  hermes:\n---\n"
+            "---\nname: nested-null\ndescription: Null claudia key\nmetadata:\n  claudia:\n---\n"
         )
         result = build_skills_system_prompt(
             available_tools=set(),

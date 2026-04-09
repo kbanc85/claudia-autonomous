@@ -1,4 +1,4 @@
-"""Shared constants for Hermes Agent.
+"""Shared constants for Claudia.
 
 Import-safe module with no dependencies — can be imported from anywhere
 without risk of circular imports.
@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 def get_claudia_home() -> Path:
-    """Return the Hermes home directory (default: ~/.claudia).
+    """Return the Claudia home directory (default: ~/.claudia).
 
     Reads CLAUDIA_HOME env var, falls back to ~/.claudia.
     This is the single source of truth — all other copies should import this.
@@ -32,7 +32,7 @@ def get_optional_skills_dir(default: Path | None = None) -> Path:
 
 
 def get_claudia_dir(new_subpath: str, old_name: str) -> Path:
-    """Resolve a Hermes subdirectory with backward compatibility.
+    """Resolve a Claudia subdirectory with backward compatibility.
 
     New installs get the consolidated layout (e.g. ``cache/images``).
     Existing installs that already have the old path (e.g. ``image_cache``)
@@ -59,7 +59,7 @@ def display_claudia_home() -> str:
 
         default:  ``~/.claudia``
         profile:  ``~/.claudia/profiles/coder``
-        custom:   ``/opt/hermes-custom``
+        custom:   ``/opt/claudia-custom``
 
     Use this in **user-facing** print/log messages instead of hardcoding
     ``~/.claudia``.  For code that needs a real ``Path``, use

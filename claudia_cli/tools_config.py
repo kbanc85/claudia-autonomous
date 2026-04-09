@@ -1,7 +1,7 @@
 """
-Unified tool configuration for Hermes Agent.
+Unified tool configuration for Claudia.
 
-`hermes tools` and `hermes setup tools` both enter this module.
+`claudia tools` and `claudia setup tools` both enter this module.
 Select a platform → toggle toolsets on/off → for newly enabled tools
 that need API keys, run through provider-aware configuration.
 
@@ -136,21 +136,21 @@ def _get_plugin_toolset_keys() -> set:
 
 # Platform display config
 PLATFORMS = {
-    "cli":      {"label": "🖥️  CLI",       "default_toolset": "hermes-cli"},
-    "telegram": {"label": "📱 Telegram",   "default_toolset": "hermes-telegram"},
-    "discord":  {"label": "💬 Discord",    "default_toolset": "hermes-discord"},
-    "slack":    {"label": "💼 Slack",      "default_toolset": "hermes-slack"},
-    "whatsapp": {"label": "📱 WhatsApp",   "default_toolset": "hermes-whatsapp"},
-    "signal":   {"label": "📡 Signal",     "default_toolset": "hermes-signal"},
-    "homeassistant": {"label": "🏠 Home Assistant", "default_toolset": "hermes-homeassistant"},
-    "email":    {"label": "📧 Email",      "default_toolset": "hermes-email"},
-    "matrix":   {"label": "💬 Matrix",     "default_toolset": "hermes-matrix"},
- "dingtalk": {"label": "💬 DingTalk", "default_toolset": "hermes-dingtalk"},
-    "feishu": {"label": "🪽 Feishu", "default_toolset": "hermes-feishu"},
-    "wecom": {"label": "💬 WeCom", "default_toolset": "hermes-wecom"},
-    "api_server": {"label": "🌐 API Server", "default_toolset": "hermes-api-server"},
-    "mattermost": {"label": "💬 Mattermost", "default_toolset": "hermes-mattermost"},
-    "webhook": {"label": "🔗 Webhook", "default_toolset": "hermes-webhook"},
+    "cli":      {"label": "🖥️  CLI",       "default_toolset": "claudia-cli"},
+    "telegram": {"label": "📱 Telegram",   "default_toolset": "claudia-telegram"},
+    "discord":  {"label": "💬 Discord",    "default_toolset": "claudia-discord"},
+    "slack":    {"label": "💼 Slack",      "default_toolset": "claudia-slack"},
+    "whatsapp": {"label": "📱 WhatsApp",   "default_toolset": "claudia-whatsapp"},
+    "signal":   {"label": "📡 Signal",     "default_toolset": "claudia-signal"},
+    "homeassistant": {"label": "🏠 Home Assistant", "default_toolset": "claudia-homeassistant"},
+    "email":    {"label": "📧 Email",      "default_toolset": "claudia-email"},
+    "matrix":   {"label": "💬 Matrix",     "default_toolset": "claudia-matrix"},
+ "dingtalk": {"label": "💬 DingTalk", "default_toolset": "claudia-dingtalk"},
+    "feishu": {"label": "🪽 Feishu", "default_toolset": "claudia-feishu"},
+    "wecom": {"label": "💬 WeCom", "default_toolset": "claudia-wecom"},
+    "api_server": {"label": "🌐 API Server", "default_toolset": "claudia-api-server"},
+    "mattermost": {"label": "💬 Mattermost", "default_toolset": "claudia-mattermost"},
+    "webhook": {"label": "🔗 Webhook", "default_toolset": "claudia-webhook"},
 }
 
 
@@ -385,9 +385,9 @@ def _run_post_setup(post_setup_key: str):
                 _print_success("    Node.js dependencies installed")
             else:
                 from claudia_constants import display_claudia_home
-                _print_warning(f"    npm install failed - run manually: cd {display_claudia_home()}/hermes-agent && npm install")
+                _print_warning(f"    npm install failed - run manually: cd {display_claudia_home()}/claudia-autonomous && npm install")
         elif not node_modules.exists():
-            _print_warning("    Node.js not found - browser tools require: npm install (in hermes-agent directory)")
+            _print_warning("    Node.js not found - browser tools require: npm install (in claudia-autonomous directory)")
 
     elif post_setup_key == "camofox":
         camofox_dir = PROJECT_ROOT / "node_modules" / "@askjo" / "camoufox-browser"
@@ -511,7 +511,7 @@ def _get_platform_tools(
     # If the saved list contains any configurable keys directly, the user
     # has explicitly configured this platform — use direct membership.
     # This avoids the subset-inference bug where composite toolsets like
-    # "hermes-cli" (which include all _CLAUDIA_CORE_TOOLS) cause disabled
+    # "claudia-cli" (which include all _CLAUDIA_CORE_TOOLS) cause disabled
     # toolsets to re-appear as enabled.
     has_explicit_config = any(ts in configurable_keys for ts in toolset_names)
 
@@ -519,7 +519,7 @@ def _get_platform_tools(
         enabled_toolsets = {ts for ts in toolset_names if ts in configurable_keys}
     else:
         # No explicit config — fall back to resolving composite toolset names
-        # (e.g. "hermes-cli") to individual tool names and reverse-mapping.
+        # (e.g. "claudia-cli") to individual tool names and reverse-mapping.
         all_tool_names = set()
         for ts_name in toolset_names:
             all_tool_names.update(resolve_toolset(ts_name))
@@ -531,7 +531,7 @@ def _get_platform_tools(
                 enabled_toolsets.add(ts_key)
 
     # Plugin toolsets: enabled by default unless explicitly disabled.
-    # A plugin toolset is "known" for a platform once `hermes tools`
+    # A plugin toolset is "known" for a platform once `claudia tools`
     # has been saved for that platform (tracked via known_plugin_toolsets).
     # Unknown plugins default to enabled; known-but-absent = disabled.
     plugin_ts_keys = _get_plugin_toolset_keys()
@@ -543,7 +543,7 @@ def _get_platform_tools(
                 # Explicitly listed in config — enabled
                 enabled_toolsets.add(pts)
             elif pts not in known_for_platform:
-                # New plugin not yet seen by hermes tools — default enabled
+                # New plugin not yet seen by claudia tools — default enabled
                 enabled_toolsets.add(pts)
             # else: known but not in config = user disabled it
 
@@ -594,7 +594,7 @@ def _save_platform_tools(config: dict, platform: str, enabled_toolset_keys: Set[
     plugin_keys = _get_plugin_toolset_keys()
     configurable_keys |= plugin_keys
 
-    # Also exclude platform default toolsets (hermes-cli, hermes-telegram, etc.)
+    # Also exclude platform default toolsets (claudia-cli, claudia-telegram, etc.)
     # These are "super" toolsets that resolve to ALL tools, so preserving them
     # would silently override the user's unchecked selections on the next read.
     platform_default_keys = {p["default_toolset"] for p in PLATFORMS.values()}
@@ -1298,7 +1298,7 @@ def _reconfigure_simple_requirements(ts_key: str):
 # ─── Main Entry Point ─────────────────────────────────────────────────────────
 
 def tools_command(args=None, first_install: bool = False, config: dict = None):
-    """Entry point for `hermes tools` and `hermes setup tools`.
+    """Entry point for `claudia tools` and `claudia setup tools`.
 
     Args:
         first_install: When True (set by the setup wizard on fresh installs),
@@ -1333,7 +1333,7 @@ def tools_command(args=None, first_install: bool = False, config: dict = None):
                 print(color("    (none enabled)", Colors.DIM))
         print()
         return
-    print(color("⚕ Hermes Tool Configuration", Colors.CYAN, Colors.BOLD))
+    print(color("⚕ Claudia Tool Configuration", Colors.CYAN, Colors.BOLD))
     print(color("  Enable or disable tools per platform.", Colors.DIM))
     print(color("  Tools that need API keys will be configured when enabled.", Colors.DIM))
     print()
@@ -1529,7 +1529,7 @@ def tools_command(args=None, first_install: bool = False, config: dict = None):
     print()
     from claudia_constants import display_claudia_home
     print(color(f"  Tool configuration saved to {display_claudia_home()}/config.yaml", Colors.DIM))
-    print(color("  Changes take effect on next 'hermes' or gateway restart.", Colors.DIM))
+    print(color("  Changes take effect on next 'claudia' or gateway restart.", Colors.DIM))
     print()
 
 

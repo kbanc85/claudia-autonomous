@@ -135,8 +135,8 @@ class TestToolsetConsistency:
                 assert inc in TOOLSETS, f"{name} includes unknown toolset '{inc}'"
 
     def test_claudia_platforms_share_core_tools(self):
-        """All hermes-* platform toolsets should have the same tools."""
-        platforms = ["hermes-cli", "hermes-telegram", "hermes-discord", "hermes-whatsapp", "hermes-slack", "hermes-signal", "hermes-homeassistant"]
+        """All claudia-* platform toolsets should have the same tools."""
+        platforms = ["claudia-cli", "claudia-telegram", "claudia-discord", "claudia-whatsapp", "claudia-slack", "claudia-signal", "claudia-homeassistant"]
         tool_sets = [set(TOOLSETS[p]["tools"]) for p in platforms]
         # All platform toolsets should be identical
         for ts in tool_sets[1:]:

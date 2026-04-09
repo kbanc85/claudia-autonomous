@@ -1,46 +1,46 @@
 #!/usr/bin/env python3
 """
-Hermes CLI - Main entry point.
+Claudia CLI - Main entry point.
 
 Usage:
-    hermes                     # Interactive chat (default)
-    hermes chat                # Interactive chat
-    hermes gateway             # Run gateway in foreground
-    hermes gateway start       # Start gateway as service
-    hermes gateway stop        # Stop gateway service
-    hermes gateway status      # Show gateway status
-    hermes gateway install     # Install gateway service
-    hermes gateway uninstall   # Uninstall gateway service
-    hermes setup               # Interactive setup wizard
-    hermes logout              # Clear stored authentication
-    hermes status              # Show status of all components
-    hermes cron                # Manage cron jobs
-    hermes cron list           # List cron jobs
-    hermes cron status         # Check if cron scheduler is running
-    hermes doctor              # Check configuration and dependencies
-    hermes honcho setup                    # Configure Honcho AI memory integration
-    hermes honcho status                   # Show Honcho config and connection status
-    hermes honcho sessions                 # List directory → session name mappings
-    hermes honcho map <name>               # Map current directory to a session name
-    hermes honcho peer                     # Show peer names and dialectic settings
-    hermes honcho peer --user NAME         # Set user peer name
-    hermes honcho peer --ai NAME           # Set AI peer name
-    hermes honcho peer --reasoning LEVEL   # Set dialectic reasoning level
-    hermes honcho mode                     # Show current memory mode
-    hermes honcho mode [hybrid|honcho|local]  # Set memory mode
-    hermes honcho tokens                   # Show token budget settings
-    hermes honcho tokens --context N       # Set session.context() token cap
-    hermes honcho tokens --dialectic N     # Set dialectic result char cap
-    hermes honcho identity                 # Show AI peer identity representation
-    hermes honcho identity <file>          # Seed AI peer identity from a file (SOUL.md etc.)
-    hermes honcho migrate                  # Step-by-step migration guide: OpenClaw native → Hermes + Honcho
-    hermes version             Show version
-    hermes update              Update to latest version
-    hermes uninstall           Uninstall Hermes Agent
-    hermes acp                 Run as an ACP server for editor integration
-    hermes sessions browse     Interactive session picker with search
+    claudia                     # Interactive chat (default)
+    claudia chat                # Interactive chat
+    claudia gateway             # Run gateway in foreground
+    claudia gateway start       # Start gateway as service
+    claudia gateway stop        # Stop gateway service
+    claudia gateway status      # Show gateway status
+    claudia gateway install     # Install gateway service
+    claudia gateway uninstall   # Uninstall gateway service
+    claudia setup               # Interactive setup wizard
+    claudia logout              # Clear stored authentication
+    claudia status              # Show status of all components
+    claudia cron                # Manage cron jobs
+    claudia cron list           # List cron jobs
+    claudia cron status         # Check if cron scheduler is running
+    claudia doctor              # Check configuration and dependencies
+    claudia honcho setup                    # Configure Honcho AI memory integration
+    claudia honcho status                   # Show Honcho config and connection status
+    claudia honcho sessions                 # List directory → session name mappings
+    claudia honcho map <name>               # Map current directory to a session name
+    claudia honcho peer                     # Show peer names and dialectic settings
+    claudia honcho peer --user NAME         # Set user peer name
+    claudia honcho peer --ai NAME           # Set AI peer name
+    claudia honcho peer --reasoning LEVEL   # Set dialectic reasoning level
+    claudia honcho mode                     # Show current memory mode
+    claudia honcho mode [hybrid|honcho|local]  # Set memory mode
+    claudia honcho tokens                   # Show token budget settings
+    claudia honcho tokens --context N       # Set session.context() token cap
+    claudia honcho tokens --dialectic N     # Set dialectic result char cap
+    claudia honcho identity                 # Show AI peer identity representation
+    claudia honcho identity <file>          # Seed AI peer identity from a file (SOUL.md etc.)
+    claudia honcho migrate                  # Step-by-step migration guide: OpenClaw native → Claudia + Honcho
+    claudia version             Show version
+    claudia update              Update to latest version
+    claudia uninstall           Uninstall Claudia
+    claudia acp                 Run as an ACP server for editor integration
+    claudia sessions browse     Interactive session picker with search
 
-    hermes claw migrate --dry-run  # Preview migration without changes
+    claudia migrate migrate --dry-run  # Preview migration without changes
 """
 
 import argparse
@@ -53,13 +53,13 @@ from typing import Optional
 def _require_tty(command_name: str) -> None:
     """Exit with a clear error if stdin is not a terminal.
 
-    Interactive TUI commands (hermes tools, hermes setup, hermes model) use
+    Interactive TUI commands (claudia tools, claudia setup, claudia model) use
     curses or input() prompts that spin at 100% CPU when stdin is a pipe.
     This guard prevents accidental non-interactive invocation.
     """
     if not sys.stdin.isatty():
         print(
-            f"Error: 'hermes {command_name}' requires an interactive terminal.\n"
+            f"Error: 'claudia {command_name}' requires an interactive terminal.\n"
             f"It cannot be run through a pipe or non-interactive subprocess.\n"
             f"Run it directly in your terminal instead.",
             file=sys.stderr,
@@ -72,7 +72,7 @@ PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 sys.path.insert(0, str(PROJECT_ROOT))
 
 # ---------------------------------------------------------------------------
-# Profile override — MUST happen before any hermes module import.
+# Profile override — MUST happen before any claudia module import.
 #
 # Many modules cache CLAUDIA_HOME at import time (module-level constants).
 # We intercept --profile/-p from sys.argv here and set the env var so that
@@ -118,7 +118,7 @@ def _apply_profile_override() -> None:
             print(f"Error: {exc}", file=sys.stderr)
             sys.exit(1)
         except Exception as exc:
-            # A bug in profiles.py must NEVER prevent hermes from starting
+            # A bug in profiles.py must NEVER prevent claudia from starting
             print(f"Warning: profile override failed ({exc}), using default", file=sys.stderr)
             return
         os.environ["CLAUDIA_HOME"] = claudia_home
@@ -176,7 +176,7 @@ def _has_any_provider_configured() -> bool:
     from claudia_cli.config import get_env_path, get_claudia_home, load_config
     from claudia_cli.auth import get_auth_status
 
-    # Determine whether Hermes itself has been explicitly configured (model
+    # Determine whether Claudia itself has been explicitly configured (model
     # in config that isn't the hardcoded default). Used below to gate external
     # tool credentials (Claude Code, Codex CLI) that shouldn't silently skip
     # the setup wizard on a fresh install.
@@ -258,8 +258,8 @@ def _has_any_provider_configured() -> bool:
             return True
 
     # Check for Claude Code OAuth credentials (~/.claude/.credentials.json)
-    # Only count these if Hermes has been explicitly configured — Claude Code
-    # being installed doesn't mean the user wants Hermes to use their tokens.
+    # Only count these if Claudia has been explicitly configured — Claude Code
+    # being installed doesn't mean the user wants Claudia to use their tokens.
     if _has_claudia_config:
         try:
             from agent.anthropic_adapter import read_claude_code_credentials, is_claude_code_token_valid
@@ -558,7 +558,7 @@ def cmd_chat(args):
                 args.resume = resolved
             else:
                 print(f"No session found matching '{continue_val}'.")
-                print("Use 'hermes sessions list' to see available sessions.")
+                print("Use 'claudia sessions list' to see available sessions.")
                 sys.exit(1)
         else:
             # -c with no argument — continue the most recent session
@@ -581,9 +581,9 @@ def cmd_chat(args):
     # First-run guard: check if any provider is configured before launching
     if not _has_any_provider_configured():
         print()
-        print("It looks like Hermes isn't configured yet -- no API keys or providers found.")
+        print("It looks like Claudia isn't configured yet -- no API keys or providers found.")
         print()
-        print("  Run:  hermes setup")
+        print("  Run:  claudia setup")
         print()
 
         from claudia_cli.setup import is_interactive_stdin, print_noninteractive_setup_guidance
@@ -602,7 +602,7 @@ def cmd_chat(args):
             cmd_setup(args)
             return
         print()
-        print("You can run 'hermes setup' at any time to configure.")
+        print("You can run 'claudia setup' at any time to configure.")
         sys.exit(1)
 
     # Start update check in background (runs while other init happens)
@@ -676,7 +676,7 @@ def cmd_whatsapp(args):
     current_mode = get_env_value("WHATSAPP_MODE") or ""
     if not current_mode:
         print()
-        print("How will you use WhatsApp with Hermes?")
+        print("How will you use WhatsApp with Claudia?")
         print()
         print("  1. Separate bot number (recommended)")
         print("     People message the bot's number directly — cleanest experience.")
@@ -798,7 +798,7 @@ def cmd_whatsapp(args):
             print("  ✓ Session cleared")
         else:
             print("\n✓ WhatsApp is configured and paired!")
-            print("  Start the gateway with: hermes gateway")
+            print("  Start the gateway with: claudia gateway")
             return
 
     # ── Step 6: QR code pairing ──────────────────────────────────────────
@@ -829,23 +829,23 @@ def cmd_whatsapp(args):
         print()
         if wa_mode == "bot":
             print("  Next steps:")
-            print("    1. Start the gateway:  hermes gateway")
+            print("    1. Start the gateway:  claudia gateway")
             print("    2. Send a message to the bot's WhatsApp number")
             print("    3. The agent will reply automatically")
             print()
-            print("  Tip: Agent responses are prefixed with '⚕ Hermes Agent'")
+            print("  Tip: Agent responses are prefixed with '⚕ Claudia'")
         else:
             print("  Next steps:")
-            print("    1. Start the gateway:  hermes gateway")
+            print("    1. Start the gateway:  claudia gateway")
             print("    2. Open WhatsApp → Message Yourself")
             print("    3. Type a message — the agent will reply")
             print()
-            print("  Tip: Agent responses are prefixed with '⚕ Hermes Agent'")
+            print("  Tip: Agent responses are prefixed with '⚕ Claudia'")
             print("  so you can tell them apart from your own messages.")
         print()
-        print("  Or install as a service: hermes gateway install")
+        print("  Or install as a service: claudia gateway install")
     else:
-        print("⚠ Pairing may not have completed. Run 'hermes whatsapp' to try again.")
+        print("⚠ Pairing may not have completed. Run 'claudia whatsapp' to try again.")
 
 
 def cmd_setup(args):
@@ -864,7 +864,7 @@ def cmd_model(args):
 def select_provider_and_model(args=None):
     """Core provider selection + model picking logic.
 
-    Shared by ``cmd_model`` (``hermes model``) and the setup wizard
+    Shared by ``cmd_model`` (``claudia model``) and the setup wizard
     (``setup_model_provider`` in setup.py).  Handles the full flow:
     provider picker, credential prompting, model selection, and config
     persistence.
@@ -1330,7 +1330,7 @@ def _model_flow_custom(config):
     else:
         print(
             f"Warning: could not verify this endpoint via {probe.get('probed_url')}. "
-            f"Hermes will still save it."
+            f"Claudia will still save it."
         )
         if probe.get("suggested_base_url"):
             print(f"  If this server expects /v1, try base URL: {probe['suggested_base_url']}")
@@ -1411,7 +1411,7 @@ def _model_flow_custom(config):
             _caller_model["api_key"] = effective_key
         _caller_model.pop("api_mode", None)
         config["model"] = _caller_model
-        print("Endpoint saved. Use `/model` in chat or `hermes model` to set a model.")
+        print("Endpoint saved. Use `/model` in chat or `claudia model` to set a model.")
 
     # Auto-save to custom_providers so it appears in the menu next time
     _save_custom_provider(effective_url, effective_key, model_name or "", context_length=context_length)
@@ -1939,9 +1939,9 @@ def _model_flow_copilot_acp(config, current_model=""):
     resolved_command = status.get("resolved_command") or status.get("command") or "copilot"
     effective_base = status.get("base_url") or pconfig.inference_base_url
 
-    print("  GitHub Copilot ACP delegates Hermes turns to `copilot --acp`.")
-    print("  Hermes currently starts its own ACP subprocess for each request.")
-    print("  Hermes uses your selected model as a hint for the Copilot ACP session.")
+    print("  GitHub Copilot ACP delegates Claudia turns to `copilot --acp`.")
+    print("  Claudia currently starts its own ACP subprocess for each request.")
+    print("  Claudia uses your selected model as a hint for the Copilot ACP session.")
     print(f"  Command: {resolved_command}")
     print(f"  Backend marker: {effective_base}")
     print()
@@ -2250,7 +2250,7 @@ def _run_anthropic_oauth_flow(save_env_value):
             use_anthropic_claude_code_credentials(save_fn=save_env_value)
             print("  ✓ Claude Code credentials linked.")
             from claudia_constants import display_claudia_home as _dhh_fn
-            print(f"    Hermes will use Claude's credential store directly instead of copying a setup-token into {_dhh_fn()}/.env.")
+            print(f"    Claudia will use Claude's credential store directly instead of copying a setup-token into {_dhh_fn()}/.env.")
             return True
         return False
 
@@ -2294,7 +2294,7 @@ def _run_anthropic_oauth_flow(save_env_value):
         print("    1. Install Claude Code:  npm install -g @anthropic-ai/claude-code")
         print("    2. Run:                  claude setup-token")
         print("    3. Follow the browser prompts to authorize")
-        print("    4. Re-run:               hermes model")
+        print("    4. Re-run:               claudia model")
         print()
         print("  Or paste an existing setup-token now (sk-ant-oat-...):")
         print()
@@ -2423,7 +2423,7 @@ def _model_flow_anthropic(config, current_model=""):
         # Update config with provider — clear base_url since
         # resolve_runtime_provider() always hardcodes Anthropic's URL.
         # Leaving a stale base_url in config can contaminate other
-        # providers if the user switches without running 'hermes model'.
+        # providers if the user switches without running 'claudia model'.
         cfg = load_config()
         model = cfg.get("model")
         if not isinstance(model, dict):
@@ -2440,7 +2440,7 @@ def _model_flow_anthropic(config, current_model=""):
 
 
 def cmd_login(args):
-    """Authenticate Hermes CLI with a provider."""
+    """Authenticate Claudia CLI with a provider."""
     from claudia_cli.auth import login_command
     login_command(args)
 
@@ -2489,7 +2489,7 @@ def cmd_config(args):
 
 def cmd_version(args):
     """Show version."""
-    print(f"Hermes Agent v{__version__} ({__release_date__})")
+    print(f"Claudia v{__version__} ({__release_date__})")
     print(f"Project: {PROJECT_ROOT}")
     
     # Show Python version
@@ -2520,7 +2520,7 @@ def cmd_version(args):
 
 
 def cmd_uninstall(args):
-    """Uninstall Hermes Agent."""
+    """Uninstall Claudia."""
     _require_tty("uninstall")
     from claudia_cli.uninstall import run_uninstall
     run_uninstall(args)
@@ -2555,7 +2555,7 @@ def _clear_bytecode_cache(root: Path) -> int:
 
 
 def _update_via_zip(args):
-    """Update Hermes Agent by downloading a ZIP archive.
+    """Update Claudia by downloading a ZIP archive.
     
     Used on Windows when git file I/O is broken (antivirus, NTFS filter 
     drivers causing 'Invalid argument' errors on file creation).
@@ -2566,12 +2566,12 @@ def _update_via_zip(args):
     from urllib.request import urlretrieve
     
     branch = "main"
-    zip_url = f"https://github.com/NousResearch/hermes-agent/archive/refs/heads/{branch}.zip"
+    zip_url = f"https://github.com/NousResearch/claudia-autonomous/archive/refs/heads/{branch}.zip"
     
     print("→ Downloading latest version...")
     try:
-        tmp_dir = tempfile.mkdtemp(prefix="hermes-update-")
-        zip_path = os.path.join(tmp_dir, f"hermes-agent-{branch}.zip")
+        tmp_dir = tempfile.mkdtemp(prefix="claudia-update-")
+        zip_path = os.path.join(tmp_dir, f"claudia-autonomous-{branch}.zip")
         urlretrieve(zip_url, zip_path)
         
         print("→ Extracting...")
@@ -2584,8 +2584,8 @@ def _update_via_zip(args):
                     raise ValueError(f"Zip-slip detected: {member.filename} escapes extraction directory")
             zf.extractall(tmp_dir)
         
-        # GitHub ZIPs extract to hermes-agent-<branch>/
-        extracted = os.path.join(tmp_dir, f"hermes-agent-{branch}")
+        # GitHub ZIPs extract to claudia-autonomous-<branch>/
+        extracted = os.path.join(tmp_dir, f"claudia-autonomous-{branch}")
         if not os.path.isdir(extracted):
             # Try to find it
             for d in os.listdir(tmp_dir):
@@ -2698,7 +2698,7 @@ def _stash_local_changes_if_needed(git_cmd: list[str], cwd: Path) -> Optional[st
 
     from datetime import datetime, timezone
 
-    stash_name = datetime.now(timezone.utc).strftime("hermes-update-autostash-%Y%m%d-%H%M%S")
+    stash_name = datetime.now(timezone.utc).strftime("claudia-update-autostash-%Y%m%d-%H%M%S")
     print("→ Local changes detected — stashing before update...")
     subprocess.run(
         git_cmd + ["stash", "push", "--include-untracked", "-m", stash_name],
@@ -2752,7 +2752,7 @@ def _restore_stashed_changes(
         print()
         print("⚠ Local changes were stashed before updating.")
         print("  Restoring them may reapply local customizations onto the updated codebase.")
-        print("  Review the result afterward if Hermes behaves unexpectedly.")
+        print("  Review the result afterward if Claudia behaves unexpectedly.")
         print("Restore local changes now? [Y/n]")
         response = input().strip().lower()
         if response not in ("", "y", "yes"):
@@ -2798,7 +2798,7 @@ def _restore_stashed_changes(
         # Ask before resetting (if interactive)
         do_reset = True
         if prompt_user:
-            print("\nReset working tree to clean state so Hermes can run?")
+            print("\nReset working tree to clean state so Claudia can run?")
             print("  (You can re-apply your changes later with: git stash apply)")
             print("[Y/n] ", end="", flush=True)
             response = input().strip().lower()
@@ -2826,7 +2826,7 @@ def _restore_stashed_changes(
 
     stash_selector = _resolve_stash_selector(git_cmd, cwd, stash_ref)
     if stash_selector is None:
-        print("⚠ Local changes were restored, but Hermes couldn't find the stash entry to drop.")
+        print("⚠ Local changes were restored, but Claudia couldn't find the stash entry to drop.")
         print("  The stash was left in place. You can remove it manually after checking the result.")
         _print_stash_cleanup_guidance(stash_ref)
     else:
@@ -2837,7 +2837,7 @@ def _restore_stashed_changes(
             text=True,
         )
         if drop.returncode != 0:
-            print("⚠ Local changes were restored, but Hermes couldn't drop the saved stash entry.")
+            print("⚠ Local changes were restored, but Claudia couldn't drop the saved stash entry.")
             if drop.stdout.strip():
                 print(drop.stdout.strip())
             if drop.stderr.strip():
@@ -2846,20 +2846,20 @@ def _restore_stashed_changes(
             _print_stash_cleanup_guidance(stash_ref, stash_selector)
 
     print("⚠ Local changes were restored on top of the updated codebase.")
-    print("  Review `git diff` / `git status` if Hermes behaves unexpectedly.")
+    print("  Review `git diff` / `git status` if Claudia behaves unexpectedly.")
     return True
 
 # =========================================================================
-# Fork detection and upstream management for `hermes update`
+# Fork detection and upstream management for `claudia update`
 # =========================================================================
 
 OFFICIAL_REPO_URLS = {
-    "https://github.com/NousResearch/hermes-agent.git",
-    "git@github.com:NousResearch/hermes-agent.git",
-    "https://github.com/NousResearch/hermes-agent",
-    "git@github.com:NousResearch/hermes-agent",
+    "https://github.com/NousResearch/claudia-autonomous.git",
+    "git@github.com:NousResearch/claudia-autonomous.git",
+    "https://github.com/NousResearch/claudia-autonomous",
+    "git@github.com:NousResearch/claudia-autonomous",
 }
-OFFICIAL_REPO_URL = "https://github.com/NousResearch/hermes-agent.git"
+OFFICIAL_REPO_URL = "https://github.com/NousResearch/claudia-autonomous.git"
 SKIP_UPSTREAM_PROMPT_FILE = ".skip_upstream_prompt"
 
 
@@ -2990,8 +2990,8 @@ def _sync_with_upstream_if_needed(git_cmd: list[str], cwd: Path) -> None:
 
         # Ask user if they want to add upstream
         print()
-        print("ℹ Your fork is not tracking the official Hermes repository.")
-        print("  This means you may miss updates from NousResearch/hermes-agent.")
+        print("ℹ Your fork is not tracking the official Claudia repository.")
+        print("  This means you may miss updates from NousResearch/claudia-autonomous.")
         print()
         try:
             response = input("Add official repo as 'upstream' remote? [Y/n]: ").strip().lower()
@@ -3002,13 +3002,13 @@ def _sync_with_upstream_if_needed(git_cmd: list[str], cwd: Path) -> None:
         if response in ("", "y", "yes"):
             print("→ Adding upstream remote...")
             if _add_upstream_remote(git_cmd, cwd):
-                print("  ✓ Added upstream: https://github.com/NousResearch/hermes-agent.git")
+                print("  ✓ Added upstream: https://github.com/NousResearch/claudia-autonomous.git")
                 has_upstream = True
             else:
                 print("  ✗ Failed to add upstream remote. Skipping upstream sync.")
                 return
         else:
-            print("  Skipped. Run 'git remote add upstream https://github.com/NousResearch/hermes-agent.git' to add later.")
+            print("  Skipped. Run 'git remote add upstream https://github.com/NousResearch/claudia-autonomous.git' to add later.")
             _mark_skip_upstream_prompt()
             return
 
@@ -3079,7 +3079,7 @@ def _invalidate_update_cache():
     reports a stale "commits behind" count after a successful update.
 
     The git repo is shared across profiles — when one profile runs
-    ``hermes update``, every profile is now current.
+    ``claudia update``, every profile is now current.
     """
     homes = []
     # Default profile home
@@ -3120,7 +3120,7 @@ def _load_installable_optional_extras() -> list[str]:
         return []
 
     # Parse the [all] group to find which extras it references.
-    # Entries look like "hermes-agent[matrix]" or "package-name[extra]".
+    # Entries look like "claudia-autonomous[matrix]" or "package-name[extra]".
     all_refs = optional_deps.get("all", [])
     referenced: list[str] = []
     for ref in all_refs:
@@ -3178,15 +3178,15 @@ def _install_python_dependencies_with_optional_fallback(
 
 
 def cmd_update(args):
-    """Update Hermes Agent to the latest version."""
+    """Update Claudia to the latest version."""
     import shutil
     from claudia_cli.config import is_managed, managed_error
 
     if is_managed():
-        managed_error("update Hermes Agent")
+        managed_error("update Claudia")
         return
     
-    print("⚕ Updating Hermes Agent...")
+    print("⚕ Updating Claudia...")
     print()
     
     # Try git-based update first, fall back to ZIP download on Windows
@@ -3199,7 +3199,7 @@ def cmd_update(args):
             use_zip_update = True
         else:
             print("✗ Not a git repository. Please reinstall:")
-            print("  curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash")
+            print("  curl -fsSL https://raw.githubusercontent.com/NousResearch/claudia-autonomous/main/scripts/install.sh | bash")
             sys.exit(1)
     
     # On Windows, git can fail with "unable to write loose object file: Invalid argument"
@@ -3492,7 +3492,7 @@ def cmd_update(args):
             print()
             if not (sys.stdin.isatty() and sys.stdout.isatty()):
                 print("  ℹ Non-interactive session — skipping config migration prompt.")
-                print("    Run 'hermes config migrate' later to apply any new config/env options.")
+                print("    Run 'claudia config migrate' later to apply any new config/env options.")
                 response = "n"
             else:
                 try:
@@ -3509,7 +3509,7 @@ def cmd_update(args):
                     print("✓ Configuration updated!")
             else:
                 print()
-                print("Skipped. Run 'hermes config migrate' later to configure.")
+                print("Skipped. Run 'claudia config migrate' later to configure.")
         else:
             print("  ✓ Configuration is up to date")
         
@@ -3544,7 +3544,7 @@ def cmd_update(args):
             except (FileNotFoundError, subprocess.TimeoutExpired):
                 pass
 
-            # Also check for a system-level service (hermes gateway install --system).
+            # Also check for a system-level service (claudia gateway install --system).
             # This covers gateways running under system systemd where --user
             # fails due to missing D-Bus session.
             if not has_systemd_service and is_linux():
@@ -3609,11 +3609,11 @@ def cmd_update(args):
                                 print(f"  Run:  sudo loginctl enable-linger {_username}")
                                 print()
                                 print("  Then restart the gateway:")
-                                print("    hermes gateway restart")
+                                print("    claudia gateway restart")
                             else:
-                                print("  Try manually: hermes gateway restart")
+                                print("  Try manually: claudia gateway restart")
                 elif has_system_service:
-                    # System-level service (hermes gateway install --system).
+                    # System-level service (claudia gateway install --system).
                     # No D-Bus session needed — systemctl without --user talks
                     # directly to the system manager over /run/systemd/private.
                     print("→ Restarting system gateway service...")
@@ -3637,7 +3637,7 @@ def cmd_update(args):
                     except subprocess.CalledProcessError as e:
                         stderr = (getattr(e, "stderr", "") or "").strip()
                         print(f"⚠ Gateway restart failed: {stderr}")
-                        print("  Try manually: hermes gateway restart")
+                        print("  Try manually: claudia gateway restart")
                 elif existing_pid:
                     try:
                         os.kill(existing_pid, _signal.SIGTERM)
@@ -3648,13 +3648,13 @@ def cmd_update(args):
                         print(f"⚠ Permission denied killing gateway PID {existing_pid}")
                     remove_pid_file()
                     print("  ℹ️  Gateway was running manually (not as a service).")
-                    print("  Restart it with: hermes gateway run")
+                    print("  Restart it with: claudia gateway run")
         except Exception as e:
             logger.debug("Gateway restart during update failed: %s", e)
         
         print()
         print("Tip: You can now select a provider and model:")
-        print("  hermes model              # Select provider and model")
+        print("  claudia model              # Select provider and model")
         
     except subprocess.CalledProcessError as e:
         if sys.platform == "win32":
@@ -3670,7 +3670,7 @@ def cmd_update(args):
 def _coalesce_session_name_args(argv: list) -> list:
     """Join unquoted multi-word session names after -c/--continue and -r/--resume.
 
-    When a user types ``hermes -c Pokemon Agent Dev`` without quoting the
+    When a user types ``claudia -c Pokemon Agent Dev`` without quoting the
     session name, argparse sees three separate tokens.  This function merges
     them into a single argument so argparse receives
     ``['-c', 'Pokemon Agent Dev']`` instead.
@@ -3719,7 +3719,7 @@ def cmd_profile(args):
     action = getattr(args, "profile_action", None)
 
     if action is None:
-        # Bare `hermes profile` — show current profile status
+        # Bare `claudia profile` — show current profile status
         profile_name = get_active_profile_name()
         dhh = display_claudia_home()
         print(f"\nActive profile: {profile_name}")
@@ -3733,7 +3733,7 @@ def cmd_profile(args):
                 print(f"Gateway:        {'running' if p.gateway_running else 'stopped'}")
                 print(f"Skills:         {p.skill_count} installed")
                 if p.alias_path:
-                    print(f"Alias:          {p.name} → hermes -p {p.name}")
+                    print(f"Alias:          {p.name} → claudia -p {p.name}")
                 break
         print()
         return
@@ -3821,8 +3821,8 @@ def cmd_profile(args):
                 collision = check_alias_collision(name)
                 if collision:
                     print(f"\n⚠ Cannot create alias '{name}' — {collision}")
-                    print(f"  Choose a custom alias:  hermes profile alias {name} --name <custom>")
-                    print(f"  Or access via flag:     hermes -p {name} chat")
+                    print(f"  Choose a custom alias:  claudia profile alias {name} --name <custom>")
+                    print(f"  Or access via flag:     claudia -p {name} chat")
                 else:
                     wrapper_path = create_wrapper_script(name)
                     if wrapper_path:
@@ -3907,7 +3907,7 @@ def cmd_profile(args):
             if wrapper_path:
                 # If custom name, write the profile name into the wrapper
                 if custom_name:
-                    wrapper_path.write_text(f'#!/bin/sh\nexec hermes -p {name} "$@"\n')
+                    wrapper_path.write_text(f'#!/bin/sh\nexec claudia -p {name} "$@"\n')
                 print(f"✓ Alias created: {wrapper_path}")
                 if not _is_wrapper_dir_in_path():
                     print(f"⚠ {_get_wrapper_dir()} is not in your PATH.")
@@ -3963,39 +3963,39 @@ def cmd_completion(args):
 
 
 def main():
-    """Main entry point for hermes CLI."""
+    """Main entry point for claudia CLI."""
     parser = argparse.ArgumentParser(
-        prog="hermes",
-        description="Hermes Agent - AI assistant with tool-calling capabilities",
+        prog="claudia",
+        description="Claudia - AI assistant with tool-calling capabilities",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    hermes                        Start interactive chat
-    hermes chat -q "Hello"        Single query mode
-    hermes -c                     Resume the most recent session
-    hermes -c "my project"        Resume a session by name (latest in lineage)
-    hermes --resume <session_id>  Resume a specific session by ID
-    hermes setup                  Run setup wizard
-    hermes logout                 Clear stored authentication
-    hermes auth add <provider>    Add a pooled credential
-    hermes auth list              List pooled credentials
-    hermes auth remove <p> <n>    Remove pooled credential by index
-    hermes auth reset <provider>  Clear exhaustion status for a provider
-    hermes model                  Select default model
-    hermes config                 View configuration
-    hermes config edit            Edit config in $EDITOR
-    hermes config set model gpt-4 Set a config value
-    hermes gateway                Run messaging gateway
-    hermes -s hermes-agent-dev,github-auth
-    hermes -w                     Start in isolated git worktree
-    hermes gateway install        Install gateway background service
-    hermes sessions list          List past sessions
-    hermes sessions browse        Interactive session picker
-    hermes sessions rename ID T   Rename/title a session
-    hermes update                 Update to latest version
+    claudia                        Start interactive chat
+    claudia chat -q "Hello"        Single query mode
+    claudia -c                     Resume the most recent session
+    claudia -c "my project"        Resume a session by name (latest in lineage)
+    claudia --resume <session_id>  Resume a specific session by ID
+    claudia setup                  Run setup wizard
+    claudia logout                 Clear stored authentication
+    claudia auth add <provider>    Add a pooled credential
+    claudia auth list              List pooled credentials
+    claudia auth remove <p> <n>    Remove pooled credential by index
+    claudia auth reset <provider>  Clear exhaustion status for a provider
+    claudia model                  Select default model
+    claudia config                 View configuration
+    claudia config edit            Edit config in $EDITOR
+    claudia config set model gpt-4 Set a config value
+    claudia gateway                Run messaging gateway
+    claudia -s claudia-autonomous-dev,github-auth
+    claudia -w                     Start in isolated git worktree
+    claudia gateway install        Install gateway background service
+    claudia sessions list          List past sessions
+    claudia sessions browse        Interactive session picker
+    claudia sessions rename ID T   Rename/title a session
+    claudia update                 Update to latest version
 
 For more help on a command:
-    hermes <command> --help
+    claudia <command> --help
 """
     )
     
@@ -4052,7 +4052,7 @@ For more help on a command:
     chat_parser = subparsers.add_parser(
         "chat",
         help="Interactive chat with the agent",
-        description="Start an interactive chat session with Hermes Agent"
+        description="Start an interactive chat session with Claudia"
     )
     chat_parser.add_argument(
         "-q", "--query",
@@ -4159,7 +4159,7 @@ For more help on a command:
     model_parser.add_argument(
         "--client-id",
         default=None,
-        help="OAuth client id to use for Nous login (default: hermes-cli)"
+        help="OAuth client id to use for Nous login (default: claudia-cli)"
     )
     model_parser.add_argument(
         "--scope",
@@ -4245,8 +4245,8 @@ For more help on a command:
     setup_parser = subparsers.add_parser(
         "setup",
         help="Interactive setup wizard",
-        description="Configure Hermes Agent with an interactive wizard. "
-                    "Run a specific section: hermes setup model|terminal|gateway|tools|agent"
+        description="Configure Claudia with an interactive wizard. "
+                    "Run a specific section: claudia setup model|terminal|gateway|tools|agent"
     )
     setup_parser.add_argument(
         "section",
@@ -4283,7 +4283,7 @@ For more help on a command:
     login_parser = subparsers.add_parser(
         "login",
         help="Authenticate with an inference provider",
-        description="Run OAuth device authorization flow for Hermes CLI"
+        description="Run OAuth device authorization flow for Claudia CLI"
     )
     login_parser.add_argument(
         "--provider",
@@ -4302,7 +4302,7 @@ For more help on a command:
     login_parser.add_argument(
         "--client-id",
         default=None,
-        help="OAuth client id to use (default: hermes-cli)"
+        help="OAuth client id to use (default: claudia-cli)"
     )
     login_parser.add_argument(
         "--scope",
@@ -4380,7 +4380,7 @@ For more help on a command:
     status_parser = subparsers.add_parser(
         "status",
         help="Show status of all components",
-        description="Display status of Hermes Agent components"
+        description="Display status of Claudia components"
     )
     status_parser.add_argument(
         "--all",
@@ -4488,7 +4488,7 @@ For more help on a command:
     doctor_parser = subparsers.add_parser(
         "doctor",
         help="Check configuration and dependencies",
-        description="Diagnose issues with Hermes Agent setup"
+        description="Diagnose issues with Claudia setup"
     )
     doctor_parser.add_argument(
         "--fix",
@@ -4503,7 +4503,7 @@ For more help on a command:
     config_parser = subparsers.add_parser(
         "config",
         help="View and edit configuration",
-        description="Manage Hermes Agent configuration"
+        description="Manage Claudia configuration"
     )
     config_subparsers = config_parser.add_subparsers(dest="config_command")
     
@@ -4657,7 +4657,7 @@ For more help on a command:
     )
     plugins_install.add_argument(
         "identifier",
-        help="Git URL or owner/repo shorthand (e.g. anpicasso/hermes-plugin-chrome-profiles)",
+        help="Git URL or owner/repo shorthand (e.g. anpicasso/claudia-plugin-chrome-profiles)",
     )
     plugins_install.add_argument(
         "--force", "-f", action="store_true",
@@ -4694,14 +4694,14 @@ For more help on a command:
 
     # =========================================================================
     # honcho command — Honcho-specific config (peer, mode, tokens, profiles)
-    # Provider selection happens via 'hermes memory setup'.
+    # Provider selection happens via 'claudia memory setup'.
     # =========================================================================
     honcho_parser = subparsers.add_parser(
         "honcho",
         help="Manage Honcho memory provider config (peer, mode, profiles)",
         description=(
             "Configure Honcho-specific settings. Honcho is now a memory provider\n"
-            "plugin — initial setup is via 'hermes memory setup'. These commands\n"
+            "plugin — initial setup is via 'claudia memory setup'. These commands\n"
             "manage Honcho's own config: peer names, memory mode, token budgets,\n"
             "per-profile host blocks, and cross-profile observability."
         ),
@@ -4713,7 +4713,7 @@ For more help on a command:
     )
     honcho_subparsers = honcho_parser.add_subparsers(dest="honcho_command")
 
-    honcho_subparsers.add_parser("setup", help="Initial Honcho setup (redirects to hermes memory setup)")
+    honcho_subparsers.add_parser("setup", help="Initial Honcho setup (redirects to claudia memory setup)")
     honcho_status = honcho_subparsers.add_parser("status", help="Show current Honcho config and connection status")
     honcho_status.add_argument("--all", action="store_true", help="Show config overview across all profiles")
     honcho_subparsers.add_parser("peers", help="Show peer identities across all profiles")
@@ -4774,7 +4774,7 @@ For more help on a command:
 
     honcho_subparsers.add_parser(
         "migrate",
-        help="Step-by-step migration guide from openclaw-honcho to Hermes Honcho",
+        help="Step-by-step migration guide from openclaw-honcho to Claudia Honcho",
     )
     honcho_subparsers.add_parser("enable", help="Enable Honcho for the active profile")
     honcho_subparsers.add_parser("disable", help="Disable Honcho for the active profile")
@@ -4785,7 +4785,7 @@ For more help on a command:
         if sub == "setup":
             # Redirect to the generic memory setup
             print("\n  Honcho is now configured via the memory provider system.")
-            print("  Running 'hermes memory setup'...\n")
+            print("  Running 'claudia memory setup'...\n")
             from claudia_cli.memory_setup import memory_command
             memory_command(args)
             return
@@ -4840,7 +4840,7 @@ For more help on a command:
             "Enable, disable, or list tools for CLI, Telegram, Discord, etc.\n\n"
             "Built-in toolsets use plain names (e.g. web, memory).\n"
             "MCP tools use server:tool notation (e.g. github:create_issue).\n\n"
-            "Run 'hermes tools' with no subcommand for the interactive configuration UI."
+            "Run 'claudia tools' with no subcommand for the interactive configuration UI."
         ),
     )
     tools_parser.add_argument(
@@ -4850,7 +4850,7 @@ For more help on a command:
     )
     tools_sub = tools_parser.add_subparsers(dest="tools_action")
 
-    # hermes tools list [--platform cli]
+    # claudia tools list [--platform cli]
     tools_list_p = tools_sub.add_parser(
         "list",
         help="Show all tools and their enabled/disabled status",
@@ -4860,7 +4860,7 @@ For more help on a command:
         help="Platform to show (default: cli)",
     )
 
-    # hermes tools disable <name...> [--platform cli]
+    # claudia tools disable <name...> [--platform cli]
     tools_disable_p = tools_sub.add_parser(
         "disable",
         help="Disable toolsets or MCP tools",
@@ -4874,7 +4874,7 @@ For more help on a command:
         help="Platform to apply to (default: cli)",
     )
 
-    # hermes tools enable <name...> [--platform cli]
+    # claudia tools enable <name...> [--platform cli]
     tools_enable_p = tools_sub.add_parser(
         "enable",
         help="Enable toolsets or MCP tools",
@@ -4904,19 +4904,19 @@ For more help on a command:
     # =========================================================================
     mcp_parser = subparsers.add_parser(
         "mcp",
-        help="Manage MCP servers and run Hermes as an MCP server",
+        help="Manage MCP servers and run Claudia as an MCP server",
         description=(
-            "Manage MCP server connections and run Hermes as an MCP server.\n\n"
+            "Manage MCP server connections and run Claudia as an MCP server.\n\n"
             "MCP servers provide additional tools via the Model Context Protocol.\n"
-            "Use 'hermes mcp add' to connect to a new server, or\n"
-            "'hermes mcp serve' to expose Hermes conversations over MCP."
+            "Use 'claudia mcp add' to connect to a new server, or\n"
+            "'claudia mcp serve' to expose Claudia conversations over MCP."
         ),
     )
     mcp_sub = mcp_parser.add_subparsers(dest="mcp_action")
 
     mcp_serve_p = mcp_sub.add_parser(
         "serve",
-        help="Run Hermes as an MCP server (expose conversations to other agents)",
+        help="Run Claudia as an MCP server (expose conversations to other agents)",
     )
     mcp_serve_p.add_argument(
         "-v", "--verbose", action="store_true",
@@ -5116,12 +5116,12 @@ For more help on a command:
                 print("Cancelled.")
                 return
 
-            # Launch hermes --resume <id> by replacing the current process
+            # Launch claudia --resume <id> by replacing the current process
             print(f"Resuming session: {selected_id}")
             import shutil
-            claudia_bin = shutil.which("hermes")
+            claudia_bin = shutil.which("claudia")
             if claudia_bin:
-                os.execvp(claudia_bin, ["hermes", "--resume", selected_id])
+                os.execvp(claudia_bin, ["claudia", "--resume", selected_id])
             else:
                 # Fallback: re-invoke via python -m
                 os.execvp(
@@ -5183,14 +5183,14 @@ For more help on a command:
     claw_parser = subparsers.add_parser(
         "claw",
         help="OpenClaw migration tools",
-        description="Migrate settings, memories, skills, and API keys from OpenClaw to Hermes"
+        description="Migrate settings, memories, skills, and API keys from OpenClaw to Claudia"
     )
     claw_subparsers = claw_parser.add_subparsers(dest="claw_action")
 
     # claw migrate
     claw_migrate = claw_subparsers.add_parser(
         "migrate",
-        help="Migrate from OpenClaw to Hermes",
+        help="Migrate from OpenClaw to Claudia",
         description="Import settings, memories, skills, and API keys from an OpenClaw installation"
     )
     claw_migrate.add_argument(
@@ -5276,7 +5276,7 @@ For more help on a command:
     # =========================================================================
     update_parser = subparsers.add_parser(
         "update",
-        help="Update Hermes Agent to the latest version",
+        help="Update Claudia to the latest version",
         description="Pull the latest changes from git and reinstall dependencies"
     )
     update_parser.set_defaults(func=cmd_update)
@@ -5286,8 +5286,8 @@ For more help on a command:
     # =========================================================================
     uninstall_parser = subparsers.add_parser(
         "uninstall",
-        help="Uninstall Hermes Agent",
-        description="Remove Hermes Agent from your system. Can keep configs/data for reinstall."
+        help="Uninstall Claudia",
+        description="Remove Claudia from your system. Can keep configs/data for reinstall."
     )
     uninstall_parser.add_argument(
         "--full",
@@ -5306,12 +5306,12 @@ For more help on a command:
     # =========================================================================
     acp_parser = subparsers.add_parser(
         "acp",
-        help="Run Hermes Agent as an ACP (Agent Client Protocol) server",
-        description="Start Hermes Agent in ACP mode for editor integration (VS Code, Zed, JetBrains)",
+        help="Run Claudia as an ACP (Agent Client Protocol) server",
+        description="Start Claudia in ACP mode for editor integration (VS Code, Zed, JetBrains)",
     )
 
     def cmd_acp(args):
-        """Launch Hermes Agent as an ACP server."""
+        """Launch Claudia as an ACP server."""
         try:
             from acp_adapter.entry import main as acp_main
             acp_main()
@@ -5327,7 +5327,7 @@ For more help on a command:
     # =========================================================================
     profile_parser = subparsers.add_parser(
         "profile",
-        help="Manage profiles — multiple isolated Hermes instances",
+        help="Manage profiles — multiple isolated Claudia instances",
     )
     profile_subparsers = profile_parser.add_subparsers(dest="profile_action")
 
@@ -5395,7 +5395,7 @@ For more help on a command:
     # =========================================================================
     # Pre-process argv so unquoted multi-word session names after -c / -r
     # are merged into a single token before argparse sees them.
-    # e.g. ``hermes -c Pokemon Agent Dev`` → ``hermes -c 'Pokemon Agent Dev'``
+    # e.g. ``claudia -c Pokemon Agent Dev`` → ``claudia -c 'Pokemon Agent Dev'``
     _processed_argv = _coalesce_session_name_args(sys.argv[1:])
     args = parser.parse_args(_processed_argv)
     

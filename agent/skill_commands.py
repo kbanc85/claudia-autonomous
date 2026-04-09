@@ -28,7 +28,7 @@ def build_plan_path(
     Relative paths are intentional: file tools are task/backend-aware and resolve
     them against the active working directory for local, docker, ssh, modal,
     daytona, and similar terminal backends. That keeps the plan with the active
-    workspace instead of the Hermes host's global home directory.
+    workspace instead of the Claudia host's global home directory.
     """
     slug_source = (user_instruction or "").strip().splitlines()[0] if user_instruction else ""
     slug = _PLAN_SLUG_RE.sub("-", slug_source.lower()).strip("-")

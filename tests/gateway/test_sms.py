@@ -181,16 +181,16 @@ class TestSmsToolset:
     def test_claudia_sms_toolset_exists(self):
         from toolsets import get_toolset
 
-        ts = get_toolset("hermes-sms")
+        ts = get_toolset("claudia-sms")
         assert ts is not None
         assert "tools" in ts
 
     def test_claudia_sms_in_gateway_includes(self):
         from toolsets import get_toolset
 
-        gw = get_toolset("hermes-gateway")
+        gw = get_toolset("claudia-gateway")
         assert gw is not None
-        assert "hermes-sms" in gw["includes"]
+        assert "claudia-sms" in gw["includes"]
 
     def test_sms_platform_hint_exists(self):
         from agent.prompt_builder import PLATFORM_HINTS

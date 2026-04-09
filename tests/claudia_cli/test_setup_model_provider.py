@@ -419,7 +419,7 @@ def test_setup_summary_marks_anthropic_auth_as_vision_available(tmp_path, monkey
     output = capsys.readouterr().out
 
     assert "Vision (image analysis)" in output
-    assert "missing run 'hermes setup' to configure" not in output
+    assert "missing run 'claudia setup' to configure" not in output
 
 
 def test_setup_summary_shows_camofox_when_browser_feature_is_camofox(tmp_path, monkeypatch, capsys):

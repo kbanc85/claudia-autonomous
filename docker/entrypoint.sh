@@ -1,9 +1,9 @@
 #!/bin/bash
-# Docker entrypoint: bootstrap config files into the mounted volume, then run hermes.
+# Docker entrypoint: bootstrap config files into the mounted volume, then run claudia.
 set -e
 
 CLAUDIA_HOME="/opt/data"
-INSTALL_DIR="/opt/hermes"
+INSTALL_DIR="/opt/claudia"
 
 # Create essential directory structure.  Cache and platform directories
 # (cache/images, cache/audio, platforms/whatsapp, etc.) are created on
@@ -31,4 +31,4 @@ if [ -d "$INSTALL_DIR/skills" ]; then
     python3 "$INSTALL_DIR/tools/skills_sync.py"
 fi
 
-exec hermes "$@"
+exec claudia "$@"

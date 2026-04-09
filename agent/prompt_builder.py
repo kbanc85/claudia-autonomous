@@ -86,11 +86,11 @@ def _find_git_root(start: Path) -> Optional[Path]:
     return None
 
 
-_CLAUDIA_MD_NAMES = (".claudia.md", "HERMES.md")
+_CLAUDIA_MD_NAMES = (".claudia.md", "CLAUDIA.md")
 
 
 def _find_claudia_md(cwd: Path) -> Optional[Path]:
-    """Discover the nearest ``.claudia.md`` or ``HERMES.md``.
+    """Discover the nearest ``.claudia.md`` or ``CLAUDIA.md``.
 
     Search order: *cwd* first, then each parent directory up to (and
     including) the git repository root.  Returns the first match, or
@@ -132,7 +132,7 @@ def _strip_yaml_frontmatter(content: str) -> str:
 # =========================================================================
 
 DEFAULT_AGENT_IDENTITY = (
-    "You are Hermes Agent, an intelligent AI assistant created by Nous Research. "
+    "You are Claudia, an intelligent AI assistant created by Nous Research. "
     "You are helpful, knowledgeable, and direct. You assist users with a wide "
     "range of tasks including answering questions, writing and editing code, "
     "analyzing information, creative work, and executing actions via your tools. "
@@ -743,7 +743,7 @@ def build_nous_subscription_prompt(valid_tool_names: "set[str] | None" = None) -
             "When a Nous-managed feature is active, do not ask the user for Firecrawl, FAL, OpenAI TTS, or Browserbase API keys.",
             "If the user is not subscribed and asks for a capability that Nous subscription would unlock or simplify, suggest Nous subscription as one option alongside direct setup or local alternatives.",
             "Do not mention subscription unless the user asks about it or it directly solves the current missing capability.",
-            "Useful commands: hermes setup, hermes setup tools, hermes setup terminal, hermes status.",
+            "Useful commands: claudia setup, claudia setup tools, claudia setup terminal, claudia status.",
         ]
     )
     return "\n".join(lines)
@@ -794,7 +794,7 @@ def load_soul_md() -> Optional[str]:
 
 
 def _load_claudia_md(cwd_path: Path) -> str:
-    """.claudia.md / HERMES.md — walk to git root."""
+    """.claudia.md / CLAUDIA.md — walk to git root."""
     claudia_md_path = _find_claudia_md(cwd_path)
     if not claudia_md_path:
         return ""
@@ -882,7 +882,7 @@ def build_context_files_prompt(cwd: Optional[str] = None, skip_soul: bool = Fals
     """Discover and load context files for the system prompt.
 
     Priority (first found wins — only ONE project context type is loaded):
-      1. .claudia.md / HERMES.md  (walk to git root)
+      1. .claudia.md / CLAUDIA.md  (walk to git root)
       2. AGENTS.md / agents.md   (cwd only)
       3. CLAUDE.md / claude.md   (cwd only)
       4. .cursorrules / .cursor/rules/*.mdc  (cwd only)
