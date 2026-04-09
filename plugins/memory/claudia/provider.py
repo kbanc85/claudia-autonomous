@@ -78,6 +78,7 @@ from plugins.memory.claudia import (
     consolidation,
     entities,
     hybrid_search,
+    retention,
     schema,
     verification,
 )
@@ -95,6 +96,7 @@ from plugins.memory.claudia.commitment_detector import (
     HybridCommitmentDetector,
 )
 from plugins.memory.claudia.consolidation import ConsolidationResult
+from plugins.memory.claudia.retention import RetentionResult
 from plugins.memory.claudia.verification import VerificationResult
 from plugins.memory.claudia.embeddings import OllamaEmbedder
 from plugins.memory.claudia.extractor import (
@@ -467,6 +469,16 @@ class ClaudiaMemoryProvider(MemoryProvider):
                 ),
                 "default": 0.92,
             },
+            {
+                "key": "retention_days",
+                "description": (
+                    "Days before soft-deleted rows are permanently "
+                    "purged (Phase 2C.4). Only ``purge_old_soft_deletes`` "
+                    "honors this; consolidation and verification do not "
+                    "touch soft-deleted rows. Default: 90."
+                ),
+                "default": 90,
+            },
         ]
 
     def save_config(
@@ -796,6 +808,10 @@ class ClaudiaMemoryProvider(MemoryProvider):
           3. The caller blocks (up to ``timeout`` seconds) until the
              job finishes and returns the ``ConsolidationResult``.
 
+        Phase 2C.4: honors ``auto_merge_threshold`` from
+        ``self._config`` when set, otherwise uses
+        ``consolidation.AUTO_MERGE_THRESHOLD``.
+
         Designed to be called by an external scheduler (cron-style)
         rather than on every sync_turn. Safe to call concurrently
         with sync_turn calls — the writer queue serializes work.
@@ -813,16 +829,64 @@ class ClaudiaMemoryProvider(MemoryProvider):
             )
 
         profile = self._profile
+        threshold = self._config.get(
+            "auto_merge_threshold",
+            consolidation.AUTO_MERGE_THRESHOLD,
+        )
 
         def _job(conn):
             return consolidation.run_consolidation(
-                conn, profile=profile
+                conn, profile=profile, threshold=threshold
             )
 
         result = self._writer.enqueue_and_wait(_job, timeout=timeout)
         if isinstance(result, ConsolidationResult):
             return result
         return ConsolidationResult()
+
+    def purge_old_soft_deletes(
+        self,
+        *,
+        timeout: float = 30.0,
+        retention_days: Optional[int] = None,
+    ) -> RetentionResult:
+        """Permanently remove soft-deleted rows older than the window (Phase 2C.4).
+
+        Destructive and irreversible: actual DELETE statements
+        against the memories, entities, relationships, and
+        commitments tables. Provided as a separate method from
+        ``consolidate()`` so users opt into the irreversibility
+        explicitly.
+
+        ``retention_days`` resolves in this order:
+          1. Explicit argument (caller override)
+          2. ``retention_days`` from self._config
+          3. ``retention.DEFAULT_RETENTION_DAYS`` (90)
+
+        Returns an empty RetentionResult on a shut-down provider
+        or writer-timeout.
+        """
+        if self._writer is None:
+            return RetentionResult()
+
+        if retention_days is None:
+            retention_days = int(self._config.get(
+                "retention_days", retention.DEFAULT_RETENTION_DAYS
+            ))
+
+        profile = self._profile
+
+        def _job(conn):
+            return retention.purge_old_soft_deletes(
+                conn,
+                profile=profile,
+                retention_days=retention_days,
+            )
+
+        result = self._writer.enqueue_and_wait(_job, timeout=timeout)
+        if isinstance(result, RetentionResult):
+            return result
+        return RetentionResult()
 
     def verify(
         self,

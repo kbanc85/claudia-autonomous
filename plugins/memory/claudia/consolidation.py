@@ -564,6 +564,7 @@ def run_consolidation(
     *,
     profile: str = "default",
     now: Optional[datetime] = None,
+    threshold: float = AUTO_MERGE_THRESHOLD,
 ) -> ConsolidationResult:
     """Full consolidation pass for one profile.
 
@@ -572,6 +573,11 @@ def run_consolidation(
     1. Fuzzy entity dedup: find candidates and merge each pair.
     2. Commitment FK resolution: link unlinked commitments.
 
+    ``threshold`` controls how aggressively fuzzy matches become
+    candidates. Defaults to ``AUTO_MERGE_THRESHOLD`` (0.92); Phase
+    2C.3 threads a ``auto_merge_threshold`` config value through
+    ``provider.consolidate()`` so users can tune it per-profile.
+
     Returns a ConsolidationResult with counts and wall-clock
     duration. Idempotent: running twice in a row on the same
     state produces zeros on the second run.
@@ -579,7 +585,9 @@ def run_consolidation(
     start = time.monotonic()
 
     entities_merged = 0
-    candidates = find_fuzzy_candidates(conn, profile=profile)
+    candidates = find_fuzzy_candidates(
+        conn, profile=profile, threshold=threshold
+    )
     for keep_id, merge_id, _score in candidates:
         # Re-check both entities exist — earlier merges in this
         # pass might have soft-deleted one of them (transitive
