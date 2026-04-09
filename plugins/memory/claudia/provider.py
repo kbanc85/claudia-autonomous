@@ -888,6 +888,106 @@ class ClaudiaMemoryProvider(MemoryProvider):
             },
         ]
 
+    def post_setup_hint(self) -> str:
+        """Return a next-steps message for ``claudia memory setup``.
+
+        Called AFTER the setup wizard activates the plugin. Uses a
+        short timeout Ollama probe to tailor the output:
+
+        - Ollama reachable with the default models pulled → confirm
+          success and point at the demo script
+        - Ollama reachable but models missing → show the exact
+          ``ollama pull`` commands needed
+        - Ollama unreachable → show the install link and note that
+          the plugin still works in offline (FTS-only) mode
+
+        The probe is bounded to 2 seconds and failures become the
+        "unreachable" branch — we never block the setup flow on a
+        hung daemon.
+
+        Phase 2D.3 hook. Not part of the MemoryProvider ABC; the
+        setup wizard calls this via ``hasattr``.
+        """
+        lines: List[str] = []
+        lines.append("Claudia is installed and ready.")
+        lines.append("")
+
+        # Short Ollama probe — never raises, bounded to 2s
+        status, models = self._probe_ollama_for_hint()
+        want_embed = "all-minilm:l6-v2"
+        want_llm = "qwen2.5:3b"
+
+        if status == "ok":
+            have_embed = any(
+                m.startswith(want_embed.split(":")[0]) for m in models
+            )
+            have_llm = any(
+                m.startswith(want_llm.split(":")[0]) for m in models
+            )
+            if have_embed and have_llm:
+                lines.append("✓ Ollama reachable with both default models.")
+                lines.append("")
+                lines.append("Try the demo:")
+                lines.append("  python -m plugins.memory.claudia.demo")
+            else:
+                lines.append("✓ Ollama reachable, but these models aren't pulled yet:")
+                if not have_embed:
+                    lines.append(f"  ollama pull {want_embed}")
+                if not have_llm:
+                    lines.append(f"  ollama pull {want_llm}")
+                lines.append("")
+                lines.append(
+                    "Without these models, extraction and detection are "
+                    "skipped but recall still works via FTS + importance."
+                )
+        elif status == "unreachable":
+            lines.append("ℹ Ollama is not reachable at http://localhost:11434")
+            lines.append("  This is fine — Claudia runs in offline mode by default.")
+            lines.append("  Recall works (FTS + importance + recency),")
+            lines.append("  but entity extraction and commitment detection are skipped.")
+            lines.append("")
+            lines.append("To enable the full cognitive pipeline:")
+            lines.append("  1. Install Ollama from https://ollama.com/download")
+            lines.append("  2. Pull the default models:")
+            lines.append("       ollama pull all-minilm:l6-v2")
+            lines.append("       ollama pull qwen2.5:3b")
+            lines.append("  3. Run the demo:")
+            lines.append("       python -m plugins.memory.claudia.demo")
+        else:
+            # Probe errored in an unexpected way
+            lines.append("(Ollama status unknown — see `claudia doctor`)")
+
+        lines.append("")
+        lines.append("Read the full docs:")
+        lines.append("  plugins/memory/claudia/README.md")
+        return "\n".join(lines)
+
+    def _probe_ollama_for_hint(self) -> tuple:
+        """Bounded probe used only by ``post_setup_hint``.
+
+        Returns ``("ok", [model_names])`` on success, or
+        ``("unreachable", [])`` on any error. Never raises.
+        Deliberately does NOT touch ``self._embedder`` /
+        ``self._extractor`` — those have their own lazy probes
+        and a separate caching strategy.
+        """
+        try:
+            import httpx
+
+            host = self._config.get(
+                "ollama_host", "http://localhost:11434"
+            ).rstrip("/")
+            with httpx.Client(timeout=2.0) as client:
+                response = client.get(f"{host}/api/tags")
+            if response.status_code != 200:
+                return ("unreachable", [])
+            data = response.json()
+            models = data.get("models", [])
+            names = [m.get("name", "") for m in models if m.get("name")]
+            return ("ok", names)
+        except Exception:
+            return ("unreachable", [])
+
     def save_config(
         self,
         values: Dict[str, Any],

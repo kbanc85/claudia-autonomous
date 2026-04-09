@@ -347,6 +347,20 @@ def cmd_setup(args) -> None:
         print(f"  ✓ Provider config saved")
     if env_writes:
         print(f"  ✓ API keys saved to .env")
+
+    # Optional plugin-specific post-setup hint. Plugins can
+    # implement ``post_setup_hint() -> str`` to print next-steps
+    # guidance (how to install runtime deps, how to test, etc.).
+    if hasattr(provider, "post_setup_hint"):
+        try:
+            hint = provider.post_setup_hint()
+            if isinstance(hint, str) and hint.strip():
+                print()
+                for line in hint.rstrip().splitlines():
+                    print(f"  {line}")
+        except Exception:
+            pass  # Hint is opt-in; failures are non-fatal
+
     print(f"\n  Start a new session to activate.\n")
 
 
