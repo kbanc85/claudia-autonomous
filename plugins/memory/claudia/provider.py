@@ -366,6 +366,30 @@ MEMORY_CONTRADICTS_MEMORY_SCHEMA: Dict[str, Any] = {
 }
 
 
+MEMORY_FORGET_ENTITY_SCHEMA: Dict[str, Any] = {
+    "name": "memory.forget_entity",
+    "description": (
+        "Soft-delete an entity by name (case-insensitive). The "
+        "entity row stays in the DB with deleted_at set but is "
+        "excluded from lookups and recall ranking. Relationships "
+        "that reference it are NOT cascaded — they become orphan "
+        "references that retention purge will clean up later. "
+        "Use when the user explicitly asks to remove a person, "
+        "organization, or project from Claudia's knowledge."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "Entity name (case-insensitive).",
+            },
+        },
+        "required": ["name"],
+    },
+}
+
+
 MEMORY_FORGET_MEMORY_SCHEMA: Dict[str, Any] = {
     "name": "memory.forget_memory",
     "description": (
@@ -534,6 +558,7 @@ _ALL_TOOL_SCHEMAS = [
     MEMORY_SEARCH_ENTITIES_SCHEMA,
     MEMORY_TRACE_SCHEMA,
     MEMORY_FORGET_MEMORY_SCHEMA,
+    MEMORY_FORGET_ENTITY_SCHEMA,
 ]
 
 
@@ -1431,6 +1456,8 @@ class ClaudiaMemoryProvider(MemoryProvider):
                 return self._handle_trace(args)
             if tool_name == "memory.forget_memory":
                 return self._handle_forget_memory(args)
+            if tool_name == "memory.forget_entity":
+                return self._handle_forget_entity(args)
             return json.dumps({"error": f"unknown tool: {tool_name}"})
         except Exception as exc:
             logger.exception("claudia memory tool call failed: %s", tool_name)
@@ -1646,6 +1673,55 @@ class ClaudiaMemoryProvider(MemoryProvider):
         return self._handle_commitment_status_transition(
             args, "dropped", "memory.commitment_drop"
         )
+
+    def _handle_forget_entity(self, args: Dict[str, Any]) -> str:
+        """Soft-delete an entity by name (Phase 2C.15).
+
+        Uses find_entity (case-insensitive name/alias match) to
+        resolve the id, then issues a soft_delete_entity via the
+        writer queue. Relationships referencing the entity are
+        NOT cascaded — they'll be cleaned up by retention purge
+        after the retention window expires.
+        """
+        name = args.get("name", "")
+        if not isinstance(name, str) or not name.strip():
+            return json.dumps({
+                "error": "memory.forget_entity: 'name' is required"
+            })
+        name = name.strip()
+
+        if self._writer is None:
+            return json.dumps({
+                "error": "memory.forget_entity: provider not initialized"
+            })
+
+        profile = self._profile
+
+        def _job(conn):
+            ent = entities.find_entity(conn, name, profile=profile)
+            if ent is None:
+                return None
+            ok = entities.soft_delete_entity(
+                conn, ent.id, profile=profile
+            )
+            if not ok:
+                return None
+            return {
+                "id": ent.id,
+                "name": ent.name,
+                "kind": ent.kind,
+            }
+
+        result = self._writer.enqueue_and_wait(_job, timeout=5.0)
+        if result is None:
+            return json.dumps({
+                "error": (
+                    f"memory.forget_entity: no entity named {name!r} "
+                    f"in profile {profile!r}"
+                )
+            })
+
+        return json.dumps({"ok": True, "entity": result})
 
     def _handle_forget_memory(self, args: Dict[str, Any]) -> str:
         """Soft-delete a memory (Phase 2C.14).
