@@ -214,10 +214,10 @@ class TestBasicProperties:
         # Still True — availability is unconditional, not based on init state
         assert p.is_available() is True
 
-    def test_get_tool_schemas_returns_all_sixteen(self, provider):
-        """2C.5-2C.15 each add tools: 16 total."""
+    def test_get_tool_schemas_returns_all_seventeen(self, provider):
+        """2C.17 adds memory.metrics: 17 total."""
         schemas = provider.get_tool_schemas()
-        assert len(schemas) == 16
+        assert len(schemas) == 17
         names = {s["name"] for s in schemas}
         assert names == {
             "memory.recall",
@@ -236,6 +236,7 @@ class TestBasicProperties:
             "memory.trace",
             "memory.forget_memory",
             "memory.forget_entity",
+            "memory.metrics",
         }
 
     def test_tool_schemas_are_openai_format(self, provider):

@@ -97,6 +97,7 @@ from plugins.memory.claudia.commitment_detector import (
     HybridCommitmentDetector,
 )
 from plugins.memory.claudia.consolidation import ConsolidationResult
+from plugins.memory.claudia.metrics import Metrics
 from plugins.memory.claudia.retention import RetentionResult
 from plugins.memory.claudia.verification import VerificationResult
 from plugins.memory.claudia.embeddings import OllamaEmbedder
@@ -366,6 +367,23 @@ MEMORY_CONTRADICTS_MEMORY_SCHEMA: Dict[str, Any] = {
 }
 
 
+MEMORY_METRICS_SCHEMA: Dict[str, Any] = {
+    "name": "memory.metrics",
+    "description": (
+        "Get the plugin's internal metrics counters: sync_turn "
+        "calls, cognitive pipeline activity (extractions, "
+        "detections, errors), maintenance runs (consolidate, "
+        "verify, purge), per-tool dispatch counts. Useful for "
+        "observability, debugging, and showing the user how "
+        "active Claudia has been."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {},
+    },
+}
+
+
 MEMORY_FORGET_ENTITY_SCHEMA: Dict[str, Any] = {
     "name": "memory.forget_entity",
     "description": (
@@ -559,6 +577,7 @@ _ALL_TOOL_SCHEMAS = [
     MEMORY_TRACE_SCHEMA,
     MEMORY_FORGET_MEMORY_SCHEMA,
     MEMORY_FORGET_ENTITY_SCHEMA,
+    MEMORY_METRICS_SCHEMA,
 ]
 
 
@@ -595,6 +614,12 @@ class ClaudiaMemoryProvider(MemoryProvider):
         # Factory methods and verify/consolidate read values from
         # here with sensible fallbacks.
         self._config: Dict[str, Any] = {}
+
+        # Phase 2C.17: in-process metrics counters for observability.
+        # Thread-safe dict of named counters. See metrics.py for the
+        # standard key set. Reset on initialize(), snapshot via
+        # ``get_metrics()`` or the ``memory.metrics`` tool.
+        self._metrics: Metrics = Metrics()
 
         # Phase 2B cognitive pipeline: LLM entity extraction (2B.1) +
         # commitment detection (2B.2). One dedicated single-worker
@@ -1193,11 +1218,14 @@ class ClaudiaMemoryProvider(MemoryProvider):
         if self._writer is None:
             return
         if self._agent_context != "primary":
+            self._metrics.inc("sync_turn.skipped")
             return
 
         combined = self._format_turn(user_content, assistant_content)
         if not combined:
             return
+
+        self._metrics.inc("sync_turn.calls")
 
         source_ref = session_id or self._session_id or ""
 
@@ -1208,6 +1236,7 @@ class ClaudiaMemoryProvider(MemoryProvider):
             source_ref=source_ref,
             importance=0.5,
         )
+        self._metrics.inc("memories.inserted")
 
         # Phase 2B.5: cost governance. If remaining_tokens is
         # critically low, skip extraction and detection entirely —
@@ -1309,6 +1338,8 @@ class ClaudiaMemoryProvider(MemoryProvider):
         if self._writer is None:
             return ConsolidationResult()
 
+        self._metrics.inc("consolidate.runs")
+
         if not self.flush(timeout=timeout):
             logger.warning(
                 "consolidate: flush timed out, proceeding with "
@@ -1356,6 +1387,8 @@ class ClaudiaMemoryProvider(MemoryProvider):
         if self._writer is None:
             return RetentionResult()
 
+        self._metrics.inc("purge.runs")
+
         if retention_days is None:
             retention_days = int(self._config.get(
                 "retention_days", retention.DEFAULT_RETENTION_DAYS
@@ -1401,6 +1434,8 @@ class ClaudiaMemoryProvider(MemoryProvider):
         """
         if self._writer is None:
             return VerificationResult()
+
+        self._metrics.inc("verify.runs")
 
         if not self.flush(timeout=timeout):
             logger.warning(
@@ -1479,6 +1514,11 @@ class ClaudiaMemoryProvider(MemoryProvider):
         if self._writer is None or self._reader_pool is None:
             return json.dumps({"error": "claudia memory provider not initialized"})
 
+        # Phase 2C.17: per-tool metrics. "." in the key doesn't
+        # need escaping because Metrics treats keys as opaque
+        # strings; "tool.memory.recall" is a valid counter name.
+        self._metrics.inc(f"tool.{tool_name}")
+
         try:
             if tool_name == "memory.recall":
                 return self._handle_recall(args)
@@ -1512,9 +1552,13 @@ class ClaudiaMemoryProvider(MemoryProvider):
                 return self._handle_forget_memory(args)
             if tool_name == "memory.forget_entity":
                 return self._handle_forget_entity(args)
+            if tool_name == "memory.metrics":
+                return self._handle_metrics(args)
+            self._metrics.inc("tool.errors")
             return json.dumps({"error": f"unknown tool: {tool_name}"})
         except Exception as exc:
             logger.exception("claudia memory tool call failed: %s", tool_name)
+            self._metrics.inc("tool.errors")
             return json.dumps({"error": f"{type(exc).__name__}: {exc}"})
 
     def _handle_recall(self, args: Dict[str, Any]) -> str:
@@ -1727,6 +1771,19 @@ class ClaudiaMemoryProvider(MemoryProvider):
         return self._handle_commitment_status_transition(
             args, "dropped", "memory.commitment_drop"
         )
+
+    def _handle_metrics(self, args: Dict[str, Any]) -> str:
+        """Return the current metrics snapshot (Phase 2C.17)."""
+        return json.dumps({"metrics": self._metrics.snapshot()})
+
+    def get_metrics(self) -> Dict[str, int]:
+        """Public accessor for the metrics snapshot.
+
+        Callers that want metrics without going through the tool
+        dispatch path (host agent, tests, external observability
+        scrapers) use this. Returns a fresh dict copy.
+        """
+        return self._metrics.snapshot()
 
     def _handle_forget_entity(self, args: Dict[str, Any]) -> str:
         """Soft-delete an entity by name (Phase 2C.15).
@@ -2609,10 +2666,12 @@ class ClaudiaMemoryProvider(MemoryProvider):
         if self._extractor is None:
             return
 
+        self._metrics.inc("cognitive.extractions_run")
         try:
             extracted = self._extractor.extract(text, source_ref=source_ref)
         except Exception:  # pragma: no cover - extractor contract says no raise
             logger.exception("claudia extractor raised (contract violation)")
+            self._metrics.inc("cognitive.extraction_errors")
             return
 
         if not extracted:
@@ -2620,6 +2679,7 @@ class ClaudiaMemoryProvider(MemoryProvider):
 
         for ent in extracted:
             self._enqueue_upsert_entity(ent)
+            self._metrics.inc("entities.upserted")
 
     def _enqueue_upsert_entity(self, ent: ExtractedEntity) -> None:
         """Enqueue an entity upsert on the writer queue.
@@ -2823,6 +2883,7 @@ class ClaudiaMemoryProvider(MemoryProvider):
         if self._commitment_detector is None:
             return
 
+        self._metrics.inc("cognitive.detections_run")
         try:
             detected = self._commitment_detector.detect(
                 text, source_ref=source_ref
@@ -2831,6 +2892,7 @@ class ClaudiaMemoryProvider(MemoryProvider):
             logger.exception(
                 "claudia commitment detector raised (contract violation)"
             )
+            self._metrics.inc("cognitive.detection_errors")
             return
 
         if not detected:
@@ -2838,6 +2900,7 @@ class ClaudiaMemoryProvider(MemoryProvider):
 
         for c in detected:
             self._enqueue_insert_commitment(c)
+            self._metrics.inc("commitments.inserted")
 
     def _enqueue_insert_commitment(
         self,
