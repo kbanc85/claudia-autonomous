@@ -83,6 +83,23 @@ function Update-SessionPath {
     $env:Path = "$machinePath;$userPath"
 }
 
+# Resolve the full path to powershell.exe using $PSHOME so child process
+# spawning works even when the session PATH doesn't include the PS directory.
+# This is the most common cause of install failures on fresh machines.
+function Get-PowerShellExe {
+    $pshExe = Join-Path $PSHOME 'powershell.exe'
+    if (Test-Path $pshExe) { return $pshExe }
+    # Fallback: try to find it in known system locations
+    $fallbacks = @(
+        "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe",
+        "$env:SystemRoot\SysWOW64\WindowsPowerShell\v1.0\powershell.exe"
+    )
+    foreach ($path in $fallbacks) {
+        if (Test-Path $path) { return $path }
+    }
+    Fail "Cannot locate powershell.exe. Expected at '$pshExe'. Check your Windows installation."
+}
+
 # ============================================================================
 # Header
 # ============================================================================
@@ -282,15 +299,20 @@ if (-not $SkipSetup) {
     if (-not (Test-Path $setupScript)) {
         Fail "setup-claudia.ps1 not found at $setupScript (did the clone succeed?)"
     }
-    # Spawn a new PowerShell process with execution policy bypass for the session.
-    # This lets setup-claudia.ps1 run regardless of the user's current execution policy.
+    # Use $PSHOME to get the absolute path to powershell.exe so this works
+    # even when powershell.exe is not in the active session PATH. This is the
+    # most common install failure on fresh machines and restricted environments.
+    $psExe = Get-PowerShellExe
     Write-Info "Launching setup in a child PowerShell process (ExecutionPolicy Bypass)..."
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $setupScript -NonInteractive
+    Write-Info "Using: $psExe"
+    & $psExe -NoProfile -ExecutionPolicy Bypass -File $setupScript -NonInteractive
     if ($LASTEXITCODE -ne 0) {
         Fail "setup-claudia.ps1 failed with exit code $LASTEXITCODE. Scroll up for details."
     }
     Write-Ok "setup-claudia.ps1 completed"
-    # PATH may have been updated by the child process; refresh our session so we can see claudia.cmd
+
+    # Refresh PATH in this session so claudia.cmd (added by setup) is reachable
+    # without the user needing to restart PowerShell.
     Update-SessionPath
 }
 
@@ -337,30 +359,63 @@ Write-Host "+-----------------------------------------------------+" -Foreground
 Write-Host "|  OK  Claudia installed.                             |" -ForegroundColor Green
 Write-Host "+-----------------------------------------------------+" -ForegroundColor Green
 Write-Host ""
+
+# Check if claudia is reachable in the current session after the PATH refresh.
+# If it is, skip the restart step entirely - most users won't need it.
+$claudiaAvailable = Test-Command 'claudia'
+
+if ($claudiaAvailable) {
+    Write-Host "The 'claudia' command is ready in this session." -ForegroundColor Green
+    Write-Host "No restart needed." -ForegroundColor DarkGray
+    Write-Host ""
+} else {
+    Write-Host "Almost ready." -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "  One more step: open a new PowerShell window." -ForegroundColor White
+    Write-Host ""
+    Write-Host "  Why? The installer added 'claudia' to your PATH, but that change" -ForegroundColor DarkGray
+    Write-Host "  only takes effect in new terminal sessions, not this one." -ForegroundColor DarkGray
+    Write-Host "  Just close this window and open a fresh PowerShell to continue." -ForegroundColor DarkGray
+    Write-Host ""
+}
+
 Write-Host "Next steps:" -ForegroundColor White
 Write-Host ""
-Write-Host "  1. " -NoNewline
-Write-Host "Restart PowerShell" -NoNewline -ForegroundColor White
-Write-Host " (so the 'claudia' command is on PATH)"
-Write-Host ""
-Write-Host "  2. " -NoNewline
+
+$step = 1
+
+if (-not $claudiaAvailable) {
+    Write-Host "  $step. " -NoNewline
+    Write-Host "Open a new PowerShell window" -ForegroundColor White
+    Write-Host "     (closes this session, picks up the updated PATH)"
+    Write-Host ""
+    $step++
+}
+
+Write-Host "  $step. " -NoNewline
 Write-Host "Activate Claudia's hybrid memory provider:" -ForegroundColor White
-Write-Host "       claudia memory setup   " -NoNewline
-Write-Host "# pick 'claudia' in the picker" -ForegroundColor DarkGray
+Write-Host "       claudia memory setup"
 Write-Host ""
-Write-Host "  3. " -NoNewline
+$step++
+
+Write-Host "  $step. " -NoNewline
 Write-Host "Verify everything is wired up:" -ForegroundColor White
 Write-Host "       claudia doctor"
 Write-Host ""
-Write-Host "  4. " -NoNewline
+$step++
+
+Write-Host "  $step. " -NoNewline
 Write-Host "(Optional) Run the offline memory demo:" -ForegroundColor White
 Write-Host "       cd $InstallDir"
 Write-Host "       python -m plugins.memory.claudia.demo"
 Write-Host ""
-Write-Host "  5. " -NoNewline
+$step++
+
+Write-Host "  $step. " -NoNewline
 Write-Host "Start a session:" -ForegroundColor White
 Write-Host "       claudia"
 Write-Host ""
+
 Write-Host "Docs: " -NoNewline -ForegroundColor DarkGray
 Write-Host "https://github.com/kbanc85/claudia-autonomous"
 Write-Host "Memory plugin: " -NoNewline -ForegroundColor DarkGray
