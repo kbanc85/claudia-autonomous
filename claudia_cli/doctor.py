@@ -88,8 +88,8 @@ def check_warn(text: str, detail: str = ""):
 def check_fail(text: str, detail: str = ""):
     print(f"  {color('✗', Colors.RED)} {text}" + (f" {color(detail, Colors.DIM)}" if detail else ""))
 
-def check_info(text: str):
-    print(f"    {color('→', Colors.CYAN)} {text}")
+def check_info(text: str, detail: str = ""):
+    print(f"    {color('->', Colors.CYAN)} {text}" + (f" {color(detail, Colors.DIM)}" if detail else ""))
 
 
 def _check_gateway_service_linger(issues: list[str]) -> None:
