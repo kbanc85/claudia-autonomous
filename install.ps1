@@ -322,7 +322,8 @@ if (-not $SkipSetup) {
 
 if ((-not $SkipOllama) -and (-not $SkipModels) -and (Test-Command 'ollama')) {
     Write-H1 "Pulling Ollama models for Claudia Memory"
-    # Check if the Ollama daemon is reachable
+
+    # Try to ensure the Ollama daemon is running before pulling models.
     $daemonRunning = $false
     try {
         $null = Invoke-WebRequest -Uri 'http://localhost:11434/api/tags' -UseBasicParsing -TimeoutSec 3 -ErrorAction Stop
@@ -332,22 +333,67 @@ if ((-not $SkipOllama) -and (-not $SkipModels) -and (Test-Command 'ollama')) {
     }
 
     if (-not $daemonRunning) {
-        Write-Warn "Ollama daemon isn't running yet."
-        Write-Warn "The Ollama installer usually starts a background service, but on first install you may need to"
-        Write-Warn "launch Ollama from the Start menu, or run 'ollama serve' in a separate PowerShell window."
-        Write-Warn ""
-        Write-Warn "Then pull the two default models manually:"
-        Write-Warn "    ollama pull all-minilm:l6-v2"
-        Write-Warn "    ollama pull qwen2.5:3b"
-    } else {
+        Write-Info "Ollama daemon not running. Attempting to start it..."
+        # On Windows, 'ollama serve' blocks. Start it as a background job
+        # and give it a few seconds to bind the port.
+        $ollamaJob = Start-Job -ScriptBlock { & ollama serve 2>&1 }
+        Start-Sleep -Seconds 4
+        try {
+            $null = Invoke-WebRequest -Uri 'http://localhost:11434/api/tags' -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop
+            $daemonRunning = $true
+            Write-Ok "Ollama daemon started"
+        } catch {
+            Write-Warn "Could not start Ollama daemon automatically."
+            Write-Warn "After the installer finishes, launch Ollama from the Start menu or run 'ollama serve'."
+        }
+    }
+
+    if ($daemonRunning) {
         Write-Info "Pulling all-minilm:l6-v2 (embeddings, ~23 MB)..."
+        Write-Info "(progress is shown below by Ollama)"
         & ollama pull all-minilm:l6-v2
         if ($LASTEXITCODE -ne 0) { Write-Warn "Failed to pull all-minilm:l6-v2" }
+        Write-Host ""
         Write-Info "Pulling qwen2.5:3b (entity extraction + commitment detection, ~2 GB)..."
+        Write-Info "(this may take several minutes -- progress is shown below by Ollama)"
         & ollama pull qwen2.5:3b
         if ($LASTEXITCODE -ne 0) { Write-Warn "Failed to pull qwen2.5:3b" }
+        Write-Host ""
         Write-Ok "Models ready"
+    } else {
+        Write-Warn "Skipping model pull (daemon not reachable)."
+        Write-Warn "After starting Ollama, pull them manually:"
+        Write-Warn "    ollama pull all-minilm:l6-v2"
+        Write-Warn "    ollama pull qwen2.5:3b"
     }
+}
+
+# ============================================================================
+# Activate the memory provider (non-interactive)
+# ============================================================================
+
+$claudiaAvailable = Test-Command 'claudia'
+
+if ($claudiaAvailable -and (-not $SkipSetup)) {
+    Write-H1 "Activating Claudia memory provider"
+    Write-Info "Running: claudia memory setup --provider claudia"
+    & claudia memory setup --provider claudia
+    if ($LASTEXITCODE -eq 0) {
+        Write-Ok "Memory provider activated"
+    } else {
+        Write-Warn "Memory provider activation failed (exit code $LASTEXITCODE)."
+        Write-Warn "Run 'claudia memory setup' manually after the installer finishes."
+    }
+}
+
+# ============================================================================
+# Validation
+# ============================================================================
+
+if ($claudiaAvailable) {
+    Write-H1 "Running claudia doctor"
+    & claudia doctor
+    Write-Host ""
 }
 
 # ============================================================================
@@ -359,10 +405,6 @@ Write-Host "+-----------------------------------------------------+" -Foreground
 Write-Host "|  OK  Claudia installed.                             |" -ForegroundColor Green
 Write-Host "+-----------------------------------------------------+" -ForegroundColor Green
 Write-Host ""
-
-# Check if claudia is reachable in the current session after the PATH refresh.
-# If it is, skip the restart step entirely - most users won't need it.
-$claudiaAvailable = Test-Command 'claudia'
 
 if ($claudiaAvailable) {
     Write-Host "The 'claudia' command is ready in this session." -ForegroundColor Green
@@ -390,17 +432,23 @@ if (-not $claudiaAvailable) {
     Write-Host "     (closes this session, picks up the updated PATH)"
     Write-Host ""
     $step++
+
+    Write-Host "  $step. " -NoNewline
+    Write-Host "Activate the memory provider (if not done above):" -ForegroundColor White
+    Write-Host "       claudia memory setup --provider claudia"
+    Write-Host ""
+    $step++
+
+    Write-Host "  $step. " -NoNewline
+    Write-Host "Verify everything is wired up:" -ForegroundColor White
+    Write-Host "       claudia doctor"
+    Write-Host ""
+    $step++
 }
 
 Write-Host "  $step. " -NoNewline
-Write-Host "Activate Claudia's hybrid memory provider:" -ForegroundColor White
-Write-Host "       claudia memory setup"
-Write-Host ""
-$step++
-
-Write-Host "  $step. " -NoNewline
-Write-Host "Verify everything is wired up:" -ForegroundColor White
-Write-Host "       claudia doctor"
+Write-Host "Start a session:" -ForegroundColor White
+Write-Host "       claudia"
 Write-Host ""
 $step++
 
@@ -408,12 +456,6 @@ Write-Host "  $step. " -NoNewline
 Write-Host "(Optional) Run the offline memory demo:" -ForegroundColor White
 Write-Host "       cd $InstallDir"
 Write-Host "       python -m plugins.memory.claudia.demo"
-Write-Host ""
-$step++
-
-Write-Host "  $step. " -NoNewline
-Write-Host "Start a session:" -ForegroundColor White
-Write-Host "       claudia"
 Write-Host ""
 
 Write-Host "Docs: " -NoNewline -ForegroundColor DarkGray

@@ -11,8 +11,9 @@
 #   2. Installs Ollama if missing (macOS via Homebrew, Linux via official script)
 #   3. Clones kbanc85/claudia-autonomous to $INSTALL_DIR
 #   4. Runs setup-claudia.sh (which uses uv, installs deps, symlinks claudia)
-#   5. Pulls the two default Ollama models for the Claudia Hybrid Memory plugin
-#   6. Prints next steps
+#   5. Starts Ollama daemon if needed and pulls the default models
+#   6. Activates the Claudia hybrid memory provider automatically
+#   7. Runs 'claudia doctor' to verify the installation
 #
 # Environment variable overrides:
 #   INSTALL_DIR   Where to clone the repo  (default: ~/claudia-autonomous)
@@ -43,8 +44,8 @@ fi
 
 info()  { printf "%s==>%s %s\n" "$CYAN" "$RESET" "$*"; }
 warn()  { printf "%s!%s   %s\n" "$YELLOW" "$RESET" "$*"; }
-ok()    { printf "%s✓%s   %s\n" "$GREEN" "$RESET" "$*"; }
-fail()  { printf "%s✗%s   %s\n" "$RED" "$RESET" "$*" >&2; exit 1; }
+ok()    { printf "%s[ok]%s %s\n" "$GREEN" "$RESET" "$*"; }
+fail()  { printf "%s[!]%s  %s\n" "$RED" "$RESET" "$*" >&2; exit 1; }
 h1()    { printf "\n%s%s%s\n" "$BOLD" "$*" "$RESET"; }
 
 # ----- Defaults -----
@@ -57,10 +58,10 @@ SKIP_MODELS="${SKIP_MODELS:-}"
 
 # ----- Header -----
 printf "\n"
-printf "%s%s╭─────────────────────────────────────────────╮%s\n" "$BOLD" "$CYAN" "$RESET"
-printf "%s%s│  Claudia Autonomous — one-line installer    │%s\n" "$BOLD" "$CYAN" "$RESET"
-printf "%s%s│  Trust-aware local AI memory + chief-of-staff│%s\n" "$BOLD" "$CYAN" "$RESET"
-printf "%s%s╰─────────────────────────────────────────────╯%s\n" "$BOLD" "$CYAN" "$RESET"
+printf "%s%s+-----------------------------------------------+%s\n" "$BOLD" "$CYAN" "$RESET"
+printf "%s%s|  Claudia Autonomous -- one-line installer      |%s\n" "$BOLD" "$CYAN" "$RESET"
+printf "%s%s|  Trust-aware local AI memory + chief-of-staff  |%s\n" "$BOLD" "$CYAN" "$RESET"
+printf "%s%s+-----------------------------------------------+%s\n" "$BOLD" "$CYAN" "$RESET"
 printf "\n"
 printf "%sTarget:%s %s\n" "$DIM" "$RESET" "$INSTALL_DIR"
 printf "%sBranch:%s %s\n" "$DIM" "$RESET" "$BRANCH"
@@ -136,11 +137,11 @@ h1 "Fetching the code"
 if [ -d "$INSTALL_DIR" ] && git -C "$INSTALL_DIR" rev-parse --git-dir >/dev/null 2>&1; then
   # .git can be a directory (normal clone) or a file (submodule pointer) —
   # git rev-parse handles both.
-  info "Repo already exists at $INSTALL_DIR — updating..."
+  info "Repo already exists at $INSTALL_DIR -- updating..."
   git -C "$INSTALL_DIR" fetch --quiet origin "$BRANCH" || fail "git fetch failed"
   git -C "$INSTALL_DIR" checkout --quiet "$BRANCH" || fail "git checkout failed"
   if ! git -C "$INSTALL_DIR" pull --quiet --ff-only origin "$BRANCH" 2>/dev/null; then
-    warn "Non-fast-forward — leaving local state alone."
+    warn "Non-fast-forward -- leaving local state alone."
     warn "To reset: rm -rf $INSTALL_DIR && re-run installer."
   fi
   ok "Updated to latest $BRANCH"
@@ -174,49 +175,113 @@ fi
 # ----- Pull Ollama models for the memory plugin -----
 if [ -z "$SKIP_OLLAMA" ] && [ -z "$SKIP_MODELS" ] && command -v ollama >/dev/null 2>&1; then
   h1 "Pulling Ollama models for Claudia Memory"
-  # Check if the daemon is running
-  if ! curl -fsS http://localhost:11434/api/tags >/dev/null 2>&1; then
-    warn "Ollama daemon isn't running yet. Start it with:"
+
+  # Try to ensure the Ollama daemon is running before pulling models.
+  DAEMON_RUNNING=0
+  if curl -fsS http://localhost:11434/api/tags >/dev/null 2>&1; then
+    DAEMON_RUNNING=1
+  else
+    info "Ollama daemon not running. Attempting to start it..."
     case "$OS_KIND" in
-      macos) warn "    open -a Ollama" ;;
-      linux) warn "    sudo systemctl start ollama" ;;
+      macos) open -a Ollama 2>/dev/null || true ;;
+      linux) ( ollama serve >/dev/null 2>&1 & ) ;;
     esac
-    warn ""
-    warn "Then pull the two default models manually:"
+    # Give it a few seconds to bind the port
+    sleep 4
+    if curl -fsS http://localhost:11434/api/tags >/dev/null 2>&1; then
+      DAEMON_RUNNING=1
+      ok "Ollama daemon started"
+    else
+      warn "Could not start Ollama daemon automatically."
+    fi
+  fi
+
+  if [ "$DAEMON_RUNNING" = "1" ]; then
+    info "Pulling all-minilm:l6-v2 (embeddings, ~23 MB)..."
+    info "(progress is shown below by Ollama)"
+    ollama pull all-minilm:l6-v2 || warn "Failed to pull all-minilm:l6-v2"
+    printf "\n"
+    info "Pulling qwen2.5:3b (entity extraction + commitment detection, ~2 GB)..."
+    info "(this may take several minutes -- progress is shown below by Ollama)"
+    ollama pull qwen2.5:3b || warn "Failed to pull qwen2.5:3b"
+    printf "\n"
+    ok "Models ready"
+  else
+    warn "Skipping model pull (daemon not reachable)."
+    case "$OS_KIND" in
+      macos) warn "Start Ollama with: open -a Ollama" ;;
+      linux) warn "Start Ollama with: sudo systemctl start ollama  (or: ollama serve)" ;;
+    esac
+    warn "Then pull the models manually:"
     warn "    ollama pull all-minilm:l6-v2"
     warn "    ollama pull qwen2.5:3b"
-  else
-    info "Pulling all-minilm:l6-v2 (embeddings, ~23 MB)..."
-    ollama pull all-minilm:l6-v2 || warn "Failed to pull all-minilm:l6-v2"
-    info "Pulling qwen2.5:3b (entity extraction + commitment detection, ~2 GB)..."
-    ollama pull qwen2.5:3b || warn "Failed to pull qwen2.5:3b"
-    ok "Models ready"
   fi
+fi
+
+# ----- Activate the memory provider (non-interactive) -----
+CLAUDIA_AVAILABLE=0
+# Try the venv path first, then check PATH
+CLAUDIA_VENV="$INSTALL_DIR/venv/bin/claudia"
+if [ -x "$CLAUDIA_VENV" ]; then
+  CLAUDIA_CMD="$CLAUDIA_VENV"
+  CLAUDIA_AVAILABLE=1
+elif command -v claudia >/dev/null 2>&1; then
+  CLAUDIA_CMD="claudia"
+  CLAUDIA_AVAILABLE=1
+fi
+
+if [ "$CLAUDIA_AVAILABLE" = "1" ] && [ -z "$SKIP_SETUP" ]; then
+  h1 "Activating Claudia memory provider"
+  info "Running: claudia memory setup --provider claudia"
+  "$CLAUDIA_CMD" memory setup --provider claudia && ok "Memory provider activated" || \
+    warn "Memory provider activation failed. Run 'claudia memory setup' manually."
+fi
+
+# ----- Validation -----
+if [ "$CLAUDIA_AVAILABLE" = "1" ]; then
+  h1 "Running claudia doctor"
+  "$CLAUDIA_CMD" doctor || true
+  printf "\n"
 fi
 
 # ----- Done -----
 printf "\n"
-printf "%s%s╭─────────────────────────────────────────────╮%s\n" "$BOLD" "$GREEN" "$RESET"
-printf "%s%s│  ✓ Claudia installed.                       │%s\n" "$BOLD" "$GREEN" "$RESET"
-printf "%s%s╰─────────────────────────────────────────────╯%s\n" "$BOLD" "$GREEN" "$RESET"
+printf "%s%s+-----------------------------------------------+%s\n" "$BOLD" "$GREEN" "$RESET"
+printf "%s%s|  OK  Claudia installed.                       |%s\n" "$BOLD" "$GREEN" "$RESET"
+printf "%s%s+-----------------------------------------------+%s\n" "$BOLD" "$GREEN" "$RESET"
 printf "\n"
-printf "Next steps:\n"
-printf "\n"
-printf "  %s1.%s Reload your shell (so ~/.local/bin is on PATH):\n" "$BOLD" "$RESET"
-printf "       source ~/.zshrc   %s# or ~/.bashrc%s\n" "$DIM" "$RESET"
-printf "\n"
-printf "  %s2.%s Activate Claudia's hybrid memory provider:\n" "$BOLD" "$RESET"
-printf "       claudia memory setup   %s# pick 'claudia' in the picker%s\n" "$DIM" "$RESET"
-printf "\n"
-printf "  %s3.%s Verify everything is wired up:\n" "$BOLD" "$RESET"
-printf "       claudia doctor\n"
-printf "\n"
-printf "  %s4.%s (Optional) Run the offline memory demo:\n" "$BOLD" "$RESET"
-printf "       cd %s && python -m plugins.memory.claudia.demo\n" "$INSTALL_DIR"
-printf "\n"
-printf "  %s5.%s Start a session:\n" "$BOLD" "$RESET"
-printf "       claudia\n"
-printf "\n"
+
+# Check if claudia is reachable
+if [ "$CLAUDIA_AVAILABLE" = "1" ]; then
+  printf "%sThe 'claudia' command is ready.%s\n" "$GREEN" "$RESET"
+  printf "\n"
+  STEP=1
+  printf "  %s${STEP}.%s Start a session:\n" "$BOLD" "$RESET"
+  printf "       claudia\n"
+  printf "\n"
+  STEP=$((STEP + 1))
+  printf "  %s${STEP}.%s (Optional) Run the offline memory demo:\n" "$BOLD" "$RESET"
+  printf "       cd %s && python -m plugins.memory.claudia.demo\n" "$INSTALL_DIR"
+  printf "\n"
+else
+  STEP=1
+  printf "  %s${STEP}.%s Reload your shell (so ~/.local/bin is on PATH):\n" "$BOLD" "$RESET"
+  printf "       source ~/.zshrc   %s# or ~/.bashrc%s\n" "$DIM" "$RESET"
+  printf "\n"
+  STEP=$((STEP + 1))
+  printf "  %s${STEP}.%s Activate the memory provider (if not done above):\n" "$BOLD" "$RESET"
+  printf "       claudia memory setup --provider claudia\n"
+  printf "\n"
+  STEP=$((STEP + 1))
+  printf "  %s${STEP}.%s Verify everything is wired up:\n" "$BOLD" "$RESET"
+  printf "       claudia doctor\n"
+  printf "\n"
+  STEP=$((STEP + 1))
+  printf "  %s${STEP}.%s Start a session:\n" "$BOLD" "$RESET"
+  printf "       claudia\n"
+  printf "\n"
+fi
+
 printf "%sDocs:%s https://github.com/kbanc85/claudia-autonomous\n" "$DIM" "$RESET"
 printf "%sMemory plugin:%s %s/plugins/memory/claudia/README.md\n" "$DIM" "$RESET" "$INSTALL_DIR"
 printf "\n"

@@ -237,15 +237,82 @@ def _get_available_providers() -> list:
 # ---------------------------------------------------------------------------
 
 def cmd_setup(args) -> None:
-    """Interactive memory provider setup wizard."""
+    """Interactive memory provider setup wizard.
+
+    When ``args.provider`` is set (e.g. ``--provider claudia``), the wizard
+    runs non-interactively: it selects the named provider, accepts all
+    default config values, and writes activation to config.yaml.  This
+    is used by the one-line installers so the user gets a working memory
+    system out of the box.
+    """
     from claudia_cli.config import load_config, save_config
+
+    auto_provider = getattr(args, "provider", None)
 
     providers = _get_available_providers()
 
     if not providers:
+        if auto_provider:
+            print(f"\n  No memory provider plugins detected (wanted '{auto_provider}').")
+            return
         print("\n  No memory provider plugins detected.")
         print("  Install a plugin to ~/.claudia/plugins/ and try again.\n")
         return
+
+    config = load_config()
+    if not isinstance(config.get("memory"), dict):
+        config["memory"] = {}
+
+    # --- Non-interactive path (--provider <name>) --------------------------
+    if auto_provider:
+        match = [(n, p) for n, _, p in providers if n == auto_provider]
+        if not match:
+            print(f"\n  Provider '{auto_provider}' not found.")
+            print(f"  Available: {', '.join(n for n, _, _ in providers)}\n")
+            return
+        name, provider = match[0]
+
+        # Install pip dependencies if declared in plugin.yaml
+        _install_dependencies(name)
+
+        # Accept all defaults from the config schema
+        schema = provider.get_config_schema() if hasattr(provider, "get_config_schema") else []
+        provider_config = {}
+        for field in schema:
+            default = field.get("default")
+            if default is not None:
+                provider_config[field["key"]] = default
+
+        # Write activation key to config.yaml
+        config["memory"]["provider"] = name
+        save_config(config)
+
+        # Write non-secret config to provider's native location
+        claudia_home = str(Path(os.environ.get("CLAUDIA_HOME", os.path.expanduser("~/.claudia"))))
+        if provider_config and hasattr(provider, "save_config"):
+            try:
+                provider.save_config(provider_config, claudia_home)
+            except Exception as e:
+                print(f"  Warning: Failed to write provider config: {e}")
+
+        print(f"\n  Memory provider: {name}")
+        print(f"  Activation saved to config.yaml")
+        if provider_config:
+            print(f"  Provider config saved (all defaults)")
+
+        if hasattr(provider, "post_setup_hint"):
+            try:
+                hint = provider.post_setup_hint()
+                if isinstance(hint, str) and hint.strip():
+                    print()
+                    for line in hint.rstrip().splitlines():
+                        print(f"  {line}")
+            except Exception:
+                pass
+        print()
+        return
+
+    # --- Interactive path (original wizard) --------------------------------
 
     # Build picker items
     items = []
@@ -255,10 +322,6 @@ def cmd_setup(args) -> None:
 
     builtin_idx = len(items) - 1
     selected = _curses_select("Memory provider setup", items, default=builtin_idx)
-
-    config = load_config()
-    if not isinstance(config.get("memory"), dict):
-        config["memory"] = {}
 
     # Built-in only
     if selected >= len(providers) or selected < 0:

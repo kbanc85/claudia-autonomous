@@ -4809,7 +4809,8 @@ For more help on a command:
         ),
     )
     memory_sub = memory_parser.add_subparsers(dest="memory_command")
-    memory_sub.add_parser("setup", help="Interactive provider selection and configuration")
+    memory_setup_p = memory_sub.add_parser("setup", help="Interactive provider selection and configuration")
+    memory_setup_p.add_argument("--provider", default=None, help="Activate a provider non-interactively with all defaults (e.g. --provider claudia)")
     memory_sub.add_parser("status", help="Show current memory provider config")
     memory_off_p = memory_sub.add_parser("off", help="Disable external provider (built-in only)")
 
