@@ -20,6 +20,36 @@ from pathlib import Path
 from claudia_constants import get_claudia_home
 from typing import Any, Optional
 
+
+def _is_pid_alive(pid: int) -> bool:
+    """Check whether *pid* refers to a running process (cross-platform).
+
+    On Unix, ``os.kill(pid, 0)`` is the standard probe — signal 0 checks
+    existence without actually sending a signal.  On Windows that call doesn't
+    work (and can even terminate a process), so we use the Win32 API directly:
+    ``OpenProcess`` with ``PROCESS_QUERY_LIMITED_INFORMATION`` returns a valid
+    handle when the process exists and ``None`` / 0 when it doesn't.
+    """
+    if sys.platform == "win32":
+        import ctypes
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        handle = ctypes.windll.kernel32.OpenProcess(
+            PROCESS_QUERY_LIMITED_INFORMATION, False, pid,
+        )
+        if handle:
+            ctypes.windll.kernel32.CloseHandle(handle)
+            return True
+        return False
+
+    # Unix path
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True  # exists but we lack permission
+    return True
+
 _GATEWAY_KIND = "claudia-gateway"
 _RUNTIME_STATUS_FILE = "gateway_state.json"
 _LOCKS_DIRNAME = "gateway-locks"
@@ -263,9 +293,7 @@ def acquire_scoped_lock(scope: str, identity: str, metadata: Optional[dict[str, 
 
         stale = existing_pid is None
         if not stale:
-            try:
-                os.kill(existing_pid, 0)
-            except (ProcessLookupError, PermissionError):
+            if not _is_pid_alive(existing_pid):
                 stale = True
             else:
                 current_start = _get_process_start_time(existing_pid)
@@ -366,9 +394,7 @@ def get_running_pid() -> Optional[int]:
         remove_pid_file()
         return None
 
-    try:
-        os.kill(pid, 0)  # signal 0 = existence check, no actual signal sent
-    except (ProcessLookupError, PermissionError):
+    if not _is_pid_alive(pid):
         remove_pid_file()
         return None
 

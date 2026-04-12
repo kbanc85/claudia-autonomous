@@ -1113,9 +1113,9 @@ class GatewayRunner:
                     self.adapters[platform] = adapter
                     self._sync_voice_mode_state_to_adapter(adapter)
                     connected_count += 1
-                    logger.info("✓ %s connected", platform.value)
+                    logger.info("[ok] %s connected", platform.value)
                 else:
-                    logger.warning("✗ %s failed to connect", platform.value)
+                    logger.warning("[!] %s failed to connect", platform.value)
                     if adapter.has_fatal_error:
                         target = (
                             startup_retryable_errors
@@ -1143,7 +1143,7 @@ class GatewayRunner:
                             "next_retry": time.monotonic() + 30,
                         }
             except Exception as e:
-                logger.error("✗ %s error: %s", platform.value, e)
+                logger.error("[!] %s error: %s", platform.value, e)
                 startup_retryable_errors.append(f"{platform.value}: {e}")
                 # Unexpected exceptions are typically transient — queue for retry
                 self._failed_platforms[platform] = {
@@ -1358,7 +1358,7 @@ class GatewayRunner:
                         self._sync_voice_mode_state_to_adapter(adapter)
                         self.delivery_router.adapters = self.adapters
                         del self._failed_platforms[platform]
-                        logger.info("✓ %s reconnected successfully", platform.value)
+                        logger.info("[ok] %s reconnected successfully", platform.value)
 
                         # Rebuild channel directory with the new adapter
                         try:
@@ -1421,12 +1421,12 @@ class GatewayRunner:
             try:
                 await adapter.cancel_background_tasks()
             except Exception as e:
-                logger.debug("✗ %s background-task cancel error: %s", platform.value, e)
+                logger.debug("[!] %s background-task cancel error: %s", platform.value, e)
             try:
                 await adapter.disconnect()
-                logger.info("✓ %s disconnected", platform.value)
+                logger.info("[ok] %s disconnected", platform.value)
             except Exception as e:
-                logger.error("✗ %s disconnect error: %s", platform.value, e)
+                logger.error("[!] %s disconnect error: %s", platform.value, e)
 
         # Cancel any pending background tasks
         for _task in list(self._background_tasks):

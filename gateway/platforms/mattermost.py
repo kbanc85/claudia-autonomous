@@ -40,7 +40,7 @@ MAX_POST_LENGTH = 4000
 _CHANNEL_TYPE_MAP = {
     "D": "dm",
     "G": "group",
-    "P": "group",   # private channel → treat as group
+    "P": "group",   # private channel -> treat as group
     "O": "channel",
 }
 
@@ -96,7 +96,7 @@ class MattermostAdapter(BasePlatformAdapter):
             or os.getenv("MATTERMOST_REPLY_MODE", "off")
         ).lower()
 
-        # Dedup cache: post_id → timestamp (prevent reprocessing)
+        # Dedup cache: post_id -> timestamp (prevent reprocessing)
         self._seen_posts: Dict[str, float] = {}
         self._SEEN_MAX = 2000
         self._SEEN_TTL = 300  # 5 minutes
@@ -119,7 +119,7 @@ class MattermostAdapter(BasePlatformAdapter):
             async with self._session.get(url, headers=self._headers(), timeout=aiohttp.ClientTimeout(total=30)) as resp:
                 if resp.status >= 400:
                     body = await resp.text()
-                    logger.error("MM API GET %s → %s: %s", path, resp.status, body[:200])
+                    logger.error("MM API GET %s -> %s: %s", path, resp.status, body[:200])
                     return {}
                 return await resp.json()
         except aiohttp.ClientError as exc:
@@ -139,7 +139,7 @@ class MattermostAdapter(BasePlatformAdapter):
             ) as resp:
                 if resp.status >= 400:
                     body = await resp.text()
-                    logger.error("MM API POST %s → %s: %s", path, resp.status, body[:200])
+                    logger.error("MM API POST %s -> %s: %s", path, resp.status, body[:200])
                     return {}
                 return await resp.json()
         except aiohttp.ClientError as exc:
@@ -158,7 +158,7 @@ class MattermostAdapter(BasePlatformAdapter):
             ) as resp:
                 if resp.status >= 400:
                     body = await resp.text()
-                    logger.error("MM API PUT %s → %s: %s", path, resp.status, body[:200])
+                    logger.error("MM API PUT %s -> %s: %s", path, resp.status, body[:200])
                     return {}
                 return await resp.json()
         except aiohttp.ClientError as exc:
@@ -184,7 +184,7 @@ class MattermostAdapter(BasePlatformAdapter):
         async with self._session.post(url, headers=headers, data=form, timeout=aiohttp.ClientTimeout(total=60)) as resp:
             if resp.status >= 400:
                 body = await resp.text()
-                logger.error("MM file upload → %s: %s", resp.status, body[:200])
+                logger.error("MM file upload -> %s: %s", resp.status, body[:200])
                 return None
             data = await resp.json()
             infos = data.get("file_infos", [])
@@ -526,7 +526,7 @@ class MattermostAdapter(BasePlatformAdapter):
 
     async def _ws_connect_and_listen(self) -> None:
         """Single WebSocket session: connect, authenticate, process events."""
-        # Build WS URL: https:// → wss://, http:// → ws://
+        # Build WS URL: https:// -> wss://, http:// -> ws://
         ws_url = re.sub(r"^http", "ws", self._base_url) + "/api/v4/websocket"
         logger.info("Mattermost: connecting to %s", ws_url)
 
