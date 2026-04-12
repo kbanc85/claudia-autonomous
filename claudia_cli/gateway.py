@@ -98,6 +98,8 @@ def kill_gateway_processes(force: bool = False) -> int:
             if force and not is_windows():
                 os.kill(pid, signal.SIGKILL)
             else:
+                # On Windows, SIGTERM calls TerminateProcess (always a force-kill).
+                # SIGKILL does not exist on Windows.
                 os.kill(pid, signal.SIGTERM)
             killed += 1
         except ProcessLookupError:
@@ -1034,9 +1036,12 @@ def _wait_for_gateway_exit(timeout: float = 10.0, force_after: float = 5.0):
 
         if not force_sent and time.monotonic() >= force_deadline:
             # Grace period expired — force-kill the specific PID.
+            # On Windows, SIGKILL doesn't exist; SIGTERM already calls
+            # TerminateProcess which is an unconditional kill.
+            _kill_signal = signal.SIGTERM if sys.platform == "win32" else signal.SIGKILL
             try:
-                os.kill(pid, signal.SIGKILL)
-                print(f"⚠ Gateway PID {pid} did not exit gracefully; sent SIGKILL")
+                os.kill(pid, _kill_signal)
+                print(f"Warning: Gateway PID {pid} did not exit gracefully; force-killed")
             except (ProcessLookupError, PermissionError):
                 return  # Already gone or we can't touch it.
             force_sent = True
